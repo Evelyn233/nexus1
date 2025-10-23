@@ -67,8 +67,8 @@ export class StoryGenerationService {
 故事生成要求：
 1. **基于现有内容**：如果场景数据中已有narrative，则在此基础上进行增强和完善
 2. **逻辑连贯**：确保故事逻辑顺畅，时间线清晰
-3. **人物一致**：用户是${userInfo.age || 26}岁中国${userInfo.gender === 'female' ? '女性' : '男性'}，${userInfo.height || '165'}cm，${userInfo.weight || '55'}kg，主要活动地点在${userLocation}，不能改为其他城市
-4. **真实姓名**：必须使用用户的真实姓名"${userInfo.name || '用户'}"，不要虚构其他名字（如"李雨晨"等）
+3. **人物一致**：用户是${userInfo?.age || 26}岁中国${userInfo?.gender === 'female' ? '女性' : '男性'}，${userInfo?.height || '165'}cm，${userInfo?.weight || '55'}kg，主要活动地点在${userLocation}，不能改为其他城市
+4. **真实姓名**：必须使用用户的真实姓名"${userInfo?.name || '用户'}"，不要虚构其他名字（如"李雨晨"等）
 5. **性格深度体现**：
    - 优先基于用户的自我认知（personality字段）来理解用户的整体特质
    - 不要在故事中直接出现"INTJ"、"MBTI"、"AI创业者"等标签
@@ -85,7 +85,7 @@ export class StoryGenerationService {
 - **故事中必须体现心理剧的内心世界描写**
 - 写法示例：
   * 外部场景："老板站在前方，双臂高举，激情宣布..."
-  * 内心世界："${userInfo.name}表面保持优雅姿态，偶尔点头，内心却在疯狂冷笑：'[innerMonologue内容]'她的理性思维快速运转..."
+  * 内心世界："${userInfo?.name}表面保持优雅姿态，偶尔点头，内心却在疯狂冷笑：'[innerMonologue内容]'她的理性思维快速运转..."
 - **不要忽略心理剧场景！必须在故事中完整体现内心独白和表面vs内心对比！**
 
 **⚠️⚠️⚠️ 用户对话和思考必须基于潜意识数据（极其重要！）：**
@@ -115,7 +115,7 @@ export class StoryGenerationService {
 - narrative字段必须是自然流畅的故事叙述
 - ❌ 不要包含【简洁直接】、【批判性思维】、【情绪内化】等标签！
 - ✅ 这些特质要融入叙述方式，而不是作为标签显示
-- ✅ 例如：不要写"${userInfo.name}【简洁直接】说"，而是直接写"${userInfo.name}冷静地说"
+- ✅ 例如：不要写"${userInfo?.name}【简洁直接】说"，而是直接写"${userInfo?.name}冷静地说"
 - ✅ 不要写"【批判性思维】她分析"，而是直接写"她理性分析着"
 - ✅ 不要写"【艺术敏感】她把场面看作话剧"，而是直接写"她把这场面看作一出精心编排的滑稽剧"`
             },
@@ -157,15 +157,15 @@ ${i === 0 ? '→ 对话起点（核心主题）' : '→ 补充细节（同等重
 4. **特别注意用户的观点、对比和价值判断**
 
 用户基本信息：
-- 姓名：${userInfo.name || '用户'}
-- 性别：${userInfo.gender === 'female' ? '女性' : '男性'}
-- 年龄：${userInfo.age || 26}岁
-- 身高：${userInfo.height || '165'}cm
-- 体重：${userInfo.weight || '55'}kg
+- 姓名：${userInfo?.name || '用户'}
+- 性别：${userInfo?.gender === 'female' ? '女性' : '男性'}
+- 年龄：${userInfo?.age || 26}岁
+- 身高：${userInfo?.height || '165'}cm
+- 体重：${userInfo?.weight || '55'}kg
 - 所在地：${userLocation}（重要：所有场景必须在${userLocation}，不能改为其他城市）
 
 用户自我认知（重要：这是用户对自己的整体描述，请深度理解并通过故事细节体现）：
-${userInfo.personality || '暂无自我描述'}
+${userInfo?.personality || '暂无自我描述'}
 
 **📋 用户元数据参考（重点突出故事生成相关字段，但包含所有字段供参考）：**
 
@@ -199,16 +199,16 @@ ${userInfo.personality || '暂无自我描述'}
 **示例对比：**
 
 ❌ 不精准（通用模板）：
-"${userInfo.name}说：'我觉得可以用一个比较经济的方案来解决这个问题。'她心里想着这个方案很好。"
+"${userInfo?.name}说：'我觉得可以用一个比较经济的方案来解决这个问题。'她心里想着这个方案很好。"
 
 ✅ 精准（基于潜意识特质，自然融入叙述，无标签）：
-"面试间里，老板摊开手掌，笑容温暖地说：'我们是result-oriented的，你可以work from home，兼职也可以。'${userInfo.name}表面保持职业化的专注，内心却被这种开放思维吸引——这正是她向往的硅谷式工作氛围。
+"面试间里，老板摊开手掌，笑容温暖地说：'我们是result-oriented的，你可以work from home，兼职也可以。'${userInfo?.name}表面保持职业化的专注，内心却被这种开放思维吸引——这正是她向往的硅谷式工作氛围。
 
-然而现实很快露出真相。在日常工作中，老板手指指向她，肩膀平展展现着传统中式权威姿态。${userInfo.name}眉毛微挑，冷静地分析着这种文化身份的割裂。她理性思维快速运转：表面谈开放创新，内核却是传统权威结构。她把这场面看作一个精心包装的谎言——美国思维只是外层糖衣，传统老男人的专制才是内核。意识流中闪过'所谓的开放...原来都是假象'的念头，嘴角几乎看不见的讽刺弧度暴露了她内心对虚伪的洞察。"
+然而现实很快露出真相。在日常工作中，老板手指指向她，肩膀平展展现着传统中式权威姿态。${userInfo?.name}眉毛微挑，冷静地分析着这种文化身份的割裂。她理性思维快速运转：表面谈开放创新，内核却是传统权威结构。她把这场面看作一个精心包装的谎言——美国思维只是外层糖衣，传统老男人的专制才是内核。意识流中闪过'所谓的开放...原来都是假象'的念头，嘴角几乎看不见的讽刺弧度暴露了她内心对虚伪的洞察。"
 
 ⚠️ 注意对比：
-- ❌ 有标签："${userInfo.name}【简洁直接】说"、"【批判性思维】她分析"
-- ✅ 无标签："${userInfo.name}冷静地说"、"她理性分析着"
+- ❌ 有标签："${userInfo?.name}【简洁直接】说"、"【批判性思维】她分析"
+- ✅ 无标签："${userInfo?.name}冷静地说"、"她理性分析着"
 
 ⚠️⚠️⚠️ 重要：以上【】标签只是给你的指导，帮你理解如何运用潜意识特质！
 🚨🚨🚨 生成的最终故事中不要包含【】标签！要自然流畅的叙述！
@@ -296,16 +296,16 @@ ${sceneData.narrative}
       console.error('💥 [STORY-GEN] 故事生成失败:', error)
       
       // 返回基于用户真实信息的默认故事
-      const userGender = userInfo.gender === 'female' ? '她' : '他'
-      const userGenderDesc = userInfo.gender === 'female' ? 'female' : 'male'
+      const userGender = userInfo?.gender === 'female' ? '她' : '他'     
+      const userGenderDesc = userInfo?.gender === 'female' ? 'female' : 'male'
       
       return {
-        narrative: `在${userLocation}的某个时刻，${userInfo.age || 26}岁的${userGender}思考着自己的人生。${userInfo.personality || '这是一个关于成长的故事'}。
+        narrative: `在${userLocation}的某个时刻，${userInfo?.age || 26}岁的${userGender}思考着自己的人生。${userInfo?.personality || '这是一个关于成长的故事'}。
 
 这是${userGender}的故事，基于真实的经历和感受。`,
-        aiPrompt: `A ${userInfo.age || 26}-year-old Chinese ${userGenderDesc}, ${userInfo.height || '165'}cm, ${userInfo.weight || '55'}kg, in ${userLocation}, modern realistic style, based on personality: ${userInfo.personality}`,
+        aiPrompt: `A ${userInfo?.age || 26}-year-old Chinese ${userGenderDesc}, ${userInfo?.height || '165'}cm, ${userInfo?.weight || '55'}kg, in ${userLocation}, modern realistic style, based on personality: ${userInfo?.personality}`,
         sceneDescription: `${userLocation}的日常场景`,
-        characterDescription: `${userInfo.age || 26}岁的${userInfo.gender === 'female' ? '女性' : '男性'}，${userInfo.personality}`,
+        characterDescription: `${userInfo?.age || 26}岁的${userInfo?.gender === 'female' ? '女性' : '男性'}，${userInfo?.personality}`,
         settingDescription: `主要在${userLocation}，现代都市环境`,
         moodDescription: '基于用户真实情感'
       }

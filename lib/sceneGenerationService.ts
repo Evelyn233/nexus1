@@ -71,7 +71,7 @@ export class SceneGenerationService {
       console.log('🎬 [SCENE-GEN] 极简metadata（避免干扰）:', sceneMetadata)
       
       // 检查用户信息是否完整
-      if (!userInfo.name || !userInfo.gender || !userInfo.location) {
+      if (!userInfo?.name || !userInfo?.gender || !userInfo?.location) {
         console.error('❌ [SCENE-GEN] 用户信息不完整！')
         console.error('❌ [SCENE-GEN] 当前用户信息:', userInfo)
         console.error('❌ [SCENE-GEN] localStorage keys:', Object.keys(localStorage).filter(k => k.includes('magazine')))
@@ -93,11 +93,11 @@ export class SceneGenerationService {
         }
       }
       
-      const userLocation = userInfo.location || '上海'
-      const userAge = userInfo.age || 26
-      const userGender = userInfo.gender === 'female' ? '女性' : (userInfo.gender === 'male' ? '男性' : '未知')
-      const userHeight = userInfo.height || '165'
-      const userWeight = userInfo.weight || '55'
+      const userLocation = userInfo?.location || '上海'
+      const userAge = userInfo?.age || 26
+      const userGender = userInfo?.gender === 'female' ? '女性' : (userInfo?.gender === 'male' ? '男性' : '未知')
+      const userHeight = userInfo?.height || '165'
+      const userWeight = userInfo?.weight || '55'
       
       // ✂️ 已删除性格可视化调用（避免"理性"标签带偏）
       const personalityDescription = '' // 删除性格可视化，避免元数据带偏
@@ -339,7 +339,7 @@ Q${i + 1}: ${q}
 A${i + 1}: ${answers[i] || '无'}
 `).join('')}
 
-用户自我认知：${userInfo.personality || '暂无'}
+用户自我认知：${userInfo?.personality || '暂无'}
 
 **🎯 用户核心性格特质（必须在场景情绪中自然体现）：**
 - 已缩减（避免干扰用户输入）
@@ -607,7 +607,7 @@ Scene 2: **Reality [用户实际说的场景]**
 **⚠️⚠️⚠️ 人物设置（重要！必须100%还原用户说的）⚠️⚠️⚠️**
 
 **主要人物：**
-- ${userInfo.age}岁中国${userInfo.gender === 'female' ? '女性' : '男性'}，${userInfo.name}
+- ${userInfo?.age}岁中国${userInfo?.gender === 'female' ? '女性' : '男性'}，${userInfo?.name}
 
 **其他人物的处理（必须基于用户输入！）：**
 
@@ -636,7 +636,7 @@ Scene 2: **Reality [用户实际说的场景]**
 用户说"高考没考好 后来出国读书了 现在工作了"
 - 场景1（高考）：18岁中国女性，高考失利场景
 - 场景2（出国读书）：19-20岁中国女性，悉尼大学学习场景  
-- 场景3（现在工作）：${userInfo.age}岁中国女性，当前工作场景
+- 场景3（现在工作）：${userInfo?.age}岁中国女性，当前工作场景
 
 返回JSON格式。`
             },
@@ -687,21 +687,21 @@ Scene 2: **Reality [用户实际说的场景]**
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 **🔥🔥🔥 用户物理外观信息（必须在每个场景description中包含！）🔥🔥🔥**
-- **性别（死刑线！绝对不能错！）**：${userGender}（${userInfo.gender}）
+- **性别（死刑线！绝对不能错！）**：${userGender}（${userInfo?.gender}）
 - 年龄：${userAge}岁（注意：不同事件时年龄不同，如高考18岁、出国19岁）
 - 身高：${userHeight}cm
 - 体重：${userWeight}kg
-- 头发：${userInfo.hairLength || '短发'}  ⚠️ 这个必须在description中写出来！
+- 头发：${userInfo?.hairLength || '短发'}  ⚠️ 这个必须在description中写出来！
 - 所在地：${userLocation}
 
 **⚠️⚠️⚠️ 死刑规则：每个场景的description必须包含完整且正确的人物描述！⚠️⚠️⚠️**
 
 **正确格式（必须严格遵守）：**
-- 用户是女性 → description开头："${userAge}-year-old Chinese female, ${userHeight}cm, ${userInfo.hairLength || 'long hair'}, wearing..."
-- 用户是男性 → description开头："${userAge}-year-old Chinese male, ${userHeight}cm, ${userInfo.hairLength || 'short hair'}, wearing..."
+- 用户是女性 → description开头："${userAge}-year-old Chinese female, ${userHeight}cm, ${userInfo?.hairLength || 'long hair'}, wearing..."
+- 用户是男性 → description开头："${userAge}-year-old Chinese male, ${userHeight}cm, ${userInfo?.hairLength || 'short hair'}, wearing..."
 
-**当前用户性别：${userInfo.gender === 'female' ? 'female（女性）' : 'male（男性）'}**
-**所以description必须写："${userAge}-year-old Chinese ${userInfo.gender === 'female' ? 'female' : 'male'}, ..."**
+**当前用户性别：${userInfo?.gender === 'female' ? 'female（女性）' : 'male（男性）'}**
+**所以description必须写："${userAge}-year-old Chinese ${userInfo?.gender === 'female' ? 'female' : 'male'}, ..."**
 
 ❌ 绝对禁止：写错性别！如果用户是female，不能写male！如果用户是male，不能写female！
 
@@ -748,7 +748,7 @@ ${answers.map((a, i) => `回答${i+1}: ${a}`).join('\n')}
    })()}
 
 用户自我认知（重要：这是用户对自己的整体描述，请深度理解并体现）：
-${userInfo.personality || '暂无自我描述'}
+${userInfo?.personality || '暂无自我描述'}
 
 用户元数据深度分析（辅助参考，帮助理解用户的行为模式，不要直接使用这些标签）：
 - 核心性格特征：${JSON.stringify(userMetadata.corePersonalityTraits || [])}
@@ -958,7 +958,7 @@ ${questions.map((q, i) => `
 ${temporaryDescription || '无'}
 
 **⚡ 优先级2：用户自我认知（用户对自己的整体描述）：**
-${userInfo.personality || '暂无'}
+${userInfo?.personality || '暂无'}
 
 **📊 优先级3：性格可视化（仅用于推测用户没说的细节，不能替换用户明确说的内容！）：**
 
@@ -1015,7 +1015,7 @@ ${personalityDescription}
 
 **第一步：提取并锁定用户明确说的内容（优先级最高！）**
 
-**用户自我认知：** ${userInfo.personality || '暂无'}
+**用户自我认知：** ${userInfo?.personality || '暂无'}
 
 **用户完整输入（包含问答上下文）：**
 ${questions.map((q, i) => `
@@ -1198,7 +1198,7 @@ A${i + 1}: ${answers[i] || '无'}
 **⚠️⚠️⚠️ 场景时间顺序和年龄推算（重要！）⚠️⚠️⚠️**
 
 **年龄推算规则（动态推算，不要硬编码）：**
-- 用户当前年龄：${userInfo.age || 26}岁
+- 用户当前年龄：${userInfo?.age || 26}岁
 - 根据用户输入的时间关系推算每个场景的年龄
 - 场景description中必须明确写出"XX岁"
 
@@ -1290,7 +1290,7 @@ A${i + 1}: ${answers[i] || '无'}
 1. **人物信息**：
    - 年龄：根据事件推算（如18岁、19岁、当前${userAge}岁）
    - 身高：${userHeight}cm
-   - 头发：${userInfo.hairLength || 'long hair'}  ⚠️ 这个绝对不能漏！
+    - 头发：${userInfo?.hairLength || 'long hair'}  ⚠️ 这个绝对不能漏！
 
 2. **动作细节（⚠️⚠️⚠️ 极其重要！必须极度详细！）**：
 
@@ -1390,12 +1390,12 @@ A${i + 1}: ${answers[i] || '无'}
 **场景主角 = 用户：**
 ✅ 正确示例（mainCharacter = "user"）：
 description必须以用户完整信息开头，格式：
-- 如果用户是女性："${userAge}-year-old Chinese female, ${userHeight}cm, ${userInfo.hairLength || 'long hair'}, ..."
-- 如果用户是男性："${userAge}-year-old Chinese male, ${userHeight}cm, ${userInfo.hairLength || 'short hair'}, ..."
+- 如果用户是女性："${userAge}-year-old Chinese female, ${userHeight}cm, ${userInfo?.hairLength || 'long hair'}, ..."
+- 如果用户是男性："${userAge}-year-old Chinese male, ${userHeight}cm, ${userInfo?.hairLength || 'short hair'}, ..."
 
 ⚠️⚠️⚠️ 死刑规则：绝对不能搞错用户性别！
-- 用户是${userGender}（${userInfo.gender}）
-- description开头必须是"${userAge}-year-old Chinese ${userInfo.gender === 'female' ? 'female' : 'male'}"
+- 用户是${userGender}（${userInfo?.gender}）
+- description开头必须是"${userAge}-year-old Chinese ${userInfo?.gender === 'female' ? 'female' : 'male'}"
 - 不要写错！不要写成其他性别！
 
 **场景主角 = 用户和老板互动：**
@@ -1411,7 +1411,7 @@ description格式（双主角）："26-year-old Chinese female [user's actual ac
 **实际生成时，所有内容必须基于用户实际输入：**
 - 年龄：根据事件推算（当前${userAge}岁）
 - 身高：${userHeight}cm
-- 头发：${userInfo.hairLength || '长发'}
+- 头发：${userInfo?.hairLength || '长发'}
 - 服装：用户说什么就是什么（白色T恤就是white T-shirt，不能改！）
 - 地点：用户说什么就是什么（淞虹路就是Songhong Road，不能改！）
 - 人物：用户提到老板/同事，必须在description中描述他们
@@ -1518,7 +1518,7 @@ description格式（双主角）："26-year-old Chinese female [user's actual ac
 - ❌ "Shanghai Pudong"（除非用户明确说了浦东）
 - ❌ "26-year-old"（必须根据事件推算）
 - ❌ "165cm"（必须用${userHeight}）
-- ❌ "long hair"（必须用${userInfo.hairLength}）
+- ❌ "long hair"（必须用${userInfo?.hairLength}）
 - ❌ "Lujiazui"、"Oriental Pearl Tower"、"Bund"等旅游地标（除非用户明确提到）
 - ❌ "Tiananmen"、"Forbidden City"等北京地标（除非用户明确提到）
 - ❌ "white cotton top"（必须用户说的服装）
@@ -1569,7 +1569,7 @@ description格式（双主角）："26-year-old Chinese female [user's actual ac
 **检查清单（基于用户实际输入）：**
 □ **每个场景是否有storyFragment字段？**（必须！缺少会导致图片下方无故事！）
 □ **storyFragment是否只写这个场景的事？**（不要写其他场景的内容！）
-□ **头发信息**是否在每个场景description中？（${userInfo.hairLength || '短发'} - 必须包含！）
+□ **头发信息**是否在每个场景description中？（${userInfo?.hairLength || '短发'} - 必须包含！）
 □ **动作细节**是否在description中？（身体姿态、手部动作、面部表情 - 必须详细描述！）
   - 例如："curled up on sofa with legs tucked", "tapping fingers unconsciously", "frowning slightly"
   - **从narrative/storyDescription中的动作细节必须出现在description中！**
@@ -1771,11 +1771,11 @@ ${questions.map((q, i) => `
             if (scene.visualDetails) {
               // 从visualDetails生成详细英文提示词
               const vd = scene.visualDetails
-              const hairDesc = userInfo.gender === 'female' && userInfo.hairLength ? `, ${userInfo.hairLength}` : ''
+              const hairDesc = userInfo?.gender === 'female' && userInfo?.hairLength ? `, ${userInfo.hairLength}` : ''
               
               // ✅ 优先使用AI生成的明确字段，不要再用正则提取
               const sceneLocation = scene.location || 'Unknown Location'
-              const sceneAge = scene.age || userInfo.age || 26
+              const sceneAge = scene.age || userInfo?.age || 26
               const scenePeopleCount = scene.peopleCount || 'alone'
               
               console.log(`✅ 场景${index + 1} - 地点: ${sceneLocation}, 年龄: ${sceneAge}, 人物: ${scenePeopleCount}`)

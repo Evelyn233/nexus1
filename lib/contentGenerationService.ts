@@ -102,29 +102,29 @@ static async generateQuickContent(options: {
     // 步骤1: 生成场景
     console.log('📝 [CONTENT-GEN] 步骤1: 生成场景...')
     const scenes = await SceneGenerationService.generateBaseStoryAndNarrative(
-      initialPrompt,
-      answers,
+        initialPrompt,
+        answers,
       questions,
       safeContextHistory.join('\n') // 传递上下文历史（作为字符串）
-    )
+      )
 
-    console.log('✅ [CONTENT-GEN] 场景生成完成')
+      console.log('✅ [CONTENT-GEN] 场景生成完成')
     console.log('🔹 [CONTENT-GEN] 场景数量:', scenes.logicalScenes?.length || 0)
 
     // 步骤2: 检测并生成观点可视化场景（先于心理剧）
     console.log('🎨 [CONTENT-GEN] 步骤2: 检测观点...')
     const scenesWithOpinion = await OpinionVisualizationService.enhanceSceneWithOpinion(
-      scenes,
-      initialPrompt,
-      answers
-    )
-    
+        scenes,
+        initialPrompt,
+        answers
+      )
+      
     // 🔥 使用包含观点场景的新scenes对象
     let finalScenes = scenesWithOpinion || scenes
 
     if (scenesWithOpinion?.hasOpinionScene) {
       console.log('✅ [CONTENT-GEN] 观点场景生成完成，场景数:', finalScenes.logicalScenes?.length)
-    } else {
+      } else {
       console.log('ℹ️ [CONTENT-GEN] 未生成观点场景')
     }
 
@@ -132,16 +132,16 @@ static async generateQuickContent(options: {
     console.log('🎭 [CONTENT-GEN] 步骤3: 检测心理剧...')
     const scenesWithPsychodrama = await PsychodramaSceneService.enhanceSceneWithPsychodrama(
       finalScenes,
-      initialPrompt,
-      answers
-    )
-    
+          initialPrompt,
+          answers
+        )
+        
     // 🔥 使用包含心理剧的新scenes对象
     finalScenes = scenesWithPsychodrama || finalScenes
 
     if (scenesWithPsychodrama?.hasPsychodrama) {
       console.log('✅ [CONTENT-GEN] 心理剧生成完成，场景数:', finalScenes.logicalScenes?.length)
-    } else {
+        } else {
       console.log('ℹ️ [CONTENT-GEN] 未生成心理剧')
     }
 
@@ -153,34 +153,62 @@ static async generateQuickContent(options: {
     }
 
     return {
-      scenes: finalScenes,  // 🔥 返回包含观点场景和心理剧的完整scenes
-      story,
-      psychodramaScene: null,  // 已废弃，心理剧现在在scenes.logicalScenes中
+      scenes: finalScenes,  // 🔥 返回包含观点场景和心理剧的完整scenes  
+      story: {
+        narrative: story.completeStory,
+        aiPrompt: '',
+        sceneDescription: '',
+        characterDescription: '',
+        settingDescription: '',
+        moodDescription: ''
+      },
+      psychodramaScene: null,  // 已废弃，心理剧现在在scenes.logicalScenes中                                                                            
       magazineCover: null,
       finalPrompt: '' // 已删除
     }
 
-  } catch (error) {
-    console.error('💥 [CONTENT-GEN] 内容生成失败:', error)
-    throw error
+    } catch (error) {
+      console.error('💥 [CONTENT-GEN] 内容生成失败:', error)
+      throw error
+    }
   }
-}
 
-/**
+  /**
  * 生成杂志封面
  */
 static async generateMagazineCover(
-  userProfile: any,
-  recentContext?: string
+  finalScenes: any,
+  story: any,
+    initialPrompt: string,
+    answers: string[]
 ): Promise<MagazineCover> {
   console.log('📰 [CONTENT-GEN] 开始生成杂志封面')
   
-  const cover = await MagazineCoverService.generateCover(
-    userProfile,
-    recentContext
-  )
-
+  const cover = await MagazineCoverService.generateMagazineCover(
+    finalScenes,
+          story,
+          initialPrompt,
+          answers
+        )
+        
   console.log('✅ [CONTENT-GEN] 杂志封面生成完成')
-  return cover
+  return cover || {
+    needsCover: true,
+    mainTitle: '默认封面',
+    subtitle: '默认副标题',
+    coreConflict: '默认冲突',
+    conflictIntensity: 5,
+    keyLocation: '默认地点',
+    otherCharacters: [],
+    psychologicalElements: [],
+    coverStyle: '简约',
+    colorScheme: '蓝色系',
+    typography: '现代',
+    storyType: '个人故事',
+    emotionalTone: '平静',
+    coverImagePrompt: '默认封面提示',
+    coverImageDescription_CN: '默认中文描述',
+    coverImageDescription_EN: 'Default English Description'
+    }
   }
 }

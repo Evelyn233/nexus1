@@ -102,11 +102,11 @@ export class PersonalityVisualizationService {
     
     // 从多个字段提取性格特质
     if (userMetadata.corePersonalityTraits) {
-      traits.push(...this.parseJsonArray(userMetadata.corePersonalityTraits))
+      traits.push(...userMetadata.corePersonalityTraits)
     }
     
     if (userMetadata.ziweiPersonality) {
-      traits.push(...this.parseJsonArray(userMetadata.ziweiPersonality))
+      traits.push(...userMetadata.ziweiPersonality)
     }
     
     return traits
@@ -117,7 +117,7 @@ export class PersonalityVisualizationService {
    */
   private static extractAestheticPreferences(userMetadata: UserMetadata | null): string[] {
     if (!userMetadata || !userMetadata.aestheticPreferences) return []
-    return this.parseJsonArray(userMetadata.aestheticPreferences)
+    return userMetadata.aestheticPreferences
   }
   
   /**
@@ -125,7 +125,7 @@ export class PersonalityVisualizationService {
    */
   private static extractLifestyleHobbies(userMetadata: UserMetadata | null): string[] {
     if (!userMetadata || !userMetadata.lifestyleHobbies) return []
-    return this.parseJsonArray(userMetadata.lifestyleHobbies)
+    return userMetadata.lifestyleHobbies
   }
   
   /**

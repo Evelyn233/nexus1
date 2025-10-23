@@ -40,7 +40,7 @@ export async function storeUserConversation(
         activity: activity.description,
         time: activity.time,
         location: activity.location,
-        people: activity.people ? JSON.stringify(activity.people) : null,
+        people: (activity as any).people ? JSON.stringify((activity as any).people) : null,
         userState: activity.state,
         sourceType: 'chat_session',
         sourceId: chatSession.id,
@@ -185,7 +185,7 @@ function extractFoods(text: string): string[] {
     }
   }
   
-  return [...new Set(foods)]
+  return Array.from(new Set(foods))
 }
 
 function extractPlaces(text: string): string[] {
@@ -202,7 +202,7 @@ function extractPlaces(text: string): string[] {
     }
   }
   
-  return [...new Set(places)]
+  return Array.from(new Set(places))
 }
 
 function extractActivities(text: string): string[] {
@@ -551,13 +551,13 @@ export async function getDataForSceneGeneration(userId: string, currentInput: st
   })
   
   const priority2 = {
-    recentActivities: recentActivities.map(a => ({
+    recentActivities: recentActivities.map((a: any) => ({
       activity: a.activity,
       time: a.time,
       state: a.userState,
       quote: a.userQuote
     })),
-    recentStatements: recentStatements.map(s => ({
+    recentStatements: recentStatements.map((s: any) => ({
       statement: s.statement,
       type: s.statementType
     }))
@@ -581,13 +581,13 @@ export async function getDataForSceneGeneration(userId: string, currentInput: st
   
   const priority3 = {
     analysis: userAnalysis ? JSON.parse(userAnalysis.corePersonality || '{}') : null,
-    patterns: behaviorPatterns.map(p => ({
+    patterns: behaviorPatterns.map((p: any) => ({
       type: p.patternType,
       description: p.description,
       frequency: p.frequency,
       confidence: p.confidence
     })),
-    preferences: preferences.map(p => ({
+    preferences: preferences.map((p: any) => ({
       category: p.category,
       preference: p.preference,
       strength: p.strength,
@@ -617,17 +617,17 @@ ${data.priority1.currentInput}
 **优先级2：第一层数据（用户真实说的/做的，事实）**
 
 最近活动：
-${data.priority2.recentActivities.map(a => 
+${data.priority2.recentActivities.map((a: any) => 
   `- ${a.activity} (${a.time}) - 用户原话："${a.quote}"`
 ).join('\n')}
 
 用户状态：
-${data.priority2.recentActivities.filter(a => a.state).map(a => 
+${data.priority2.recentActivities.filter((a: any) => a.state).map((a: any) => 
   `- ${a.state} (${a.time})`
 ).join('\n')}
 
 最近陈述：
-${data.priority2.recentStatements.map(s => 
+${data.priority2.recentStatements.map((s: any) => 
   `- "${s.statement}" (${s.type})`
 ).join('\n')}
 
@@ -637,12 +637,12 @@ ${data.priority2.recentStatements.map(s =>
 ${data.priority3.analysis ? JSON.stringify(data.priority3.analysis.traits) : '暂无'}
 
 行为模式：
-${data.priority3.patterns.map(p => 
+${data.priority3.patterns.map((p: any) => 
   `- ${p.description} (出现${p.frequency}次，置信度${p.confidence})`
 ).join('\n')}
 
 偏好总结：
-${data.priority3.preferences.map(p => 
+${data.priority3.preferences.map((p: any) => 
   `- ${p.preference} (${p.strength}，置信度${p.confidence})`
 ).join('\n')}
 
@@ -678,7 +678,7 @@ export async function viewUserTwoLayerData(userId: string) {
   })
   
   console.log('日常活动：')
-  activities.forEach(a => {
+  activities.forEach((a: any) => {
     console.log(`  - ${a.activity} (${a.time}) - 状态：${a.userState}`)
     console.log(`    用户原话："${a.userQuote}"`)
   })
@@ -690,7 +690,7 @@ export async function viewUserTwoLayerData(userId: string) {
   })
   
   console.log('\n用户陈述：')
-  statements.forEach(s => {
+  statements.forEach((s: any) => {
     console.log(`  - "${s.statement}" (${s.statementType})`)
   })
   
@@ -710,7 +710,7 @@ export async function viewUserTwoLayerData(userId: string) {
   })
   
   console.log('\n行为模式：')
-  patterns.forEach(p => {
+  patterns.forEach((p: any) => {
     console.log(`  - ${p.description} (出现${p.frequency}次，置信度${p.confidence})`)
   })
   
@@ -719,7 +719,7 @@ export async function viewUserTwoLayerData(userId: string) {
   })
   
   console.log('\n偏好总结：')
-  preferences.forEach(p => {
+  preferences.forEach((p: any) => {
     console.log(`  - ${p.preference} (${p.strength}，置信度${p.confidence})`)
   })
 }

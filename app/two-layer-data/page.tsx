@@ -94,29 +94,29 @@ export default function TwoLayerDataPage() {
           {/* Summary */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="bg-purple-50 rounded-lg p-4">
-              <div className="text-3xl font-bold text-purple-600">{data.summary.layer1_conscious?.totalConversations || 0}</div>
+              <div className="text-3xl font-bold text-purple-600">{data.summary.totalConversations || 0}</div>
               <div className="text-sm text-gray-600">对话记录</div>
             </div>
             <div className="bg-pink-50 rounded-lg p-4">
-              <div className="text-3xl font-bold text-pink-600">{data.summary.layer1_conscious?.totalRawInputs || 0}</div>
+              <div className="text-3xl font-bold text-pink-600">{data.summary.totalRawInputs || 0}</div>
               <div className="text-sm text-gray-600">原始输入</div>
             </div>
             <div className="bg-blue-50 rounded-lg p-4">
-              <div className="text-3xl font-bold text-blue-600">{data.summary.layer1_conscious?.totalKeywords || 0}</div>
+              <div className="text-3xl font-bold text-blue-600">{data.summary.totalKeywords || 0}</div>
               <div className="text-sm text-gray-600">提取关键词</div>
             </div>
             <div className="bg-green-50 rounded-lg p-4">
-              <div className="text-3xl font-bold text-green-600">{data.summary.layer2_subconscious?.totalAnalyzedTraits || 0}</div>
+              <div className="text-3xl font-bold text-green-600">{data.summary.totalAnalyzedTraits || 0}</div>
               <div className="text-sm text-gray-600">分析特质</div>
             </div>
           </div>
           
           {/* Priority Rule */}
-          {data.summary.priorityRule && (
+          {(data.summary as any).priorityRule && (
             <div className="mt-4 bg-blue-50 border-l-4 border-blue-600 p-4">
-              <p className="text-blue-800 font-semibold">📌 {data.summary.priorityRule}</p>
-              {data.summary.note && (
-                <p className="text-blue-600 text-sm mt-1">{data.summary.note}</p>
+              <p className="text-blue-800 font-semibold">📌 {(data.summary as any).priorityRule}</p>
+              {(data.summary as any).note && (
+                <p className="text-blue-600 text-sm mt-1">{(data.summary as any).note}</p>
               )}
             </div>
           )}
@@ -151,11 +151,11 @@ export default function TwoLayerDataPage() {
             {activeTab === 'conscious' ? (
               <div className="space-y-8">
                 <div>
-                  <p className="text-gray-600 italic mb-6">{data.consciousLayer.description}</p>
+                  <p className="text-gray-600 italic mb-6">{(data.consciousLayer as any).description}</p>
                 </div>
                 
                 {/* 遍历所有分类 */}
-                {Object.entries(data.consciousLayer.categories).map(([categoryName, category]: [string, any]) => (
+                {Object.entries((data.consciousLayer as any).categories || {}).map(([categoryName, category]: [string, any]) => (
                   <div key={categoryName}>
                     <h3 className="text-2xl font-bold mb-4 text-purple-600">{categoryName}</h3>
                     <p className="text-sm text-gray-500 mb-3">{category.description}</p>
@@ -244,11 +244,11 @@ export default function TwoLayerDataPage() {
             ) : (
               <div className="space-y-8">
                 <div>
-                  <p className="text-gray-600 italic mb-6">{data.subconsciousLayer.description}</p>
+                  <p className="text-gray-600 italic mb-6">{(data.subconsciousLayer as any).description}</p>
                 </div>
                 
                 {/* 遍历所有分类 */}
-                {Object.entries(data.subconsciousLayer.categories).map(([categoryName, category]: [string, any]) => (
+                {Object.entries((data.subconsciousLayer as any).categories || {}).map(([categoryName, category]: [string, any]) => (
                   <div key={categoryName}>
                     <h3 className="text-2xl font-bold mb-4 text-pink-600">{categoryName}</h3>
                     <p className="text-sm text-gray-500 mb-3">{category.description}</p>
@@ -307,13 +307,13 @@ export default function TwoLayerDataPage() {
                 <div className="bg-gray-50 rounded-lg p-6">
                   <h4 className="font-semibold mb-2">分析元信息</h4>
                   <div className="text-sm text-gray-600">
-                    <p>最后分析时间：{data.subconsciousLayer.analysisInfo.lastAnalyzed 
-                      ? new Date(data.subconsciousLayer.analysisInfo.lastAnalyzed).toLocaleString('zh-CN')
+                    <p>最后分析时间：{(data.subconsciousLayer as any).analysisInfo?.lastAnalyzed 
+                      ? new Date((data.subconsciousLayer as any).analysisInfo.lastAnalyzed).toLocaleString('zh-CN')
                       : '未分析'
                     }</p>
-                    <p>更新次数：{data.subconsciousLayer.analysisInfo.updateCount}</p>
-                    {data.subconsciousLayer.analysisInfo.note && (
-                      <p className="mt-2 text-blue-600">{data.subconsciousLayer.analysisInfo.note}</p>
+                    <p>更新次数：{(data.subconsciousLayer as any).analysisInfo?.updateCount || 0}</p>
+                    {(data.subconsciousLayer as any).analysisInfo?.note && (
+                      <p className="mt-2 text-blue-600">{(data.subconsciousLayer as any).analysisInfo.note}</p>
                     )}
                   </div>
                 </div>

@@ -18,11 +18,11 @@ interface ChatMessage {
 interface MemobaseUser {
   uid: string
   profile: any
-  insert: (blob: any) => string
+  insert: (blob: any) => Promise<string>
   flush: (sync?: boolean) => Promise<void>
   get: (bid: string) => any
   delete: (bid: string) => void
-  context: (options?: any) => string
+  context: (options?: any) => Promise<string>
 }
 
 // Memobase客户端
@@ -96,7 +96,7 @@ class MemobaseClient {
       const user: MemobaseUser = {
         uid: result.uid,
         profile: result.profile || {},
-        insert: (blob: any) => this.insertBlob(result.uid, blob),
+        insert: async (blob: any) => await this.insertBlob(result.uid, blob),
         flush: (sync = true) => this.flushUser(result.uid, sync),
         get: (bid: string) => this.getBlob(result.uid, bid),
         delete: (bid: string) => this.deleteBlob(result.uid, bid),
@@ -252,11 +252,11 @@ class MemobaseClient {
     return {
       uid: userId,
       profile: {},
-      insert: () => 'mock-bid-' + Date.now(),
+      insert: async () => 'mock-bid-' + Date.now(),
       flush: async () => {},
       get: () => null,
       delete: () => {},
-      context: () => ''
+      context: async () => ''
     }
   }
 }

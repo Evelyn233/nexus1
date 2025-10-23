@@ -45,10 +45,10 @@ export async function POST(request: Request) {
     })
 
     // 生成内容（会使用真实的用户数据）
-    const result = await ContentGenerationService.generateQuickContent(
+    const result = await ContentGenerationService.generateQuickContent({
       initialPrompt,
-      answers || []
-    )
+      answers: answers || []
+    })
 
     return NextResponse.json({
       success: true,

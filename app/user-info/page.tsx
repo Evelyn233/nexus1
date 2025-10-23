@@ -36,7 +36,7 @@ export default function UserInfoPage() {
   useEffect(() => {
     // 如果用户已登录，自动填充邮箱对应的姓名
     if (session?.user?.name && !userInfo.name) {
-      setUserInfo(prev => ({ ...prev, name: session.user.name || '' }))
+      setUserInfo(prev => ({ ...prev, name: session.user?.name || '' }))
     }
     
     // 加载已保存的用户信息

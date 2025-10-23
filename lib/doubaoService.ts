@@ -176,8 +176,8 @@ ${userAnalysisPrompt}
 - **避免重复**：每个问题都要不同，有针对性
 
 **用户特点分析：**
-${userInfo.gender === 'male' ? 
-  '用户是男性，有创业经历，经历过失败和挫折，需要具体的、实用的建议' : 
+${userInfo?.gender === 'male' ?
+  '用户是男性，有创业经历，经历过失败和挫折，需要具体的、实用的建议' :  
   '用户是女性，需要平衡的问题权重'
 }
 
@@ -241,9 +241,9 @@ ${userInfo.gender === 'male' ?
         console.log('📄 原始内容:', content)
         
         // 尝试从文本中提取问题
-        const lines = content.split('\n').filter(line => line.trim().length > 0)
-        const questions = lines.filter(line => 
-          line.includes('？') || line.includes('?') || 
+        const lines = content.split('\n').filter((line: string) => line.trim().length > 0)
+        const questions = lines.filter((line: string) =>
+          line.includes('？') || line.includes('?') ||
           line.length > 10 && !line.includes('```')
         ).slice(0, 3)
         
@@ -323,7 +323,7 @@ export async function generateDeepQuestions(
   const userInfoDescription = await getUserDescription()
   const userInfo = await getUserInfo()
   const userMetadata = await getUserMetadata()
-  const isMale = userInfo.gender === 'male'
+  const isMale = userInfo?.gender === 'male'
   
   // 构建基于用户分析数据的个性化提示词
   const userAnalysisPrompt = userMetadata && userMetadata.corePersonalityTraits ? `
@@ -332,7 +332,7 @@ export async function generateDeepQuestions(
 - 沟通风格特征：${userMetadata.communicationStyle?.join('、') || ''}
 - 情感模式特征：${userMetadata.emotionalPattern?.join('、') || ''}
 - 决策风格特征：${userMetadata.decisionMakingStyle?.join('、') || ''}
-- 自我认知：${userInfo.personality || '暂无'}
+- 自我认知：${userInfo?.personality || '暂无'}
 ` : ''
 
   // 构建之前的对话上下文（问答配对）

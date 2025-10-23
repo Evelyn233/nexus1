@@ -214,7 +214,7 @@ export default function GeneratePage() {
         const allImageUrls: (string | null)[] = new Array(scenePrompts.length).fill(null)
         
         // 🎯 立即初始化UI：显示所有场景卡片（loading占位符）
-        setGeneratedImages([...allImageUrls])
+        setGeneratedImages([...allImageUrls.filter(url => url !== null) as string[]])
         
         // 🚀 并行生成所有场景图片，实时显示
         setGenerationMessage(`🚀 并行生成${scenePrompts.length}个场景图片...`)
@@ -234,8 +234,8 @@ export default function GeneratePage() {
               
               // 🎉 立即更新UI显示新图片！（使用函数式更新避免竞态）
               setGeneratedImages(prev => {
-                const newImages = [...allImageUrls]
-                const completed = newImages.filter(url => url).length
+                const newImages = [...allImageUrls.filter(url => url !== null) as string[]]
+                const completed = newImages.length
                 
                 // 不自动选中，保持按顺序显示
                 // 用户可以手动点击查看大图
@@ -341,7 +341,7 @@ export default function GeneratePage() {
         sceneIndex: index,
         prompt: prompt,
         imageUrl: imageUrls[index] || '',
-        localPath: null
+        localPath: undefined
       }))
 
       // 调用保存服务

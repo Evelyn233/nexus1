@@ -75,8 +75,8 @@ export async function getUserInfo(): Promise<UserInfo | null> {
         location: user.location || '',
         personality: user.personality || '',
         hairLength: user.hairLength || '',
-        mbti: user.mbti || '',
-        age: user.age || 26
+        mbti: (user as any).mbti || '',
+        age: (user as any).age || 26
       }
     }
     

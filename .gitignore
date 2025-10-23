@@ -103,3 +103,4 @@ public/generated-images/
 # Temporary files
 *.tmp
 *.temp
+.vercel

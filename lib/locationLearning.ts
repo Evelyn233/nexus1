@@ -55,7 +55,7 @@ export function extractLocationsFromText(text: string, userCity: string = '上�
     }
   })
   
-  return [...new Set(locations)]  // 去重
+  return Array.from(new Set(locations))  // 去重
 }
 
 /**
@@ -85,7 +85,7 @@ export async function updateFrequentLocations(
       JSON.parse(metadata.frequentLocations) : []
     
     // 合并新地点（去重，最多保留15个）
-    const updatedLocations = [...new Set([...existingLocations, ...locations])].slice(0, 15)
+    const updatedLocations = Array.from(new Set([...existingLocations, ...locations])).slice(0, 15)
     
     console.log('🗺️ [LOCATION-LEARNING] 更新后的常去地点:', updatedLocations)
     

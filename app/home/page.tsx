@@ -69,7 +69,7 @@ export default function HomePage() {
       title: '情绪穿搭指南',
       subtitle: '当你不想社交时，衣服替你表达',
       quote: '"孤独也可以被设计得很高级。"',
-      type: 'article'
+      type: 'article' as const
     },
     {
       id: 2,
@@ -77,7 +77,7 @@ export default function HomePage() {
       title: '☕ 月亮奶盖与凌晨两点的文档',
       subtitle: '创作者的夜生活样本',
       quote: '"不是失眠，是灵感在流动。"',
-      type: 'article'
+      type: 'article' as const
     },
     {
       id: 3,
@@ -85,7 +85,7 @@ export default function HomePage() {
       title: '🧠 理解AI的正确方式',
       subtitle: '当工具开始理解人类，我们又该如何理解自己',
       quote: '"智能不一定有灵魂，但它能照见灵魂。"',
-      type: 'article'
+      type: 'article' as const
     },
     {
       id: 4,
@@ -93,7 +93,7 @@ export default function HomePage() {
       title: '🖋️ 一封写给未来自己的邮件',
       subtitle: 'AI帮你整理那些没来得及说出口的话',
       quote: '"所有\'草稿\'都有机会成为故事。"',
-      type: 'article'
+      type: 'article' as const
     },
     {
       id: 5,
@@ -101,7 +101,7 @@ export default function HomePage() {
       title: '🌒 在算法中寻找浪漫',
       subtitle: '一个数字原生者的感情实验',
       quote: '"当数据懂了情绪，也许爱只是另一种公式。"',
-      type: 'article'
+      type: 'article' as const
     },
     {
       id: 6,
@@ -109,7 +109,7 @@ export default function HomePage() {
       subtitle: '点击生成专属建议',
       suggestion: '🌿 周末复苏手册 - 为高敏感都市人设计的精神逃生出口',
       source: '来自AI 的生活建议',
-      type: 'ai-suggestion',
+      type: 'ai-suggestion' as const,
       bgColor: 'bg-purple-50'
     }
   ]

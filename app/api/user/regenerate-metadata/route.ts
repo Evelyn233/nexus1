@@ -145,7 +145,7 @@ export async function POST() {
         data: {
           communicationStyle: JSON.stringify(metadata.communicationStyle || []),
           emotionalPattern: JSON.stringify(metadata.emotionalPattern || []),
-          decisionMakingStyle: JSON.stringify(metadata.decisionMakingStyle || []),
+          decisionStyle: JSON.stringify(metadata.decisionStyle || []),
           stressResponse: JSON.stringify(metadata.stressResponse || []),
           interpersonalStrengths: JSON.stringify(metadata.interpersonalStrengths || []),
           interpersonalChallenges: JSON.stringify(metadata.interpersonalChallenges || []),
@@ -153,15 +153,13 @@ export async function POST() {
           aestheticPreferences: JSON.stringify(metadata.aestheticPreferences || []),
           lifestyleHobbies: JSON.stringify(metadata.lifestyleHobbies || []),
           activityPreferences: JSON.stringify(metadata.activityPreferences || []),
-          fashionStyleTendencies: JSON.stringify(metadata.fashionStyle || metadata.fashionStyleTendencies || []),
+          fashionStyle: JSON.stringify(metadata.fashionStyle || []),
           careerAptitude: JSON.stringify(metadata.careerAptitude || []),
           relationshipPattern: JSON.stringify(metadata.relationshipPattern || []),
           lifePhilosophy: JSON.stringify(metadata.lifePhilosophy || []),
           luckyColors: JSON.stringify(metadata.luckyColors || []),
           luckyNumbers: JSON.stringify(metadata.luckyNumbers || []),
-          naturalStrengths: JSON.stringify(metadata.naturalStrengths || []),
-          personalChallenges: JSON.stringify(metadata.personalChallenges || []),
-          growthPotential: JSON.stringify(metadata.growthPotential || []),
+          coreTraits: JSON.stringify(metadata.coreTraits || []),
           lastAnalyzed: new Date().toISOString()
         }
       })

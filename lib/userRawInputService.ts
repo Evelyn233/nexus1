@@ -46,7 +46,7 @@ export async function saveUserRawInput(
     const existingPhrases: string[] = metadata.userMentionedKeywords 
       ? JSON.parse(metadata.userMentionedKeywords) 
       : []
-    const updatedPhrases = [...new Set([...keyPhrases, ...existingPhrases])].slice(0, 200)
+    const updatedPhrases = Array.from(new Set([...keyPhrases, ...existingPhrases])).slice(0, 200)
     
     // 保存到Prisma
     const saveResult = await updateUserMetadata({
@@ -106,7 +106,7 @@ function extractMeaningfulPhrases(userAnswer: string): string[] {
   })
   
   // 去重并过滤
-  return [...new Set(phrases)]
+  return Array.from(new Set(phrases))
     .filter(p => p.trim().length >= 3)
     .filter(p => p.trim().length <= 30)
 }

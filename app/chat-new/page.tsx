@@ -8,6 +8,7 @@ import { getUserInfoDescription, getUserMetadata, isUserMetadataComplete, getUse
 import { updateUserMetadata } from '@/lib/userDataApi'
 import { UserMetadataAnalyzer } from '@/lib/userMetadataService'
 import { ContentGenerationService } from '@/lib/contentGenerationService'
+import { detectEmotionsWithLLM, translateEmotionsToEnglish } from '@/lib/emotionDetectionService'
 import UserInfoBar from '@/components/UserInfoBar'
 import ChatHistorySidebar from '@/components/ChatHistorySidebar'
 
@@ -1100,7 +1101,7 @@ ${aiPrompt}`
         initialPrompt: actualPrompt,
         answers: answersWithContext,
         questions: questions,
-        contextHistory: contextHistory // 传入历史背景，让场景生成知道
+        contextHistory: contextHistory ? [contextHistory] : [] // 传入历史背景，让场景生成知道
       })
       // 2. 准备场景数据
       const logicalScenes = contentResult.scenes?.logicalScenes
@@ -1169,20 +1170,18 @@ ${aiPrompt}`
               scene.subconsciousDesire || ''
             ].join(' ')
             
-            const emotionKeywords = allEmotionText.match(/生气|很生气|气死|愤怒|火大|不爽|害怕|恐惧|孤独|孤单|想念|思念|渴望|脆弱|无助|失落|寂寞|失望|委屈|幻灭|沮丧|无奈/g) || []
-            const uniqueEmotions = [...new Set(emotionKeywords)]
-            
-            if (uniqueEmotions.length > 0) {
-              const emotionMap: Record<string, string> = {
-                '生气': 'anger', '很生气': 'strong anger', '气死': 'furious', '愤怒': 'rage', '火大': 'irritated', '不爽': 'upset',
-                '害怕': 'fear', '恐惧': 'terror', '孤独': 'loneliness', '孤单': 'solitude',
-                '想念': 'longing', '思念': 'missing', '渴望': 'yearning', '脆弱': 'vulnerability',
-                '无助': 'helplessness', '失落': 'loss', '寂寞': 'loneliness',
-                '失望': 'disappointment', '委屈': 'grievance', '幻灭': 'disillusionment',
-                '沮丧': 'dejection', '无奈': 'helplessness'
+            // 使用LLM进行智能情绪检测
+            try {
+              const emotionResult = await detectEmotionsWithLLM(allEmotionText)
+              if (emotionResult.emotions.length > 0) {
+                const emotionEN = translateEmotionsToEnglish(emotionResult.emotions).join(', ')
+                const intensityText = emotionResult.intensity === 'high' ? 'intense' : 
+                                   emotionResult.intensity === 'medium' ? 'moderate' : 'subtle'
+                imagePrompt = `Core emotions: ${emotionEN} (${intensityText} intensity). ` + imagePrompt
+                console.log(`🎭 [EMOTION] 检测到情绪: ${emotionResult.emotions.join(', ')} (${emotionResult.intensity})`)
               }
-              const emotionEN = uniqueEmotions.map(e => emotionMap[e] || e).join(', ')
-              imagePrompt = `Core emotions: ${emotionEN}. ` + imagePrompt
+            } catch (error) {
+              console.warn('⚠️ [EMOTION] LLM情绪检测失败，跳过情绪增强:', error)
             }
           }
           
@@ -1308,8 +1307,8 @@ ${aiPrompt}`
             initialPrompt: actualPrompt,
             questions: questions.slice(0, answersWithContext.length),
             answers: answersWithContext,
-            scenes: generatedScenes || {},
-            storyNarrative: storyNarrative || '',
+            scenes: scenes || {},
+            storyNarrative: contentResult.story?.narrative || '',
             images: generatedImagesData,
             category: 'daily'
           })
@@ -1408,7 +1407,7 @@ ${aiPrompt}`
   ) => {
     try {
       // 🔵 第一步：存储用户原始输入（表意识层）
-      const currentMetadata = getUserMetadata()
+      const currentMetadata = getUserMetadata() as any
       const rawInputsToAdd = [userAnswer]  // 用户的原始回答
       if (context.length > 0) {
         rawInputsToAdd.unshift(context[0])  // 初始prompt也要存储

@@ -36,7 +36,7 @@ export class SceneStoryMappingService {
       const userInfo = await getUserInfo()
       const userMetadata = await getUserMetadata()
       
-      const userLocation = userInfo.location || '上海'
+      const userLocation = userInfo?.location || '上海'
 
       const response = await fetch('https://api.deepseek.com/chat/completions', {
         method: 'POST',
@@ -83,7 +83,7 @@ export class SceneStoryMappingService {
 2. **关键词匹配**：识别故事中的关键地点、人物、事件，与场景描述进行匹配
 3. **逻辑连贯**：确保故事归属符合时间顺序和逻辑发展
 4. **地理准确性**：重点关注${userLocation}相关的地点描述
-5. **人物一致性**：确保${userInfo.age || 26}岁中国${userInfo.gender === 'female' ? '女性' : '男性'}的角色描述一致
+5. **人物一致性**：确保${userInfo?.age || 26}岁中国${userInfo?.gender === 'female' ? '女性' : '男性'}的角色描述一致
 6. **用户输入准确性**：场景中用户说的具体名词（食物、地点、物品、店名）必须在故事中100%原样出现
 7. **纯粹叙述**：只写故事，不写分析；只描述场景和感受，不解释元数据
 
@@ -99,10 +99,10 @@ export class SceneStoryMappingService {
             {
               role: 'user',
               content: `用户信息：
-- 性别：${userInfo.gender === 'female' ? '女性' : '男性'}
-- 年龄：${userInfo.age || 26}岁
-- 身高：${userInfo.height || '165'}cm
-- 体重：${userInfo.weight || '55'}kg
+- 性别：${userInfo?.gender === 'female' ? '女性' : '男性'}
+- 年龄：${userInfo?.age || 26}岁
+- 身高：${userInfo?.height || '165'}cm
+- 体重：${userInfo?.weight || '55'}kg
 - 所在地：${userLocation}
 
 用户元数据：
