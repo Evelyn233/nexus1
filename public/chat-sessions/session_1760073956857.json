@@ -1,0 +1,40 @@
+{
+  "sessionId": "session_1760073956857",
+  "title": "我今天上班好累",
+  "messages": [
+    {
+      "id": "user-1",
+      "type": "user",
+      "content": "我今天上班好累"
+    },
+    {
+      "id": "assistant-1760073966447-1",
+      "type": "assistant",
+      "content": "今天工作中具体是什么任务或情况让你感到特别疲惫？"
+    },
+    {
+      "id": "assistant-1760073967500-1",
+      "type": "assistant",
+      "content": "今天上班具体是什么工作任务让你感到特别疲惫？是工作量太大还是遇到了什么挑战？"
+    },
+    {
+      "id": "user-1760074088162",
+      "type": "user",
+      "content": "昨天晚上没睡着困死了"
+    },
+    {
+      "id": "assistant-processing-1760074088162",
+      "type": "assistant",
+      "content": "正在分析您的回答，准备下一个问题..."
+    }
+  ],
+  "initialPrompt": "我今天上班好累",
+  "answers": [
+    "昨天晚上没睡着困死了"
+  ],
+  "questions": [
+    "今天上班具体是什么工作任务让你感到特别疲惫？是工作量太大还是遇到了什么挑战？"
+  ],
+  "createdAt": "2025-10-10T05:28:09.791Z",
+  "updatedAt": "2025-10-10T05:28:09.791Z"
+}

@@ -1,0 +1,738 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { useAuth } from '@/hooks/useAuth'
+import { Search, Bell, X, History } from 'lucide-react'
+import ContentCard from '@/components/ContentCard'
+import InputSection from '@/components/InputSection'
+import UserInfoBar from '@/components/UserInfoBar'
+import ClientOnly from '@/components/ClientOnly'
+import ChatHistorySidebar from '@/components/ChatHistorySidebar'
+import { QUICK_GENERATE_OPTIONS } from '@/lib/config'
+import { resetUserInfo, getUserInfo, getUserInfoDescription, getCurrentUserName, setCurrentUserName, getUserList, addUserToList, removeUserFromList, getLatestUserReport, getUserReports } from '@/lib/userInfoService'
+import { getUserGeneratedContents } from '@/lib/userContentStorageService'
+
+export default function HomePage() {
+  const router = useRouter()
+  const { isAuthenticated, session, isLoading } = useAuth()
+  const [inputValue, setInputValue] = useState('')
+  const [showUserProfile, setShowUserProfile] = useState(false)
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+  const [userContent, setUserContent] = useState<any[]>([])
+  const [contentLoading, setContentLoading] = useState(true)
+
+  // 加载用户生成的内容
+  useEffect(() => {
+    if (isAuthenticated) {
+      loadUserContent()
+    }
+  }, [isAuthenticated])
+
+  const loadUserContent = async () => {
+    try {
+      setContentLoading(true)
+      console.log('🔍 [HOME] 加载用户生成内容...')
+      const result = await getUserGeneratedContents(4, 0) // 只加载最新的4条
+      
+      if (result.success && result.contents) {
+        console.log('✅ [HOME] 加载用户内容成功:', result.contents.length)
+        setUserContent(result.contents)
+      } else {
+        console.log('⚠️ [HOME] 没有用户内容，使用静态数据')
+        setUserContent([])
+      }
+    } catch (error) {
+      console.error('❌ [HOME] 加载用户内容失败:', error)
+      setUserContent([])
+    } finally {
+      setContentLoading(false)
+    }
+  }
+  
+  // 显示加载状态
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">正在加载...</p>
+        </div>
+      </div>
+    )
+  }
+
+  const staticContentData = [
+    {
+      id: 1,
+      image: 'https://images.unsplash.com/photo-1544022613-e87ca75a784a?w=400&h=300&fit=crop',
+      title: '情绪穿搭指南',
+      subtitle: '当你不想社交时，衣服替你表达',
+      quote: '"孤独也可以被设计得很高级。"',
+      type: 'article'
+    },
+    {
+      id: 2,
+      image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=300&fit=crop',
+      title: '☕ 月亮奶盖与凌晨两点的文档',
+      subtitle: '创作者的夜生活样本',
+      quote: '"不是失眠，是灵感在流动。"',
+      type: 'article'
+    },
+    {
+      id: 3,
+      image: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=400&h=300&fit=crop',
+      title: '🧠 理解AI的正确方式',
+      subtitle: '当工具开始理解人类，我们又该如何理解自己',
+      quote: '"智能不一定有灵魂，但它能照见灵魂。"',
+      type: 'article'
+    },
+    {
+      id: 4,
+      image: 'https://images.unsplash.com/photo-1518709268805-4e9042af2176?w=400&h=300&fit=crop',
+      title: '🖋️ 一封写给未来自己的邮件',
+      subtitle: 'AI帮你整理那些没来得及说出口的话',
+      quote: '"所有\'草稿\'都有机会成为故事。"',
+      type: 'article'
+    },
+    {
+      id: 5,
+      image: 'https://images.unsplash.com/photo-1518709268805-4e9042af2176?w=400&h=300&fit=crop',
+      title: '🌒 在算法中寻找浪漫',
+      subtitle: '一个数字原生者的感情实验',
+      quote: '"当数据懂了情绪，也许爱只是另一种公式。"',
+      type: 'article'
+    },
+    {
+      id: 6,
+      title: 'AI 生活建议',
+      subtitle: '点击生成专属建议',
+      suggestion: '🌿 周末复苏手册 - 为高敏感都市人设计的精神逃生出口',
+      source: '来自AI 的生活建议',
+      type: 'ai-suggestion',
+      bgColor: 'bg-purple-50'
+    }
+  ]
+
+  const handleSend = () => {
+    if (inputValue.trim()) {
+      // 跳转到聊天页面进行深度提问
+      router.push(`/chat-new?prompt=${encodeURIComponent(inputValue)}`)
+      setInputValue('')
+    }
+  }
+
+  const handleSessionSelect = (session: any) => {
+    console.log('加载历史会话:', session)
+    // 跳转到聊天页面并传递会话ID
+    router.push(`/chat-new?sessionId=${session.sessionId}`)
+  }
+
+
+  return (
+    <div className="min-h-screen bg-white">
+      {/* 历史记录侧边栏 */}
+      <ChatHistorySidebar
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+        onSessionSelect={handleSessionSelect}
+      />
+
+      {/* Header */}
+      <header className="flex items-center justify-between p-4 bg-white border-b border-gray-100">
+        <div className="font-handwriting text-2xl text-magazine-purple">
+          logo
+        </div>
+        <div className="flex items-center space-x-4">
+          <button
+            onClick={() => setIsSidebarOpen(true)}
+            className="text-magazine-gray hover:text-magazine-purple transition-colors"
+            title="历史记录"
+          >
+            <History className="w-6 h-6" />
+          </button>
+          <button
+            onClick={() => setShowUserProfile(true)}
+            className="text-magazine-gray hover:text-magazine-purple transition-colors"
+            title="查看个人信息"
+          >
+            👤
+          </button>
+          <button
+            onClick={() => router.push('/gallery')}
+            className="text-magazine-gray hover:text-magazine-purple transition-colors"
+            title="图片画廊"
+          >
+            🖼️
+          </button>
+          <button
+            onClick={() => router.push('/chat-new?prompt=' + encodeURIComponent(inputValue || '我明天面试穿什么'))}
+            className="text-magazine-gray hover:text-magazine-purple transition-colors"
+            title="智能对话"
+          >
+            💬
+          </button>
+          <button
+            onClick={() => router.push('/test-real-api')}
+            className="text-magazine-gray hover:text-magazine-purple transition-colors"
+            title="真实API测试"
+          >
+            🧪
+          </button>
+          <button
+            onClick={() => router.push('/test-chat')}
+            className="text-magazine-gray hover:text-magazine-purple transition-colors"
+            title="Chat功能测试"
+          >
+            🔧
+          </button>
+          <button
+            onClick={() => router.push('/chat-debug?prompt=' + encodeURIComponent('我明天面试穿什么'))}
+            className="text-magazine-gray hover:text-magazine-purple transition-colors"
+            title="Chat调试页面"
+          >
+            🐛
+          </button>
+          <button
+            onClick={() => router.push('/chat-new?prompt=' + encodeURIComponent('我明天面试穿什么'))}
+            className="text-magazine-gray hover:text-magazine-purple transition-colors"
+            title="新版Chat"
+          >
+            💬
+          </button>
+          <button
+            onClick={() => router.push('/test-seedream')}
+            className="text-magazine-gray hover:text-magazine-purple transition-colors"
+            title="SeeDream生图测试"
+          >
+            🎨
+          </button>
+          <Search className="w-6 h-6 text-magazine-gray" />
+          <Bell className="w-6 h-6 text-magazine-gray" />
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="p-4 pb-20 max-w-md mx-auto">
+
+        <div className="grid grid-cols-2 gap-4">
+          {staticContentData.map((item) => (
+            <ContentCard key={item.id} data={item} />
+          ))}
+        </div>
+      </main>
+
+      {/* Quick Generate Buttons - 移到输入框上方 */}
+      <div className="fixed bottom-20 left-0 right-0 p-4 bg-white max-w-md mx-auto">
+        <div className="mb-3">
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-sm font-medium text-gray-500">快速生成</h2>
+            <button
+              onClick={() => setShowUserProfile(true)}
+              className="text-sm text-purple-600 hover:text-purple-700 flex items-center space-x-1"
+            >
+              <span>👤</span>
+              <span>我的信息</span>
+            </button>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {QUICK_GENERATE_OPTIONS.slice(0, 6).map((prompt) => (
+              <button
+                key={prompt}
+                onClick={() => setInputValue(prompt)}
+                className="px-3 py-1.5 text-sm bg-purple-50 text-purple-700 rounded-full hover:bg-purple-100 transition-colors"
+              >
+                {prompt}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Input Section */}
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-100 max-w-md mx-auto">
+        <InputSection 
+          value={inputValue}
+          onChange={setInputValue}
+          onSend={handleSend}
+        />
+      </div>
+
+      {/* User Profile Modal */}
+      {showUserProfile && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 max-h-[80vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold text-gray-900">我的信息</h2>
+              <button
+                onClick={() => setShowUserProfile(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            
+            <ClientOnly>
+              <UserProfileContent />
+            </ClientOnly>
+            
+            <div className="mt-6 flex space-x-3">
+              <button
+                onClick={() => {
+                  setShowUserProfile(false)
+                  router.push('/user-info')
+                }}
+                className="flex-1 bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 transition-colors"
+              >
+                编辑信息
+              </button>
+              <button
+                onClick={() => {
+                  resetUserInfo()
+                  setShowUserProfile(false)
+                }}
+                className="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors"
+              >
+                重新设置用户
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// 用户信息内容组件
+function UserProfileContent() {
+  const { session } = useAuth()
+  const [currentUserName, setCurrentUserNameState] = useState(getCurrentUserName())
+  const [userList, setUserListState] = useState(getUserList())
+  const [showUserSelector, setShowUserSelector] = useState(false)
+  const [newUserName, setNewUserName] = useState('')
+  const [userInfo, setUserInfo] = useState<any>(null)
+  const [userMetadata, setUserMetadata] = useState<any>(null)
+  const [isLoadingUserInfo, setIsLoadingUserInfo] = useState(true)
+  
+  // 从数据库获取当前登录用户的信息
+  useEffect(() => {
+    if (session?.user?.email) {
+      loadUserInfoFromDB()
+    } else {
+      // 如果未登录，使用localStorage的数据（兼容旧逻辑）
+      setUserInfo(getUserInfo())
+      setIsLoadingUserInfo(false)
+    }
+  }, [session])
+  
+  const loadUserInfoFromDB = async () => {
+    try {
+      setIsLoadingUserInfo(true)
+      console.log('🔍 [USER-PROFILE] 从数据库加载用户信息...')
+      
+      const response = await fetch('/api/user/info')
+      if (response.ok) {
+        const data = await response.json()
+        console.log('✅ [USER-PROFILE] 数据库用户信息:', data)
+        setUserInfo(data.userInfo)
+        setUserMetadata(data.userMetadata)
+        
+        // 同步到localStorage（保持兼容性）
+        if (data.userInfo) {
+          localStorage.setItem('userInfo', JSON.stringify(data.userInfo))
+          if (data.userInfo.name) {
+            setCurrentUserName(data.userInfo.name)
+            setCurrentUserNameState(data.userInfo.name)
+          }
+        }
+      } else {
+        console.log('⚠️ [USER-PROFILE] 数据库无用户信息，使用localStorage')
+        setUserInfo(getUserInfo())
+      }
+    } catch (error) {
+      console.error('❌ [USER-PROFILE] 加载用户信息失败:', error)
+      setUserInfo(getUserInfo())
+    } finally {
+      setIsLoadingUserInfo(false)
+    }
+  }
+  
+  // ⚠️ 废弃：旧的自动分析服务已废弃
+  // 现在使用 userMetadataService 通过用户对话来生成分析数据
+  // useEffect(() => {
+  //   const hasGenerated = checkAndGenerateAnalysis()
+  //   if (hasGenerated) {
+  //     window.location.reload()
+  //   }
+  // }, [])
+  
+  const userInfoDescription = getUserInfoDescription()
+  const latestReport = getLatestUserReport()
+  const allReports = getUserReports()
+  
+  // 检查是否有任何用户信息
+  const hasAnyInfo = userInfo && (userInfo.gender || userInfo.height || userInfo.weight || userInfo.location || userInfo.personality || userInfo.birthDate?.year)
+  
+  // 调试信息（可以在控制台查看）
+  console.log('🔍 [USER-PROFILE] 用户信息状态:', {
+    currentUserName,
+    userList,
+    hasAnyInfo,
+    userInfo,
+    userMetadata,
+    isLoadingUserInfo,
+    sessionUser: session?.user?.name,
+    userInfoDescription: userInfoDescription ? '有深度分析' : '无深度分析'
+  })
+  
+  // 如果正在加载，显示加载状态
+  if (isLoadingUserInfo) {
+    return (
+      <div className="text-center py-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto mb-2"></div>
+        <p className="text-sm text-gray-500">加载用户信息...</p>
+      </div>
+    )
+  }
+  
+  // 切换用户
+  const switchUser = (name: string) => {
+    setCurrentUserName(name)
+    setCurrentUserName(name)
+    setShowUserSelector(false)
+    window.location.reload() // 重新加载页面以更新数据
+  }
+  
+  // 添加新用户
+  const addNewUser = () => {
+    if (newUserName.trim()) {
+      addUserToList(newUserName.trim())
+      setUserListState(getUserList())
+      setNewUserName('')
+      switchUser(newUserName.trim())
+    }
+  }
+  
+  // 删除用户
+  const deleteUser = (name: string) => {
+    if (confirm(`确定要删除用户 "${name}" 的所有信息吗？`)) {
+      removeUserFromList(name)
+      setUserListState(getUserList())
+      if (currentUserName === name) {
+        setCurrentUserName('')
+        setCurrentUserNameState('')
+      }
+    }
+  }
+  
+  // 如果没有当前用户，显示用户选择界面
+  if (!currentUserName) {
+    return (
+      <div className="space-y-4">
+        <div className="text-center py-4">
+          <div className="text-4xl mb-2">👥</div>
+          <p className="text-lg font-medium text-gray-600">选择或创建用户</p>
+        </div>
+        
+        {/* 用户列表 */}
+        {userList.length > 0 && (
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <h3 className="font-medium text-gray-900 mb-3">已有用户</h3>
+            <div className="space-y-2">
+              {userList.map((name) => (
+                <div key={name} className="flex items-center justify-between p-2 bg-white rounded border">
+                  <span className="text-gray-900">{name}</span>
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={() => switchUser(name)}
+                      className="px-3 py-1 bg-purple-600 text-white text-sm rounded hover:bg-purple-700"
+                    >
+                      选择
+                    </button>
+                    <button
+                      onClick={() => deleteUser(name)}
+                      className="px-3 py-1 bg-red-500 text-white text-sm rounded hover:bg-red-600"
+                    >
+                      删除
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        
+        {/* 创建新用户 */}
+        <div className="bg-purple-50 p-4 rounded-lg">
+          <h3 className="font-medium text-purple-900 mb-3">创建新用户</h3>
+          <div className="flex space-x-2">
+            <input
+              type="text"
+              value={newUserName}
+              onChange={(e) => setNewUserName(e.target.value)}
+              placeholder="输入用户名字"
+              className="flex-1 px-3 py-2 border border-purple-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+              onKeyPress={(e) => e.key === 'Enter' && addNewUser()}
+            />
+            <button
+              onClick={addNewUser}
+              disabled={!newUserName.trim()}
+              className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              创建
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+  
+  // 如果有当前用户但没有信息，显示设置提示
+  if (!hasAnyInfo) {
+    return (
+      <div className="text-center py-8">
+        <div className="text-gray-400 mb-4">
+          <div className="text-6xl mb-2">👤</div>
+          <p className="text-lg font-medium text-gray-600">用户 "{currentUserName}" 还没有设置信息</p>
+          <p className="text-sm text-gray-500 mt-2">点击"编辑信息"开始设置个人信息</p>
+        </div>
+        
+        {/* 用户切换按钮 */}
+        <div className="mt-4">
+          <button
+            onClick={() => setShowUserSelector(true)}
+            className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors text-sm mr-2"
+          >
+            切换用户
+          </button>
+          <button
+            onClick={() => {
+              setCurrentUserName('')
+              setCurrentUserNameState('')
+              window.location.reload()
+            }}
+            className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm"
+          >
+            退出登录
+          </button>
+        </div>
+      </div>
+    )
+  }
+  
+  return (
+    <div className="space-y-4">
+      {/* 当前用户信息 */}
+      <div className="bg-purple-50 p-4 rounded-lg">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="font-medium text-purple-900">当前用户</h3>
+            <p className="text-lg font-semibold text-purple-800">{currentUserName}</p>
+          </div>
+          <div className="flex space-x-2">
+            <button
+              onClick={() => setShowUserSelector(true)}
+              className="px-3 py-1 bg-purple-600 text-white text-sm rounded hover:bg-purple-700"
+            >
+              切换用户
+            </button>
+            <button
+              onClick={() => {
+                setCurrentUserName('')
+                setCurrentUserNameState('')
+                window.location.reload()
+              }}
+              className="px-3 py-1 bg-red-500 text-white text-sm rounded hover:bg-red-600"
+            >
+              退出
+            </button>
+          </div>
+        </div>
+      </div>
+      
+      {/* 基本信息 */}
+      <div className="bg-gray-50 p-4 rounded-lg">
+        <h3 className="font-medium text-gray-900 mb-2">基本信息</h3>
+        <div className="space-y-2 text-sm">
+          <div className="flex justify-between">
+            <span className="text-gray-600">性别：</span>
+            <span className="text-gray-900">{userInfo.gender === 'male' ? '男' : userInfo.gender === 'female' ? '女' : '未设置'}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-600">年龄：</span>
+            <span className="text-gray-900">{userInfo.age ? `${userInfo.age}岁` : '未设置'}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-600">身高：</span>
+            <span className="text-gray-900">{userInfo.height ? `${userInfo.height}cm` : '未设置'}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-600">体重：</span>
+            <span className="text-gray-900">{userInfo.weight ? `${userInfo.weight}kg` : '未设置'}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-600">所在地：</span>
+            <span className="text-gray-900">{userInfo.location || '未设置'}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* 生日信息 */}
+      {userInfo.birthDate.year && (
+        <div className="bg-gray-50 p-4 rounded-lg">
+          <h3 className="font-medium text-gray-900 mb-2">生日信息</h3>
+          <div className="text-sm text-gray-600">
+            {userInfo.birthDate.year}年{userInfo.birthDate.month}月{userInfo.birthDate.day}日
+            {userInfo.birthDate.hour && ` ${userInfo.birthDate.hour}时`}
+          </div>
+        </div>
+      )}
+
+      {/* 性格描述 */}
+      {userInfo.personality && (
+        <div className="bg-gray-50 p-4 rounded-lg">
+          <h3 className="font-medium text-gray-900 mb-2">性格描述</h3>
+          <div className="text-sm text-gray-600">{userInfo.personality}</div>
+        </div>
+      )}
+
+      {/* 深度分析 */}
+      {userInfoDescription && (
+        <div className="bg-purple-50 p-4 rounded-lg">
+          <h3 className="font-medium text-purple-900 mb-2">深度分析</h3>
+          <div className="text-sm text-purple-700 whitespace-pre-wrap">{userInfoDescription}</div>
+        </div>
+      )}
+
+      {/* 用户简介报告 */}
+      {latestReport && (
+        <div className="bg-blue-50 p-4 rounded-lg">
+          <h3 className="font-medium text-blue-900 mb-2">最新对话报告</h3>
+          <div className="text-sm text-blue-700 space-y-2">
+            <div>
+              <span className="font-medium">对话总结：</span>
+              <span>{latestReport.conversationSummary}</span>
+            </div>
+            <div>
+              <span className="font-medium">情感状态：</span>
+              <span>{latestReport.emotionalState}</span>
+            </div>
+            {latestReport.personalityInsights.length > 0 && (
+              <div>
+                <span className="font-medium">性格洞察：</span>
+                <div className="mt-1">
+                  {latestReport.personalityInsights.map((insight, index) => (
+                    <div key={index} className="text-xs bg-blue-100 px-2 py-1 rounded mr-1 mb-1 inline-block">
+                      {insight}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {latestReport.recommendations.length > 0 && (
+              <div>
+                <span className="font-medium">建议：</span>
+                <div className="mt-1">
+                  {latestReport.recommendations.map((rec, index) => (
+                    <div key={index} className="text-xs bg-green-100 px-2 py-1 rounded mr-1 mb-1 inline-block">
+                      {rec}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            <div className="text-xs text-blue-600 mt-2">
+              对话次数：{latestReport.conversationCount} | 总对话时间：{latestReport.totalConversationTime}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 报告历史 */}
+      {allReports.length > 1 && (
+        <div className="bg-gray-50 p-4 rounded-lg">
+          <h3 className="font-medium text-gray-900 mb-2">报告历史</h3>
+          <div className="text-sm text-gray-600 space-y-1">
+            {allReports.slice(-5).reverse().map((report, index) => (
+              <div key={index} className="flex justify-between items-center">
+                <span>{new Date(report.reportDate).toLocaleDateString()}</span>
+                <span className="text-xs bg-gray-200 px-2 py-1 rounded">
+                  {report.conversationSummary.substring(0, 20)}...
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      
+      {/* 用户选择器弹窗 */}
+      {showUserSelector && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 max-h-[80vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold text-gray-900">选择用户</h2>
+              <button
+                onClick={() => setShowUserSelector(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              {/* 用户列表 */}
+              {userList.length > 0 && (
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h3 className="font-medium text-gray-900 mb-3">已有用户</h3>
+                  <div className="space-y-2">
+                    {userList.map((name) => (
+                      <div key={name} className="flex items-center justify-between p-2 bg-white rounded border">
+                        <span className="text-gray-900">{name}</span>
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => switchUser(name)}
+                            className="px-3 py-1 bg-purple-600 text-white text-sm rounded hover:bg-purple-700"
+                          >
+                            选择
+                          </button>
+                          <button
+                            onClick={() => deleteUser(name)}
+                            className="px-3 py-1 bg-red-500 text-white text-sm rounded hover:bg-red-600"
+                          >
+                            删除
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {/* 创建新用户 */}
+              <div className="bg-purple-50 p-4 rounded-lg">
+                <h3 className="font-medium text-purple-900 mb-3">创建新用户</h3>
+                <div className="flex space-x-2">
+                  <input
+                    type="text"
+                    value={newUserName}
+                    onChange={(e) => setNewUserName(e.target.value)}
+                    placeholder="输入用户名字"
+                    className="flex-1 px-3 py-2 border border-purple-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    onKeyPress={(e) => e.key === 'Enter' && addNewUser()}
+                  />
+                  <button
+                    onClick={addNewUser}
+                    disabled={!newUserName.trim()}
+                    className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    创建
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}

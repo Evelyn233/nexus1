@@ -1,0 +1,9 @@
+# 图片占位符
+
+请将以下图片放入此目录：
+
+1. jacket-scarf.jpg - 羽绒服和围巾的图片
+2. business-suits.jpg - 商务人士网格图片  
+3. designer-desk.jpg - 设计师工作台的等距插图
+
+或者使用在线图片URL来替代本地图片路径。
