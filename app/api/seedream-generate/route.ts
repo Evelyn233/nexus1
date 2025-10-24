@@ -21,13 +21,7 @@ export async function POST(request: NextRequest) {
       const timeoutId = setTimeout(() => controller.abort(), 60000) // 60秒超时
       
       try {
-        const response = await fetch(config.ENDPOINT, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${config.API_KEY}`,
-          },
-          body: JSON.stringify({
+        const requestBody = {
             model: config.MODEL,
             prompt: prompt,
             sequential_image_generation: "auto",
@@ -40,7 +34,17 @@ export async function POST(request: NextRequest) {
             stream: false,
             watermark: false,
             n: 4
-          }),
+          }
+          
+          console.log('📤 [API] 发送请求体:', JSON.stringify(requestBody, null, 2))
+          
+          const response = await fetch(config.ENDPOINT, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${config.API_KEY}`,
+            },
+            body: JSON.stringify(requestBody),
           signal: controller.signal
         })
         
@@ -63,6 +67,11 @@ export async function POST(request: NextRequest) {
         if (!response.ok) {
           const errorText = await response.text()
           console.error('❌ [API] SeeDream API错误:', response.status, errorText)
+          console.error('❌ [API] 请求配置:', {
+            endpoint: config.ENDPOINT,
+            model: config.MODEL,
+            apiKey: config.API_KEY ? `${config.API_KEY.substring(0, 8)}...` : 'undefined'
+          })
           
           if (attempt < 2) {
             console.log('⏳ [API] 等待1秒后重试...')
