@@ -1,5 +1,5 @@
 # Magazine App
-<!-- Updated: Force deployment -->
+<!-- Updated: Force deployment - Schema fix -->
 
 一个基于 Next.js 的移动端杂志风格应用，具有 AI 生图功能。
 
