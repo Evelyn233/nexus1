@@ -1122,8 +1122,23 @@ ${aiPrompt}`
       // 3. ✅ 场景对象已经有storyFragment了，直接用（心理剧补充）
       scenes.forEach((scene: any) => {
         if (scene.isPsychodrama && !scene.storyFragment) {
-          // 心理剧如果没有storyFragment，用sceneDescription_CN
-          scene.storyFragment = scene.sceneDescription_CN || scene.innerMonologue || ''
+          // 心理剧如果没有storyFragment，用完整的心理分析文字
+          const psychodramaText = [
+            scene.innerMonologue,
+            scene.surfaceVsInner, 
+            scene.consciousnessStream,
+            scene.psychologicalSymbolism
+          ].filter(text => text && text.trim()).join('\n\n')
+          
+          scene.storyFragment = psychodramaText || scene.sceneDescription_CN || ''
+          
+          console.log('🎭 [PSYCHODRAMA] 心理剧文字内容:', {
+            innerMonologue: scene.innerMonologue,
+            surfaceVsInner: scene.surfaceVsInner,
+            consciousnessStream: scene.consciousnessStream,
+            psychologicalSymbolism: scene.psychologicalSymbolism,
+            finalText: scene.storyFragment
+          })
         }
         // 普通场景的storyFragment已经由场景生成时生成了，直接用
       })
