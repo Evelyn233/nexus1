@@ -18,7 +18,7 @@ export default function InputSection({ value, onChange, onSend }: InputSectionPr
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        placeholder="我今天上班很伤心..."
+        placeholder="分享你的想法、情绪或生活..."
         className="magazine-input flex-1"
       />
       <button

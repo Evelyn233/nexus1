@@ -236,7 +236,7 @@ export default function HomePage() {
             </button>
           </div>
           <div className="flex flex-wrap gap-2">
-            {QUICK_GENERATE_OPTIONS.slice(0, 6).map((prompt) => (
+            {QUICK_GENERATE_OPTIONS.slice(0, 12).map((prompt) => (
               <button
                 key={prompt}
                 onClick={() => setInputValue(prompt)}
