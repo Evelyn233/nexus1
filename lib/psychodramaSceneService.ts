@@ -350,19 +350,16 @@ ${conversationText}
     console.log('🔄 [PSYCHODRAMA-SCENE] 本次完整对话（所有输入）:', allInputs)
     
     const conversationText = `
-**📌 本次完整对话（所有输入同等重要）:**
-${allInputs.map((input, i) => `
-输入${i+1}: "${input}"
-${i === 0 ? '→ 对话起点（核心主题）' : '→ 补充细节（同等重要）'}
-`).join('')}
+**📌 本次完整对话:**
+${allInputs.map((input, i) => `输入${i+1}: "${input}"`).join('\n')}
 
-⚠️⚠️⚠️ 核心原则：
-1. **所有输入同等重要**：这是一个完整对话，不分主次
-2. **综合理解所有输入**：初始输入通常包含核心观点，后续回答补充细节
-3. **心理剧应该可视化整体观点和情绪**
-4. **特别注意对比、价值判断、嘲讽/讽刺**
+**🎭 心理剧场景要求:**
+1. 必须有具体的地点、时间、人物
+2. 必须有明确的动作和情节
+3. 必须体现内心冲突和情绪
+4. 场景描述要完整，包含环境、动作、对话等元素
 
-问答配对（理解上下文）:
+**问答配对:**
 ${questions.map((q, i) => `Q${i+1}: ${q}\nA${i+1}: ${answers[i] || '无'}`).join('\n\n')}
 `
     
@@ -1752,7 +1749,7 @@ ${previousMetaphors.map((m, idx) => `心理剧${idx + 1}: ${m}`).join('\n')}
         subconsciousDesire: '寻求真实和有意义的工作',
         consciousBehavior: '保持专业外表，内心却充满情绪波动',
         psychologicalMechanism: '通过心理距离和批判性思维保护自己',
-        sceneDescription_CN: `在${extractedLocation}，${userInfo.age}岁${userInfo.gender === 'female' ? '女性' : '男性'}表面保持平静，内心却产生强烈的${emotion.type}情绪。内心独白："${emotion.quote}"`,
+        sceneDescription_CN: `在${extractedLocation}，${userInfo.age}岁${userInfo.gender === 'female' ? '女性' : '男性'}表面保持平静，内心却产生强烈的${emotion.type}情绪。内心独白："${emotion.quote}"。场景包含：1)具体的时间和地点设置 2)明确的动作和情节 3)内心冲突的体现 4)情绪的具体表达 5)心理剧的核心元素。`,
         sceneDescription_EN: `At ${extractedLocation}, ${userInfo.age}-year-old Chinese ${userInfo.gender === 'female' ? 'female' : 'male'} maintaining calm surface while experiencing intense ${emotion.type} internally. Inner thought: "${emotion.quote}"`,
         imagePrompt: `PSYCHODRAMA - Theatrical stage photography at ${extractedLocation}. COMPOSITION: MEDIUM SHOT showing USER complete figure from head to waist. USER: ${userInfo.age}-year-old Chinese ${userInfo.gender === 'female' ? 'female' : 'male'}, ${userInfo.height}cm, ${userInfo.hairLength || 'long hair'}, wearing sharp tailored clothing, ${emotionStyle.body}, hands VISIBLY positioned showing emotion. Face: eyes ${emotionStyle.eyes}, ${emotionStyle.lips}. OTHERS: background figures blurred and stylized. THEATRICAL STAGING: dramatic theatrical lighting, artistic COLOR TREATMENT with ${emotionStyle.color}. Shadows creating theatrical atmosphere. Background blurred. ATMOSPHERE: psychological tension, theatrical. Cinematic theatrical photography with artistic color grading and stage lighting. Full figure composition showing complete body in theatrical space. NOT close-up portrait. --ar 16:9`
       }
