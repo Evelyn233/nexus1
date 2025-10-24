@@ -16,7 +16,7 @@ const nextConfig = {
         pathname: '/**',
       },
     ],
-    unoptimized: false,  // 允许优化，但通过quality控制
+    unoptimized: true,  // 临时禁用优化，避免404错误
     // 图片质量优化配置
     formats: ['image/webp', 'image/avif'],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
