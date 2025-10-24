@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 
+// 强制动态渲染
+export const dynamic = 'force-dynamic'
+
 /**
  * 创建PayPal支付链接
  */

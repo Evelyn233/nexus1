@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 
+// 强制动态渲染
+export const dynamic = 'force-dynamic'
+
 /**
  * AI Chat API 代理
  * 用于避免前端CORS问题

@@ -3,6 +3,9 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { MagazineCoverService } from '@/lib/magazineCoverService'
 
+// 强制动态渲染
+export const dynamic = 'force-dynamic'
+
 /**
  * 生成杂志封面API
  */

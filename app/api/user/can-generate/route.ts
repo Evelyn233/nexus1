@@ -3,6 +3,9 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { canUserGenerateImages } from '@/lib/imageUsageService'
 
+// 强制动态渲染
+export const dynamic = 'force-dynamic'
+
 /**
  * 检查用户是否可以生成图片
  */

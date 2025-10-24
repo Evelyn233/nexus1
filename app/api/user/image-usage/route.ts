@@ -3,6 +3,9 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { getUserImageUsage } from '@/lib/imageUsageService'
 
+// 强制动态渲染
+export const dynamic = 'force-dynamic'
+
 /**
  * 获取用户图片使用情况
  */

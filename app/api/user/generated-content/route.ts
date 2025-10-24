@@ -4,6 +4,9 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
 // 调试Prisma可用性
+
+// 强制动态渲染
+export const dynamic = 'force-dynamic'
 console.log('🔍 [CONTENT-API] Prisma调试信息:', {
   prismaType: typeof prisma,
   prismaAvailable: !!prisma,

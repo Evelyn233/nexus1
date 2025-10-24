@@ -3,6 +3,9 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { initializeUserSession } from '@/lib/authBridge'
 
+// 强制动态渲染
+export const dynamic = 'force-dynamic'
+
 /**
  * 检查用户数据状态（Prisma）
  * 

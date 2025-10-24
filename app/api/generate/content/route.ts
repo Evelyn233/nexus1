@@ -4,6 +4,9 @@ import { authOptions } from '@/lib/auth'
 import { getPrismaUserInfo } from '@/lib/prismaUserService'
 import { ContentGenerationService } from '@/lib/contentGenerationService'
 
+// 强制动态渲染
+export const dynamic = 'force-dynamic'
+
 /**
  * 内容生成API - 使用Prisma用户数据
  */

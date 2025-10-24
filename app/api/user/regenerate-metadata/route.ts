@@ -3,6 +3,9 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 
+// 强制动态渲染
+export const dynamic = 'force-dynamic'
+
 /**
  * 重新生成完整的用户元数据
  * 基于用户的基本信息和性格描述
@@ -99,7 +102,7 @@ export async function POST() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer sk-e3911ff08dae4f4fb59c7b521e2a5415'
+        'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY || 'sk-e3911ff08dae4f4fb59c7b521e2a5415'}`
       },
       body: JSON.stringify({
         model: 'deepseek-chat',

@@ -3,6 +3,9 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { getPrismaUserInfo } from '@/lib/prismaUserService'
 
+// 强制动态渲染
+export const dynamic = 'force-dynamic'
+
 /**
  * 获取当前登录用户的完整信息（用于内容生成）
  */

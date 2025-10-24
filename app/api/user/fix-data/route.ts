@@ -3,6 +3,9 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 
+// 强制动态渲染
+export const dynamic = 'force-dynamic'
+
 /**
  * 修复用户数据：从localStorage同步到Prisma
  * POST请求时需要传入localStorage中的用户数据

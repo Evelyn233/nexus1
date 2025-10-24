@@ -5,6 +5,9 @@ import prisma from '@/lib/prisma'
 import fs from 'fs'
 import path from 'path'
 
+// 强制动态渲染
+export const dynamic = 'force-dynamic'
+
 export async function DELETE(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)

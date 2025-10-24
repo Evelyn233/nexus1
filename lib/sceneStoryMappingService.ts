@@ -42,7 +42,7 @@ export class SceneStoryMappingService {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer sk-e3911ff08dae4f4fb59c7b521e2a5415'
+          'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY || 'sk-e3911ff08dae4f4fb59c7b521e2a5415'}`
         },
         body: JSON.stringify({
           model: 'deepseek-chat',
