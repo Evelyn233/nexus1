@@ -355,14 +355,18 @@ ${allInputs.map((input, i) => `输入${i+1}: "${input}"`).join('\n')}
 
 **🎭 心理剧场景要求（学习优秀写作风格）:**
 1. 具体场景设置：明确的时间、地点、环境细节
-2. 丰富的动作描述：人物在做什么，如何做
-3. 生动的内心独白：真实的情感表达，不是硬编码
-4. 情绪层次变化：从表面到内心的对比，复杂情感
-5. 视觉细节描写：环境、灯光、物品等具体描写
-6. 场景完整性：包含环境、动作、内心、情绪、细节
+2. 多人物互动：可以有多个角色，不是只有一个人
+3. 丰富的动作描述：人物在做什么，如何做
+4. 现象描述：描述行业现状、社会现象，不是硬编码情绪
+5. 生动的内心独白：真实的情感表达，不是硬编码
+6. 情绪层次变化：从表面到内心的对比，复杂情感
+7. 视觉细节描写：环境、灯光、物品等具体描写
+8. 场景完整性：包含环境、动作、内心、情绪、细节
 
 **📖 优秀写作风格示例:**
 "场景一：办公室，上午十点半。屏幕上是一堆KPI报表，Slack消息不断闪烁。她戴着耳机，假装在听会议，却在浏览Noema杂志的网页。黑底白字的文章标题在她眼前展开。每一行字都像是从信息噪声中撕开的裂缝，让空气突然变得安静。"
+
+"场景二：会议室里弥漫着一种无奈的气氛。年轻女编辑轻轻抚摸着最新一期杂志的封面，纸张的质感和精美的印刷工艺无可挑剔，但她的眉头却紧锁着。对面的男主编将一份财务报表推到桌子中央，红色的亏损数字格外刺眼。旁边的市场编辑滑动着手机屏幕，展示着短视频平台的数据。三人的目光在精美的杂志和冰冷的数字之间徘徊，陷入了沉默。"
 
 **问答配对:**
 ${questions.map((q, i) => `Q${i+1}: ${q}\nA${i+1}: ${answers[i] || '无'}`).join('\n\n')}
@@ -1755,10 +1759,12 @@ ${previousMetaphors.map((m, idx) => `心理剧${idx + 1}: ${m}`).join('\n')}
         consciousBehavior: '保持专业外表，内心却充满情绪波动',
         psychologicalMechanism: '通过心理距离和批判性思维保护自己',
         sceneDescription_CN: `场景：${extractedLocation}，具体时间。
-${userInfo.age}岁${userInfo.gender === 'female' ? '女性' : '男性'}正在进行具体动作，环境细节丰富。
+环境氛围：描述整体气氛和背景。
+人物动作：${userInfo.age}岁${userInfo.gender === 'female' ? '女性' : '男性'}正在进行具体动作，可以有其他角色互动。
+现象描述：体现${emotion.type}情绪的具体表现，不是硬编码。
 内心独白："${emotion.quote}"
-情绪层次：从表面到内心的对比，体现${emotion.type}的复杂情感。
-场景包含：具体时间地点、丰富动作描述、生动内心独白、情绪层次变化、视觉细节描写。`,
+情绪层次：从表面到内心的对比，体现复杂情感。
+场景包含：具体时间地点、多人物互动、丰富动作描述、现象描述、生动内心独白、情绪层次变化、视觉细节描写。`,
         sceneDescription_EN: `At ${extractedLocation}, ${userInfo.age}-year-old Chinese ${userInfo.gender === 'female' ? 'female' : 'male'} maintaining calm surface while experiencing intense ${emotion.type} internally. Inner thought: "${emotion.quote}"`,
         imagePrompt: `PSYCHODRAMA - Theatrical stage photography at ${extractedLocation}. COMPOSITION: MEDIUM SHOT showing USER complete figure from head to waist. USER: ${userInfo.age}-year-old Chinese ${userInfo.gender === 'female' ? 'female' : 'male'}, ${userInfo.height}cm, ${userInfo.hairLength || 'long hair'}, wearing sharp tailored clothing, ${emotionStyle.body}, hands VISIBLY positioned showing emotion. Face: eyes ${emotionStyle.eyes}, ${emotionStyle.lips}. OTHERS: background figures blurred and stylized. THEATRICAL STAGING: dramatic theatrical lighting, artistic COLOR TREATMENT with ${emotionStyle.color}. Shadows creating theatrical atmosphere. Background blurred. ATMOSPHERE: psychological tension, theatrical. Cinematic theatrical photography with artistic color grading and stage lighting. Full figure composition showing complete body in theatrical space. NOT close-up portrait. --ar 16:9`
       }
