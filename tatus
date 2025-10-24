@@ -449,4 +449,455 @@
          headers: {[m
            'Content-Type': 'application/json',[m
 [31m-          'Authorization': 'Bearer sk-e3911ff08dae4f4fb59c7b521e2a5415'[m
+[32m+[m[32m          'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY || 'sk-e3[1mdiff --git a/app/api/ai/chat/route.ts b/app/api/ai/chat/route.ts[m
+[1mindex 4f874bb..2b0d610 100644[m
+[1m--- a/app/api/ai/chat/route.ts[m
+[1m+++ b/app/api/ai/chat/route.ts[m
+[36m@@ -2,6 +2,9 @@[m [mimport { NextRequest, NextResponse } from 'next/server'[m
+ import { getServerSession } from 'next-auth'[m
+ import { authOptions } from '@/lib/auth'[m
+ [m
+[32m+[m[32m// 强制动态渲染[m
+[32m+[m[32mexport const dynamic = 'force-dynamic'[m
+[32m+[m
+ /**[m
+  * AI Chat API 代理[m
+  * 用于避免前端CORS问题[m
+[1mdiff --git a/app/api/chat-sessions/route.ts b/app/api/chat-sessions/route.ts[m
+[1mindex 2fa9ce5..ec1fc36 100644[m
+[1m--- a/app/api/chat-sessions/route.ts[m
+[1m+++ b/app/api/chat-sessions/route.ts[m
+[36m@@ -3,6 +3,9 @@[m [mimport { getServerSession } from 'next-auth'[m
+ import { authOptions } from '@/lib/auth'[m
+ import prisma from '@/lib/prisma'[m
+ [m
+[32m+[m[32m// 强制动态渲染[m
+[32m+[m[32mexport const dynamic = 'force-dynamic'[m
+[32m+[m
+ export async function GET() {[m
+   try {[m
+     const session = await getServerSession(authOptions)[m
+[1mdiff --git a/app/api/delete-image/route.ts b/app/api/delete-image/route.ts[m
+[1mindex cfb8906..c04006c 100644[m
+[1m--- a/app/api/delete-image/route.ts[m
+[1m+++ b/app/api/delete-image/route.ts[m
+[36m@@ -5,6 +5,9 @@[m [mimport prisma from '@/lib/prisma'[m
+ import fs from 'fs'[m
+ import path from 'path'[m
+ [m
+[32m+[m[32m// 强制动态渲染[m
+[32m+[m[32mexport const dynamic = 'force-dynamic'[m
+[32m+[m
+ export async function DELETE(request: NextRequest) {[m
+   try {[m
+     const session = await getServerSession(authOptions)[m
+[1mdiff --git a/app/api/generate-magazine-cover/route.ts b/app/api/generate-magazine-cover/route.ts[m
+[1mindex 0356d30..cd17756 100644[m
+[1m--- a/app/api/generate-magazine-cover/route.ts[m
+[1m+++ b/app/api/generate-magazine-cover/route.ts[m
+[36m@@ -3,6 +3,9 @@[m [mimport { getServerSession } from 'next-auth'[m
+ import { authOptions } from '@/lib/auth'[m
+ import { MagazineCoverService } from '@/lib/magazineCoverService'[m
+ [m
+[32m+[m[32m// 强制动态渲染[m
+[32m+[m[32mexport const dynamic = 'force-dynamic'[m
+[32m+[m
+ /**[m
+  * 生成杂志封面API[m
+  */[m
+[1mdiff --git a/app/api/generate/content/route.ts b/app/api/generate/content/route.ts[m
+[1mindex 772eb10..16d0507 100644[m
+[1m--- a/app/api/generate/content/route.ts[m
+[1m+++ b/app/api/generate/content/route.ts[m
+[36m@@ -4,6 +4,9 @@[m [mimport { authOptions } from '@/lib/auth'[m
+ import { getPrismaUserInfo } from '@/lib/prismaUserService'[m
+ import { ContentGenerationService } from '@/lib/contentGenerationService'[m
+ [m
+[32m+[m[32m// 强制动态渲染[m
+[32m+[m[32mexport const dynamic = 'force-dynamic'[m
+[32m+[m
+ /**[m
+  * 内容生成API - 使用Prisma用户数据[m
+  */[m
+[1mdiff --git a/app/api/payment/create/route.ts b/app/api/payment/create/route.ts[m
+[1mindex c1774a0..943be4d 100644[m
+[1m--- a/app/api/payment/create/route.ts[m
+[1m+++ b/app/api/payment/create/route.ts[m
+[36m@@ -2,6 +2,9 @@[m [mimport { NextResponse } from 'next/server'[m
+ import { getServerSession } from 'next-auth'[m
+ import { authOptions } from '@/lib/auth'[m
+ [m
+[32m+[m[32m// 强制动态渲染[m
+[32m+[m[32mexport const dynamic = 'force-dynamic'[m
+[32m+[m
+ /**[m
+  * 创建PayPal支付链接[m
+  */[m
+[1mdiff --git a/app/api/save-image/route.ts b/app/api/save-image/route.ts[m
+[1mindex fe3d298..c038eca 100644[m
+[1m--- a/app/api/save-image/route.ts[m
+[1m+++ b/app/api/save-image/route.ts[m
+[36m@@ -5,6 +5,9 @@[m [mimport prisma from '@/lib/prisma'[m
+ import fs from 'fs'[m
+ import path from 'path'[m
+ [m
+[32m+[m[32m// 强制动态渲染[m
+[32m+[m[32mexport const dynamic = 'force-dynamic'[m
+[32m+[m
+ export async function POST(request: NextRequest) {[m
+   try {[m
+     const session = await getServerSession(authOptions)[m
+[1mdiff --git a/app/api/saved-images/route.ts b/app/api/saved-images/route.ts[m
+[1mindex 4d36bca..80fdb92 100644[m
+[1m--- a/app/api/saved-images/route.ts[m
+[1m+++ b/app/api/saved-images/route.ts[m
+[36m@@ -3,6 +3,9 @@[m [mimport { getServerSession } from 'next-auth'[m
+ import { authOptions } from '@/lib/auth'[m
+ import prisma from '@/lib/prisma'[m
+ [m
+[32m+[m[32m// 强制动态渲染[m
+[32m+[m[32mexport const dynamic = 'force-dynamic'[m
+[32m+[m
+ export async function GET() {[m
+   try {[m
+     const session = await getServerSession(authOptions)[m
+[1mdiff --git a/app/api/user/can-generate/route.ts b/app/api/user/can-generate/route.ts[m
+[1mindex 8d364c2..1313d38 100644[m
+[1m--- a/app/api/user/can-generate/route.ts[m
+[1m+++ b/app/api/user/can-generate/route.ts[m
+[36m@@ -3,6 +3,9 @@[m [mimport { getServerSession } from 'next-auth'[m
+ import { authOptions } from '@/lib/auth'[m
+ import { canUserGenerateImages } from '@/lib/imageUsageService'[m
+ [m
+[32m+[m[32m// 强制动态渲染[m
+[32m+[m[32mexport const dynamic = 'force-dynamic'[m
+[32m+[m
+ /**[m
+  * 检查用户是否可以生成图片[m
+  */[m
+[1mdiff --git a/app/api/user/fix-data/route.ts b/app/api/user/fix-data/route.ts[m
+[1mindex 484ac89..15cd827 100644[m
+[1m--- a/app/api/user/fix-data/route.ts[m
+[1m+++ b/app/api/user/fix-data/route.ts[m
+[36m@@ -3,6 +3,9 @@[m [mimport { getServerSession } from 'next-auth'[m
+ import { authOptions } from '@/lib/auth'[m
+ import prisma from '@/lib/prisma'[m
+ [m
+[32m+[m[32m// 强制动态渲染[m
+[32m+[m[32mexport const dynamic = 'force-dynamic'[m
+[32m+[m
+ /**[m
+  * 修复用户数据：从localStorage同步到Prisma[m
+  * POST请求时需要传入localStorage中的用户数据[m
+[1mdiff --git a/app/api/user/generated-content/[id]/route.ts b/app/api/user/generated-content/[id]/route.ts[m
+[1mindex 08ff43a..d61e3f5 100644[m
+[1m--- a/app/api/user/generated-content/[id]/route.ts[m
+[1m+++ b/app/api/user/generated-content/[id]/route.ts[m
+[36m@@ -4,6 +4,9 @@[m [mimport { authOptions } from '@/lib/auth'[m
+ import { prisma } from '@/lib/prisma'[m
+ [m
+ // 获取单个生成内容的详细信息[m
+[32m+[m
+[32m+[m[32m// 强制动态渲染[m
+[32m+[m[32mexport const dynamic = 'force-dynamic'[m
+ export async function GET([m
+   request: NextRequest,[m
+   { params }: { params: Promise<{ id: string }> }[m
+[1mdiff --git a/app/api/user/generated-content/route.ts b/app/api/user/generated-content/route.ts[m
+[1mindex b98eda4..51f4b9e 100644[m
+[1m--- a/app/api/user/generated-content/route.ts[m
+[1m+++ b/app/api/user/generated-content/route.ts[m
+[36m@@ -4,6 +4,9 @@[m [mimport { authOptions } from '@/lib/auth'[m
+ import { prisma } from '@/lib/prisma'[m
+ [m
+ // 调试Prisma可用性[m
+[32m+[m
+[32m+[m[32m// 强制动态渲染[m
+[32m+[m[32mexport const dynamic = 'force-dynamic'[m
+ console.log('🔍 [CONTENT-API] Prisma调试信息:', {[m
+   prismaType: typeof prisma,[m
+   prismaAvailable: !!prisma,[m
+[1mdiff --git a/app/api/user/image-usage/route.ts b/app/api/user/image-usage/route.ts[m
+[1mindex e1ccf68..364eed6 100644[m
+[1m--- a/app/api/user/image-usage/route.ts[m
+[1m+++ b/app/api/user/image-usage/route.ts[m
+[36m@@ -3,6 +3,9 @@[m [mimport { getServerSession } from 'next-auth'[m
+ import { authOptions } from '@/lib/auth'[m
+ import { getUserImageUsage } from '@/lib/imageUsageService'[m
+ [m
+[32m+[m[32m// 强制动态渲染[m
+[32m+[m[32mexport const dynamic = 'force-dynamic'[m
+[32m+[m
+ /**[m
+  * 获取用户图片使用情况[m
+  */[m
+[1mdiff --git a/app/api/user/info/route.ts b/app/api/user/info/route.ts[m
+[1mindex 6af805f..e873565 100644[m
+[1m--- a/app/api/user/info/route.ts[m
+[1m+++ b/app/api/user/info/route.ts[m
+[36m@@ -3,6 +3,9 @@[m [mimport { getServerSession } from 'next-auth'[m
+ import { authOptions } from '@/lib/auth'[m
+ import { getPrismaUserInfo } from '@/lib/prismaUserService'[m
+ [m
+[32m+[m[32m// 强制动态渲染[m
+[32m+[m[32mexport const dynamic = 'force-dynamic'[m
+[32m+[m
+ /**[m
+  * 获取当前登录用户的完整信息（用于内容生成）[m
+  */[m
+[1mdiff --git a/app/api/user/metadata/route.ts b/app/api/user/metadata/route.ts[m
+[1mindex 1406f94..d901d0f 100644[m
+[1m--- a/app/api/user/metadata/route.ts[m
+[1m+++ b/app/api/user/metadata/route.ts[m
+[36m@@ -3,6 +3,9 @@[m [mimport { getServerSession } from 'next-auth'[m
+ import { authOptions } from '@/lib/auth'[m
+ import prisma from '@/lib/prisma'[m
+ [m
+[32m+[m[32m// 强制动态渲染[m
+[32m+[m[32mexport const dynamic = 'force-dynamic'[m
+[32m+[m
+ /**[m
+  * 获取用户元数据[m
+  */[m
+[1mdiff --git a/app/api/user/regenerate-metadata/route.ts b/app/api/user/regenerate-metadata/route.ts[m
+[1mindex 80eebc7..a1b8a89 100644[m
+[1m--- a/app/api/user/regenerate-metadata/route.ts[m
+[1m+++ b/app/api/user/regenerate-metadata/route.ts[m
+[36m@@ -3,6 +3,9 @@[m [mimport { getServerSession } from 'next-auth'[m
+ import { authOptions } from '@/lib/auth'[m
+ import prisma from '@/lib/prisma'[m
+ [m
+[32m+[m[32m// 强制动态渲染[m
+[32m+[m[32mexport const dynamic = 'force-dynamic'[m
+[32m+[m
+ /**[m
+  * 重新生成完整的用户元数据[m
+  * 基于用户的基本信息和性格描述[m
+[36m@@ -99,7 +102,7 @@[m [mexport async function POST() {[m
+       method: 'POST',[m
+       headers: {[m
+         'Content-Type': 'application/json',[m
+[31m-        'Authorization': 'Bearer sk-e3911ff08dae4f4fb59c7b521e2a5415'[m
+[32m+[m[32m        'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY || 'sk-e3911ff08dae4f4fb59c7b521e2a5415'}`[m
+       },[m
+       body: JSON.stringify({[m
+         model: 'deepseek-chat',[m
+[1mdiff --git a/app/api/user/save/route.ts b/app/api/user/save/route.ts[m
+[1mindex 1fe31cc..2126171 100644[m
+[1m--- a/app/api/user/save/route.ts[m
+[1m+++ b/app/api/user/save/route.ts[m
+[36m@@ -3,6 +3,9 @@[m [mimport { getServerSession } from 'next-auth'[m
+ import { authOptions } from '@/lib/auth'[m
+ import prisma from '@/lib/prisma'[m
+ [m
+[32m+[m[32m// 强制动态渲染[m
+[32m+[m[32mexport const dynamic = 'force-dynamic'[m
+[32m+[m
+ /**[m
+  * 保存/更新用户基本信息到Prisma[m
+  */[m
+[1mdiff --git a/app/api/user/sync/route.ts b/app/api/user/sync/route.ts[m
+[1mindex b34b227..368019d 100644[m
+[1m--- a/app/api/user/sync/route.ts[m
+[1m+++ b/app/api/user/sync/route.ts[m
+[36m@@ -3,6 +3,9 @@[m [mimport { getServerSession } from 'next-auth'[m
+ import { authOptions } from '@/lib/auth'[m
+ import { initializeUserSession } from '@/lib/authBridge'[m
+ [m
+[32m+[m[32m// 强制动态渲染[m
+[32m+[m[32mexport const dynamic = 'force-dynamic'[m
+[32m+[m
+ /**[m
+  * 检查用户数据状态（Prisma）[m
+  * [m
+[1mdiff --git a/app/api/user/two-layer-data/route.ts b/app/api/user/two-layer-data/route.ts[m
+[1mindex 7e9ad3c..24caac7 100644[m
+[1m--- a/app/api/user/two-layer-data/route.ts[m
+[1m+++ b/app/api/user/two-layer-data/route.ts[m
+[36m@@ -3,6 +3,9 @@[m [mimport { getServerSession } from 'next-auth'[m
+ import { authOptions } from '@/lib/auth'[m
+ import { prisma } from '@/lib/prisma'[m
+ [m
+[32m+[m[32m// 强制动态渲染[m
+[32m+[m[32mexport const dynamic = 'force-dynamic'[m
+[32m+[m
+ /**[m
+  * 获取用户的两层数据结构[m
+  * GET /api/user/two-layer-data[m
+[1mdiff --git a/app/chat-new/page.tsx b/app/chat-new/page.tsx[m
+[1mindex be575a2..7e5d113 100644[m
+[1m--- a/app/chat-new/page.tsx[m
+[1m+++ b/app/chat-new/page.tsx[m
+[36m@@ -666,7 +666,7 @@[m [m${answers.join(' | ')}[m
+         method: 'POST',[m
+         headers: {[m
+           'Content-Type': 'application/json',[m
+[31m-          'Authorization': 'Bearer sk-e3911ff08dae4f4fb59c7b521e2a5415'[m
+[32m+[m[32m          'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY || 'sk-e3911ff08dae4f4fb59c7b521e2a5415'}`[m
+         },[m
+         body: JSON.stringify({[m
+           model: 'deepseek-chat',[m
+[36m@@ -820,7 +820,7 @@[m [m${userInfoDescription}[m
+         method: 'POST',[m
+         headers: {[m
+           'Content-Type': 'application/json',[m
+[31m-          'Authorization': 'Bearer sk-e3911ff08dae4f4fb59c7b521e2a5415'[m
+[32m+[m[32m          'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY || 'sk-e3911ff08dae4f4fb59c7b521e2a5415'}`[m
+         },[m
+         body: JSON.stringify({[m
+           model: 'deepseek-chat',[m
+[36m@@ -979,7 +979,7 @@[m [m${aiPrompt}`[m
+         method: 'POST',[m
+         headers: {[m
+           'Content-Type': 'application/json',[m
+[31m-          'Authorization': 'Bearer sk-e3911ff08dae4f4fb59c7b521e2a5415'[m
+[32m+[m[32m          'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY || 'sk-e3911ff08dae4f4fb59c7b521e2a5415'}`[m
+         },[m
+         body: JSON.stringify({[m
+           model: 'deepseek-chat',[m
+[36m@@ -1423,7 +1423,7 @@[m [m${aiPrompt}`[m
+         method: 'POST',[m
+         headers: {[m
+           'Content-Type': 'application/json',[m
+[31m-          'Authorization': 'Bearer sk-e3911ff08dae4f4fb59c7b521e2a5415'[m
+[32m+[m[32m          'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY || 'sk-e3911ff08dae4f4fb59c7b521e2a5415'}`[m
+         },[m
+         body: JSON.stringify({[m
+           model: 'deepseek-chat',[m
+[1mdiff --git a/app/generate/page.tsx b/app/generate/page.tsx[m
+[1mindex f1500e0..0a21f7f 100644[m
+[1m--- a/app/generate/page.tsx[m
+[1m+++ b/app/generate/page.tsx[m
+[36m@@ -465,7 +465,7 @@[m [mexport default function GeneratePage() {[m
+         method: 'POST',[m
+         headers: {[m
+           'Content-Type': 'application/json',[m
+[31m-          'Authorization': 'Bearer sk-e3911ff08dae4f4fb59c7b521e2a5415'[m
+[32m+[m[32m          'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY || 'sk-e3911ff08dae4f4fb59c7b521e2a5415'}`[m
+         },[m
+         body: JSON.stringify({[m
+           model: 'deepseek-chat',[m
+[36m@@ -521,7 +521,7 @@[m [mexport default function GeneratePage() {[m
+         method: 'POST',[m
+         headers: {[m
+           'Content-Type': 'application/json',[m
+[31m-          'Authorization': 'Bearer sk-e3911ff08dae4f4fb59c7b521e2a5415'[m
+[32m+[m[32m          'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY || 'sk-e3911ff08dae4f4fb59c7b521e2a5415'}`[m
+         },[m
+         body: JSON.stringify({[m
+           model: 'deepseek-chat',[m
+[1mdiff --git a/lib/astrologicalDeepAnalysis.ts b/lib/astrologicalDeepAnalysis.ts[m
+[1mindex 6c030f5..bf93fe9 100644[m
+[1m--- a/lib/astrologicalDeepAnalysis.ts[m
+[1m+++ b/lib/astrologicalDeepAnalysis.ts[m
+[36m@@ -202,7 +202,7 @@[m [mGenerate the analysis now.`[m
+       method: 'POST',[m
+       headers: {[m
+         'Content-Type': 'application/json',[m
+[31m-        'Authorization': 'Bearer sk-e3911ff08dae4f4fb59c7b521e2a5415'[m
+[32m+[m[32m        'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY || 'sk-e3911ff08dae4f4fb59c7b521e2a5415'}`[m
+       },[m
+       body: JSON.stringify({[m
+         model: 'deepseek-chat',[m
+[1mdiff --git a/lib/deepseekMemorySystem.ts b/lib/deepseekMemorySystem.ts[m
+[1mindex 7e62c4f..1da0439 100644[m
+[1m--- a/lib/deepseekMemorySystem.ts[m
+[1m+++ b/lib/deepseekMemorySystem.ts[m
+[36m@@ -83,7 +83,7 @@[m [m${fullConversationHistory.slice(-10).map(msg => `${msg.role}: ${msg.content}`).j[m
+         method: 'POST',[m
+         headers: {[m
+           'Content-Type': 'application/json',[m
+[31m-          'Authorization': 'Bearer sk-e3911ff08dae4f4fb59c7b521e2a5415'[m
+[32m+[m[32m          'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY || 'sk-e3911ff08dae4f4fb59c7b521e2a5415'}`[m
+         },[m
+         body: JSON.stringify({[m
+           model: 'deepseek-chat',[m
+[36m@@ -207,7 +207,7 @@[m [m${i + 1}. [${new Date(s.createdAt).toLocaleDateString()}][m
+         method: 'POST',[m
+         headers: {[m
+           'Content-Type': 'application/json',[m
+[31m-          'Authorization': 'Bearer sk-e3911ff08dae4f4fb59c7b521e2a5415'[m
+[32m+[m[32m          'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY || 'sk-e3911ff08dae4f4fb59c7b521e2a5415'}`[m
+         },[m
+         body: JSON.stringify({[m
+           model: 'deepseek-chat',[m
+[36m@@ -313,7 +313,7 @@[m [m${i + 1}. [${new Date(s.createdAt).toLocaleDateString()}][m
+         method: 'POST',[m
+         headers: {[m
+           'Content-Type': 'application/json',[m
+[31m-          'Authorization': 'Bearer sk-e3911ff08dae4f4fb59c7b521e2a5415'[m
+[32m+[m[32m          'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY || 'sk-e3911ff08dae4f4fb59c7b521e2a5415'}`[m
+         },[m
+         body: JSON.stringify({[m
+           model: 'deepseek-chat',[m
+[1mdiff --git a/lib/sceneGenerationService.ts b/lib/sceneGenerationService.ts[m
+[1mindex 936e86b..3c1ac4d 100644[m
+[1m--- a/lib/sceneGenerationService.ts[m
+[1m+++ b/lib/sceneGenerationService.ts[m
+[36m@@ -110,7 +110,7 @@[m [mexport class SceneGenerationService {[m
+         method: 'POST',[m
+         headers: {[m
+           'Content-Type': 'application/json',[m
+[31m-          'Authorization': 'Bearer sk-e3911ff08dae4f4fb59c7b521e2a5415'[m
+[32m+[m[32m          'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY || 'sk-e3911ff08dae4f4fb59c7b521e2a5415'}`[m
+         },[m
+         body: JSON.stringify({[m
+           model: 'deepseek-chat',[m
+[36m@@ -1840,7 +1840,7 @@[m [m${questions.map((q, i) => `[m
+         method: 'POST',[m
+         headers: {[m
+           'Content-Type': 'application/json',[m
+[31m-          'Authorization': 'Bearer sk-e3911ff08dae4f4fb59c7b521e2a5415'[m
+[32m+[m[32m          'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY || 'sk-e3911ff08dae4f4fb59c7b521e2a5415'}`[m
+         },[m
+         body: JSON.stringify({[m
+           model: 'deepseek-chat',[m
+[1mdiff --git a/lib/sceneStoryMappingService.ts b/lib/sceneStoryMappingService.ts[m
+[1mindex f0667ec..f284c24 100644[m
+[1m--- a/lib/sceneStoryMappingService.ts[m
+[1m+++ b/lib/sceneStoryMappingService.ts[m
+[36m@@ -42,7 +42,7 @@[m [mexport class SceneStoryMappingService {[m
+         method: 'POST',[m
+         headers: {[m
+           'Content-Type': 'application/json',[m
+[31m-          'Authorization': 'Bearer sk-e3911ff08dae4f4fb59c7b521e2a5415'[m
+[32m+[m[32m          'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY || 'sk-e3911ff08dae4f4fb59c7b521e2a5415'}`[m
+         },[m
+         body: JSON.stringify({[m
+           model: 'deepseek-chat',[m
+[1mdiff --git a/lib/storyGenerationService.ts b/lib/storyGenerationService.ts[m
+[1mindex e67fc24..9d5cff0 100644[m
+[1m--- a/lib/storyGenerationService.ts[m
+[1m+++ b/lib/storyGenerationService.ts[m
+[36m@@ -55,7 +55,7 @@[m [mexport class StoryGenerationService {[m
+         method: 'POST',[m
+         headers: {[m
+           'Content-Type': 'application/json',[m
+[31m-          'Authorization': 'Bearer sk-e3911ff08dae4f4fb59c7b521e2a5415'[m
+[32m+[m[32m          'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY || 'sk-e3911ff08dae4f4fb59c7b521e2a5415'}`[m
+         },[m
+         body: JSON.stringify({[m
+           model: 'deepseek-chat',[m
+[1mdiff --git a/lib/userInfoService.ts b/lib/userInfoService.ts[m
+[1mindex 45931de..659c862 100644[m
+[1m--- a/lib/userInfoService.ts[m
+[1m+++ b/lib/userInfoService.ts[m
+[36m@@ -290,7 +290,7 @@[m [mexport async function generateUserReport([m
+       method: 'POST',[m
+       headers: {[m
+         'Content-Type': 'application/json',[m
+[31m-        'Authorization': 'Bearer sk-e3911ff08dae4f4fb59c7b521e2a5415'[m
+[32m+[m[32m        'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY || 'sk-e3911ff08dae4f4fb59c7b521e2a5415'}`[m
+       },[m
+       body: JSON.stringify({[m
+         model: 'deepseek-chat',[m
+[1mdiff --git a/lib/userMetadataService.ts b/lib/userMetadataService.ts[m
+[1mindex 0aed55c..da3186a 100644[m
+[1m--- a/lib/userMetadataService.ts[m
+[1m+++ b/lib/userMetadataService.ts[m
+[36m@@ -16,7 +16,7 @@[m [mexport class UserMetadataAnalyzer {[m
+         method: 'POST',[m
+         headers: {[m
+           'Content-Type': 'application/json',[m
+[31m-          'Authorization': 'Bearer sk-e3911ff08dae4f4fb59c7b521e2a5415'[m
 [32m+[m[32m          'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY || 'sk-e3

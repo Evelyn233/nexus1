@@ -104,3 +104,4 @@ public/generated-images/
 *.tmp
 *.temp
 .vercel
+.env*.local
