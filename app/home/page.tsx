@@ -596,13 +596,13 @@ function UserProfileContent() {
         </div>
       )}
 
-      {/* 深度分析 */}
-      {userInfoDescription && (
+      {/* 深度分析 - 隐藏，只作为后台数据存储 */}
+      {/* {userInfoDescription && (
         <div className="bg-purple-50 p-4 rounded-lg">
           <h3 className="font-medium text-purple-900 mb-2">深度分析</h3>
           <div className="text-sm text-purple-700 whitespace-pre-wrap">{userInfoDescription}</div>
         </div>
-      )}
+      )} */}
 
       {/* 用户简介报告 */}
       {latestReport && (

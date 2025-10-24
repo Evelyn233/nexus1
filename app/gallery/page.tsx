@@ -109,12 +109,13 @@ export default function GalleryPage() {
       <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
         <h3 className="text-sm font-semibold text-blue-800 mb-2">📋 您的画像分析</h3>
         <div className="text-sm text-blue-700 space-y-2">
-          {hasUserInfo && (
+          {/* 深度分析 - 隐藏，只作为后台数据存储 */}
+          {/* {hasUserInfo && (
             <div className="flex items-start space-x-2">
               <span className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></span>
               <span>{userInfoDescription}</span>
             </div>
-          )}
+          )} */}
           
           {hasMetadata && (
             <div className="mt-3 space-y-1">
