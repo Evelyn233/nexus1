@@ -185,6 +185,58 @@ export default function LandingPage() {
             输入"我今天上班很伤心"，AI会通过对话深入了解你，
             将你的情绪和经历转化为视觉化的场景和心理剧。
           </p>
+          
+          {/* 美观的图片展示 */}
+          <div className="mb-12">
+            <div className="relative max-w-4xl mx-auto">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                <div className="space-y-4">
+                  <div className="bg-gradient-to-br from-purple-100 to-pink-100 rounded-2xl p-6 shadow-lg">
+                    <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center mb-4">
+                      <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                      </svg>
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-800 mb-2">智能对话</h3>
+                    <p className="text-gray-600 text-sm">AI通过深度对话了解你的内心世界</p>
+                  </div>
+                  
+                  <div className="bg-gradient-to-br from-blue-100 to-indigo-100 rounded-2xl p-6 shadow-lg">
+                    <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-xl flex items-center justify-center mb-4">
+                      <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-800 mb-2">场景生成</h3>
+                    <p className="text-gray-600 text-sm">将你的故事转化为精美的视觉场景</p>
+                  </div>
+                </div>
+                
+                <div className="space-y-4">
+                  <div className="bg-gradient-to-br from-green-100 to-emerald-100 rounded-2xl p-6 shadow-lg">
+                    <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-emerald-500 rounded-xl flex items-center justify-center mb-4">
+                      <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-800 mb-2">心理剧</h3>
+                    <p className="text-gray-600 text-sm">深度挖掘你的内心世界和情绪</p>
+                  </div>
+                  
+                  <div className="bg-gradient-to-br from-orange-100 to-red-100 rounded-2xl p-6 shadow-lg">
+                    <div className="w-16 h-16 bg-gradient-to-br from-orange-500 to-red-500 rounded-xl flex items-center justify-center mb-4">
+                      <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                      </svg>
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-800 mb-2">AI创作</h3>
+                    <p className="text-gray-600 text-sm">用AI技术创造独特的个人故事</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
           <div className="flex gap-4 justify-center">
             <Link
               href="/auth/signup"
@@ -240,8 +292,61 @@ export default function LandingPage() {
           </div>
         </div>
 
+        {/* 产品展示 */}
+        <div className="mb-20">
+          <h3 className="text-3xl font-bold text-center text-gray-900 mb-12">
+            看看其他用户的作品
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-6 shadow-lg">
+              <div className="w-full h-48 bg-gradient-to-br from-purple-200 to-pink-200 rounded-xl mb-4 flex items-center justify-center">
+                <div className="text-center">
+                  <div className="w-16 h-16 bg-white/50 rounded-full flex items-center justify-center mx-auto mb-2">
+                    <svg className="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                    </svg>
+                  </div>
+                  <p className="text-sm text-gray-600">情绪场景</p>
+                </div>
+              </div>
+              <h4 className="font-semibold text-gray-800 mb-2">"我今天上班很伤心"</h4>
+              <p className="text-sm text-gray-600">AI将用户的情绪转化为视觉化的场景，展现内心世界</p>
+            </div>
+            
+            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-6 shadow-lg">
+              <div className="w-full h-48 bg-gradient-to-br from-blue-200 to-indigo-200 rounded-xl mb-4 flex items-center justify-center">
+                <div className="text-center">
+                  <div className="w-16 h-16 bg-white/50 rounded-full flex items-center justify-center mx-auto mb-2">
+                    <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                    </svg>
+                  </div>
+                  <p className="text-sm text-gray-600">观点场景</p>
+                </div>
+              </div>
+              <h4 className="font-semibold text-gray-800 mb-2">"中国缺乏高端杂志市场"</h4>
+              <p className="text-sm text-gray-600">用插画风格展现用户对社会现象的深度思考</p>
+            </div>
+            
+            <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl p-6 shadow-lg">
+              <div className="w-full h-48 bg-gradient-to-br from-green-200 to-emerald-200 rounded-xl mb-4 flex items-center justify-center">
+                <div className="text-center">
+                  <div className="w-16 h-16 bg-white/50 rounded-full flex items-center justify-center mx-auto mb-2">
+                    <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <p className="text-sm text-gray-600">心理剧</p>
+                </div>
+              </div>
+              <h4 className="font-semibold text-gray-800 mb-2">"发现Noema杂志的智性"</h4>
+              <p className="text-sm text-gray-600">深度挖掘用户的内心世界，展现心理冲突和成长</p>
+            </div>
+          </div>
+        </div>
+
         {/* CTA */}
-        <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
+        <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl shadow-lg p-12 text-center">
           <h3 className="text-3xl font-bold text-gray-900 mb-4">
             准备好开始了吗？
           </h3>

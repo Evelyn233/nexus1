@@ -120,11 +120,37 @@ export async function getUserMetadata(): Promise<UserMetadata> {
       })
       
       if (!user || !user.metadata) {
-        console.error('❌ [USER-API] 服务器端：未找到用户元数据')
-        return getDefaultMetadata()
+        console.warn('⚠️ [USER-API] 服务器端：未找到用户元数据，创建默认元数据记录')
+        
+        // 创建默认元数据记录
+        const defaultMetadata = getDefaultMetadata()
+        const createdMetadata = await prisma.userMetadata.create({
+          data: {
+            userId: user!.id,
+            zodiacSign: defaultMetadata.zodiacSign,
+            chineseZodiac: defaultMetadata.chineseZodiac,
+            coreTraits: JSON.stringify(defaultMetadata.corePersonalityTraits),
+            communicationStyle: JSON.stringify(defaultMetadata.communicationStyle),
+            emotionalPattern: JSON.stringify(defaultMetadata.emotionalPattern),
+            behaviorPatterns: JSON.stringify(defaultMetadata.behaviorPatterns),
+            conversationInsights: JSON.stringify(defaultMetadata.conversationInsights),
+            frequentLocations: JSON.stringify(defaultMetadata.subconscious.frequentLocations),
+            fashionStyle: JSON.stringify(defaultMetadata.subconscious.fashionStyle),
+            aestheticPreferences: JSON.stringify(defaultMetadata.subconscious.aestheticPreferences)
+          }
+        })
+        
+        console.log('✅ [USER-API] 已创建默认元数据记录')
+        return defaultMetadata
       }
       
       // 解析JSON字段
+      console.log('🔍 [USER-API] 数据库原始字段:', {
+        frequentLocations: user.metadata.frequentLocations,
+        fashionStyle: user.metadata.fashionStyle,
+        aestheticPreferences: user.metadata.aestheticPreferences
+      })
+      
       const metadata: UserMetadata = {
         zodiacSign: user.metadata.zodiacSign || undefined,
         chineseZodiac: user.metadata.chineseZodiac || undefined,
@@ -133,9 +159,16 @@ export async function getUserMetadata(): Promise<UserMetadata> {
         emotionalPattern: user.metadata.emotionalPattern ? JSON.parse(user.metadata.emotionalPattern) : [],
         behaviorPatterns: user.metadata.behaviorPatterns ? JSON.parse(user.metadata.behaviorPatterns) : [],
         conversationInsights: user.metadata.conversationInsights ? JSON.parse(user.metadata.conversationInsights) : [],
-        frequentLocations: user.metadata.userMentionedLocations ? JSON.parse(user.metadata.userMentionedLocations) : [],
-        // ... 添加更多字段
+        frequentLocations: user.metadata.frequentLocations ? JSON.parse(user.metadata.frequentLocations) : [],
+        // 添加subconscious字段
+        subconscious: {
+          frequentLocations: user.metadata.frequentLocations ? JSON.parse(user.metadata.frequentLocations) : [],
+          fashionStyle: user.metadata.fashionStyle ? JSON.parse(user.metadata.fashionStyle) : [],
+          aestheticPreferences: user.metadata.aestheticPreferences ? JSON.parse(user.metadata.aestheticPreferences) : []
+        }
       }
+      
+      console.log('🔍 [USER-API] 解析后的subconscious字段:', metadata.subconscious)
       
       return metadata
     }
@@ -149,7 +182,12 @@ export async function getUserMetadata(): Promise<UserMetadata> {
     }
     
     const data = await response.json()
-    return data.metadata || getDefaultMetadata()
+    if (!data.metadata) {
+      console.warn('⚠️ [USER-API] 客户端：未找到用户元数据，返回默认值')
+      return getDefaultMetadata()
+    }
+    
+    return data.metadata
   } catch (error) {
     console.error('❌ [USER-API] 获取用户元数据失败:', error)
     return getDefaultMetadata()
@@ -274,6 +312,12 @@ function getDefaultMetadata(): UserMetadata {
     styleInsights: ['科技感与艺术气息的独特融合', '理性秩序中的个性表达', '国际化现代风格偏好'],
     frequentLocations: ['上海', '淞虹路', '虹桥机场附近', '公司办公室', '艺术展览馆'],
     favoriteVenues: ['科技公司', '艺术展览馆', '创业咖啡厅', '国际会议中心'],
+    // 添加subconscious字段
+    subconscious: {
+      frequentLocations: ['上海', '淞虹路', '虹桥机场附近', '公司办公室', '艺术展览馆'],
+      fashionStyle: ['简约科技风', '理性优雅', '现代国际化'],
+      aestheticPreferences: ['简约科技感与艺术气息结合', '理性秩序中的感性表达', '国际化现代风格']
+    },
     lastAnalyzed: new Date().toISOString(),
     analysisHistory: []
   }

@@ -61,6 +61,13 @@ export class SceneGenerationService {
       let userInfo = await getUserInfo()
       let userMetadata = await getUserMetadata()
       
+      console.log('🔍 [SCENE-GEN] 用户元数据原始数据:', {
+        hasSubconscious: !!userMetadata.subconscious,
+        frequentLocations: userMetadata.subconscious?.frequentLocations || [],
+        fashionStyle: userMetadata.subconscious?.fashionStyle || [],
+        aestheticPreferences: userMetadata.subconscious?.aestheticPreferences || []
+      })
+      
       // 🔥 确保用户信息完整性，添加默认值
       if (!userInfo) {
         console.warn('⚠️ [SCENE-GEN] 用户信息为空，使用默认值')
@@ -87,14 +94,20 @@ export class SceneGenerationService {
         console.warn('⚠️ [SCENE-GEN] 头发信息缺失，设置为默认值：长发')
       }
       
-      // 🔥 极简metadata：只保留最必要的字段（避免干扰用户输入）
+      // 🔥 增强metadata：确保有足够的用户信息
       const sceneMetadata = {
-        frequentLocations: (userMetadata.subconscious?.frequentLocations || []).slice(0, 5), // 只取前5个
-        fashionStyle: (userMetadata.subconscious?.fashionStyle || []).slice(0, 3), // 只取前3个
-        aestheticPreferences: (userMetadata.subconscious?.aestheticPreferences || []).slice(0, 3) // 只取前3个
+        frequentLocations: (userMetadata.subconscious?.frequentLocations || []).slice(0, 5).length > 0 
+          ? (userMetadata.subconscious?.frequentLocations || []).slice(0, 5)
+          : ['办公室', '咖啡厅', '地铁', '家', '商场'], // 默认地点
+        fashionStyle: (userMetadata.subconscious?.fashionStyle || []).slice(0, 3).length > 0
+          ? (userMetadata.subconscious?.fashionStyle || []).slice(0, 3)
+          : ['简约', '现代', '舒适'], // 默认风格
+        aestheticPreferences: (userMetadata.subconscious?.aestheticPreferences || []).slice(0, 3).length > 0
+          ? (userMetadata.subconscious?.aestheticPreferences || []).slice(0, 3)
+          : ['极简', '自然', '艺术'] // 默认审美
       }
       
-      console.log('🎬 [SCENE-GEN] 极简metadata（避免干扰）:', sceneMetadata)
+      console.log('🎬 [SCENE-GEN] 增强metadata（确保有内容）:', sceneMetadata)
       
       // 检查用户信息是否完整
       if (!userInfo?.name || !userInfo?.gender || !userInfo?.location) {
@@ -167,7 +180,11 @@ ${i === 0 ? '→ 对话起点（核心主题）' : '→ 补充细节（同等重
 根据上述用户输入，识别：
 1. 是否有具体事件？（如"开会"、"老板找熟人"）→ 生成写实场景
 2. 是否有观点表达？（如"熟人经济"、"依赖微信"）→ 生成观点可视化场景
-3. 是否有强烈情绪？（如"失望"、"生气"）→ 交给psychodramaService处理
+3. 是否有情绪表达？（如"很开心"、"很感动"、"觉得开心"）→ 生成情绪场景，交给psychodramaService处理
+
+**⚠️ 重要：区分情绪表达和观点表达！**
+- ❌ 情绪表达：如"很开心"、"很感动"、"觉得开心"、"感觉很好" → 这些是情绪，不是观点！
+- ✅ 观点表达：如"熟人经济"、"形式主义"、"本质是XX"、"就是XX" → 这些是观点！
 
 **🚨🚨🚨 强制检查清单（生成前必须确认）：**
 □ 我生成的场景标题是否出现在用户输入中？

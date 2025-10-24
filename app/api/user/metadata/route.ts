@@ -32,6 +32,51 @@ export async function GET() {
       )
     }
 
+    // 如果用户元数据不存在，创建默认元数据
+    if (!user.metadata) {
+      console.warn('⚠️ [METADATA-API] 用户元数据不存在，创建默认元数据')
+      
+      const defaultMetadata = {
+        zodiacSign: '双鱼座',
+        chineseZodiac: '兔',
+        coreTraits: JSON.stringify(['理性思维与艺术感知的独特结合', '战略规划能力突出', '独立自主与创新突破精神']),
+        communicationStyle: JSON.stringify(['逻辑清晰表达直接', '善于用理性框架解释感性概念', '在专业领域沟通自信流畅']),
+        emotionalPattern: JSON.stringify(['内在情感丰富但表达理性', '对失败能快速调整心态', '在压力下保持情绪稳定']),
+        behaviorPatterns: JSON.stringify(['基于数据分析与直觉判断结合', '长期战略导向', '风险可控的创新决策']),
+        conversationInsights: JSON.stringify(['偏好深度专业对话', '善于用案例说明观点', '在熟悉领域表达自信']),
+        frequentLocations: JSON.stringify(['上海', '淞虹路', '虹桥机场附近', '公司办公室', '艺术展览馆']),
+        fashionStyle: JSON.stringify(['简约科技风', '理性优雅', '现代国际化']),
+        aestheticPreferences: JSON.stringify(['简约科技感与艺术气息结合', '理性秩序中的感性表达', '国际化现代风格'])
+      }
+      
+      const createdMetadata = await prisma.userMetadata.create({
+        data: {
+          userId: user.id,
+          ...defaultMetadata
+        }
+      })
+      
+      console.log('✅ [METADATA-API] 已创建默认元数据记录')
+      
+      // 格式化新创建的元数据
+      const metadata = {
+        ...createdMetadata,
+        coreTraits: JSON.parse(createdMetadata.coreTraits),
+        communicationStyle: JSON.parse(createdMetadata.communicationStyle),
+        emotionalPattern: JSON.parse(createdMetadata.emotionalPattern),
+        behaviorPatterns: JSON.parse(createdMetadata.behaviorPatterns),
+        conversationInsights: JSON.parse(createdMetadata.conversationInsights),
+        frequentLocations: JSON.parse(createdMetadata.frequentLocations),
+        fashionStyle: JSON.parse(createdMetadata.fashionStyle),
+        aestheticPreferences: JSON.parse(createdMetadata.aestheticPreferences)
+      }
+      
+      return NextResponse.json({
+        success: true,
+        metadata
+      })
+    }
+
     // 格式化元数据（将所有JSON字符串字段转换为对象/数组）
     const metadata = user.metadata ? {
       ...user.metadata,

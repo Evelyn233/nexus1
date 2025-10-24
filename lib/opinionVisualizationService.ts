@@ -25,48 +25,23 @@ export interface OpinionScene {
  */
 export class OpinionVisualizationService {
   
+  
   /**
-   * 选择最重要的观点
+   * 选择最重要的观点（基于LLM分析结果）
    */
-  private static selectMostImportantOpinion(opinions: Array<{ type: string, text: string, trigger: string }>): { type: string, text: string, trigger: string } {
+  private static selectMostImportantOpinion(opinions: Array<{ type: string, text: string, trigger: string, priority: number, reason: string }>): { type: string, text: string, trigger: string, priority: number, reason: string } {
     if (!opinions || opinions.length === 0) {
-      return { type: '价值判断', text: '默认观点', trigger: '默认触发' }
+      return { type: '价值判断', text: '默认观点', trigger: '默认触发', priority: 5, reason: '默认观点' }
     }
     
     if (opinions.length === 1) {
       return opinions[0]
     }
     
-    // 优先级排序：社会现象评论 > 文化批判 > 价值判断 > 讽刺/嘲讽
-    const priorityOrder = {
-      '社会现象评论': 4,
-      '文化批判': 3, 
-      '价值判断': 2,
-      '讽刺/嘲讽': 1
-    }
+    // 按优先级排序（LLM已经分析过了）
+    const sortedOpinions = opinions.sort((a, b) => b.priority - a.priority)
     
-    // 特殊关键词加分
-    const specialKeywords = ['盈利', '模式', '智性', '深度', '思考', '本质', '核心', '关键']
-    const enhancedOpinions = opinions.map(opinion => {
-      let score = priorityOrder[opinion.type as keyof typeof priorityOrder] || 0
-      
-      // 检查是否包含特殊关键词
-      const hasSpecialKeyword = specialKeywords.some(keyword => 
-        opinion.text.includes(keyword) || opinion.trigger.includes(keyword)
-      )
-      
-      if (hasSpecialKeyword) {
-        score += 2 // 特殊关键词加分
-        console.log(`🎯 [OPINION] 观点"${opinion.text}"包含特殊关键词，加分`)
-      }
-      
-      return { ...opinion, score }
-    })
-    
-    // 按分数排序
-    const sortedOpinions = enhancedOpinions.sort((a, b) => b.score - a.score)
-    
-    console.log('🎯 [OPINION] 观点优先级排序:', sortedOpinions.map(o => `${o.type}: ${o.text} (分数: ${o.score})`))
+    console.log('🎯 [OPINION] 观点优先级排序:', sortedOpinions.map(o => `${o.type}: ${o.text} (分数: ${o.priority}) - ${o.reason}`))
     
     return sortedOpinions[0]
   }
@@ -77,7 +52,7 @@ export class OpinionVisualizationService {
   private static async detectOpinions(
     initialPrompt: string,
     answers: string[]
-  ): Promise<{ hasOpinion: boolean, opinions: Array<{ type: string, text: string, trigger: string }> }> {
+  ): Promise<{ hasOpinion: boolean, opinions: Array<{ type: string, text: string, trigger: string, priority: number, reason: string }> }> {
     console.log('🔍 [OPINION] 开始观点检测')
     
     // 🔄 本次完整对话（所有输入同等对待）
@@ -99,11 +74,40 @@ export class OpinionVisualizationService {
               role: 'system',
               content: `你是观点检测专家。任务：从用户输入中识别观点、价值判断、社会现象评论。
 
+**⚠️ 重要：区分情绪表达和观点表达！**
+- ❌ 情绪表达：如"很开心"、"很感动"、"觉得开心"、"感觉很好" → 这些是情绪，不是观点！
+- ✅ 观点表达：如"熟人经济"、"形式主义"、"本质是XX"、"就是XX" → 这些是观点！
+
 **观点类型：**
 1. **社会现象评论**（如"熟人经济"、"形式主义"、"表面功夫"）
 2. **价值判断**（如"其实很虚伪"、"本质是XX"、"就是XX"）
 3. **文化批判**（如"传统vs现代"、"理想vs现实"）
 4. **讽刺/嘲讽**（如"呵呵"、"笑死"、"装模作样"）
+
+**🚨 严格排除情绪表达：**
+- 用户说"很开心"、"很感动"、"觉得开心"、"感觉很好" → 这是情绪，不是观点！
+- 用户说"喜欢"、"讨厌"、"觉得"（情感词汇）→ 这是情绪，不是观点！
+- 只有涉及社会现象、价值判断、文化批判的才是观点！
+
+**🎯 观点检测标准（更严格）：**
+- 必须包含**社会现象、价值判断、文化批判**的具体内容
+- 不能只是情感表达（如"开心"、"感动"）
+- 不能只是描述性语言（如"看到"、"发现"）
+- 必须是用户对某个现象、问题、文化的**评价和判断**
+
+**优先级分析标准：**
+1. **深度思考程度**：是否涉及深层次的思考、分析、质疑
+2. **商业价值**：是否涉及商业模式、盈利、市场分析
+3. **社会意义**：是否涉及社会现象、文化批判、价值判断
+4. **创新性**：是否提出新的观点、角度、思考
+5. **实用性**：是否对实际生活、工作有指导意义
+
+**优先级评分（1-10分）：**
+- 10分：深度商业分析、创新思考、社会批判
+- 8-9分：深度思考、价值判断、文化分析
+- 6-7分：一般观点、表面评价
+- 4-5分：简单赞赏、基础对比
+- 1-3分：表面描述、无深度思考
 
 返回JSON：
 {
@@ -112,7 +116,9 @@ export class OpinionVisualizationService {
     {
       "type": "社会现象/价值判断/文化批判/讽刺",
       "text": "观点的简短概括（5-10字）",
-      "trigger": "用户原文中触发观点的句子"
+      "trigger": "用户原文中触发观点的句子",
+      "priority": 8,
+      "reason": "分析原因"
     }
   ]
 }`
@@ -186,37 +192,37 @@ export class OpinionVisualizationService {
               role: 'system',
               content: `你是观点可视化专家。任务：将用户的抽象观点转化为具体的视觉场景。
 
-**🎯 核心原则（观点是客观现象，不包含用户）：**
-1. **必须有真实人物**：观点场景不是抽象符号，而是人物互动
-2. **用人物行为体现观点**：通过人物的动作、表情、互动来呈现观点
-3. **🚨 不要有用户！**：这是客观现象的呈现，画面中不应该出现用户本人
-4. **第三人称视角**：像纪录片一样呈现这个社会现象
+**🎯 核心原则（观点场景使用插画风格）：**
+1. **🎨 使用Illustrator插画风格**：观点场景必须是插画风格，不是写实照片
+2. **必须有人物**：观点场景必须包含人物，用人物来体现观点
+3. **现代扁平设计**：clean vector art, flat design, minimal illustration
+4. **🚨 不要写实照片！**：realistic photos, photorealistic images
 
 **🚨🚨🚨 死刑规则：**
-- ❌ "熟人经济" → Abstract circles, symbolic network → 死刑！
-- ✅ "熟人经济" → Real people exchanging WeChat contacts, introducing each other
-- ❌ "形式主义" → Abstract forms, paperwork symbols → 死刑！
-- ✅ "形式主义" → People performing tasks mechanically, going through motions
-- ❌ "虚伪" → Mask symbols → 死刑！
-- ✅ "虚伪" → Person with different expressions (smiling to face, frowning when turned away)
+- ❌ "熟人经济" → realistic photo of people networking → 死刑！
+- ✅ "熟人经济" → Illustrator style illustration with people, business cards, WeChat QR codes, connection lines, modern flat design
+- ❌ "形式主义" → realistic photo of office workers → 死刑！
+- ✅ "形式主义" → Vector art illustration with people, mechanical symbols, repetitive patterns, clean design
+- ❌ "虚伪" → realistic photo of person with different expressions → 死刑！
+- ✅ "虚伪" → Flat design illustration with people, mask symbols, contrast elements, symbolic representation
 
-**观点类型与可视化策略：**
+**观点类型与可视化策略（插画风格）：**
 
 **1. 社会现象（如"熟人经济"）：**
-→ 生成：多人互动场景，体现这个现象的典型行为
-→ 示例："熟人经济" = 多个商务人士围成圈，交换微信、互相介绍、建群聊
+→ 生成：插画风格，必须有人物
+→ 示例："熟人经济" = Illustrator style illustration with people, business cards, WeChat QR codes, connection lines, network symbols
 
-**2. 价值判断（如"其实很虚伪"）：**
-→ 生成：对比场景，体现表面vs内在的差异
-→ 示例："虚伪" = 人物面对不同人时表情/姿态的明显差异
+**2. 价值判断（如"赞赏杂志的智性水平"）：**
+→ 生成：插画风格，必须有人物
+→ 示例："智性水平" = Vector art illustration with people, brain symbols, light bulbs, knowledge icons, intellectual symbols
 
 **3. 文化批判（如"传统vs现代"）：**
-→ 生成：对比场景，两种风格/行为的并置
-→ 示例："传统管理vs现代思维" = 不同管理风格的具体行为对比
+→ 生成：插画风格，必须有人物
+→ 示例："传统vs现代" = Flat design illustration with people, contrast elements, traditional vs modern symbols
 
 **4. 讽刺/嘲讽（如"装模作样"）：**
-→ 生成：夸张的行为场景，体现做作/表演性
-→ 示例："装模作样" = 人物过度表演性的姿态和动作
+→ 生成：插画风格，必须有人物
+→ 示例："装模作样" = Vector art illustration with people, exaggerated symbols, performance elements
 
 **用户信息：**
 - 年龄：${userInfo.age || 26}岁
@@ -231,13 +237,13 @@ ${allInputs.map((input, i) => `${i + 1}. ${input}`).join('\n')}
 **观点内容：** ${opinion.text}
 **触发句子：** ${opinion.trigger}
 
-**生成要求：**
-1. 场景中必须有真实人物（至少2-3人）
-2. 用人物的具体行为和互动来体现观点
-3. **🚨 画面中不要有用户！**这是客观现象的呈现，不是用户视角
-4. 不要用抽象符号，要用具体的人物动作
-5. imagePrompt必须详细描述人物的衣着、动作、表情、互动
-6. 采用第三人称视角，像纪录片/社会观察一样客观呈现
+**生成要求（插画风格）：**
+1. 场景必须是插画风格，必须包含人物
+2. 用人物和象征物来体现观点
+3. **🚨 不要写实照片！**使用Illustrator插画风格
+4. 使用现代扁平设计，clean vector art
+5. imagePrompt必须详细描述插画风格、人物、象征物、设计元素
+6. 采用插画视角，像现代杂志插图一样呈现
 
 返回JSON：
 {
@@ -246,10 +252,10 @@ ${allInputs.map((input, i) => `${i + 1}. ${input}`).join('\n')}
   "visualizationApproach": "可视化策略（1-2句话）",
   "sceneDescription_CN": "中文场景描述（详细）",
   "sceneDescription_EN": "English scene description (detailed)",
-  "imagePrompt": "🚨 NO USER IN SCENE! Documentary-style objective observation. MUST include: MULTIPLE REAL PEOPLE (at least 2-3 characters) demonstrating the social phenomenon, their specific clothing, facial expressions, body language, interactions. Specific location. Third-person perspective like documentary photography. Realistic style, NOT abstract symbols. Focus on people's behavior and interactions that embody the opinion/phenomenon. --ar 16:9",
-  "location": "具体地点（如：办公室、会议室、社交场合）",
-  "peopleInvolved": ["角色1", "角色2", "角色3"],
-  "storyFragment": "故事片段（100-150字，客观描述场景中发生的事情，不包含用户视角）"
+  "imagePrompt": "🚨 ILLUSTRATOR ILLUSTRATION STYLE! Vector art illustration, modern flat design, clean vector art. MUST include: PEOPLE in the scene, PRECISE SYMBOLIC ELEMENTS that represent the opinion/phenomenon, symbolic icons, abstract shapes, design elements. NOT realistic photos, NOT photorealistic images. Focus on people and symbolic representation that embodies the opinion/phenomenon. --ar 16:9",
+  "location": "插画场景（如：Illustrator Business Scene, Vector Art Social Scene）",
+  "peopleInvolved": ["人物1", "人物2", "象征物1"],
+  "storyFragment": "插画描述（100-150字，描述插画中的人物、象征物和设计元素，体现观点）"
 }
 
 只返回JSON，不要其他文字！`
@@ -329,14 +335,56 @@ ${allInputs.map((input, i) => `${i + 1}. ${input}`).join('\n')}
     // 第二步：为每个观点生成可视化场景
     // 策略：🔥 找到体现观点的真实场景，在那个场景后插入观点场景
     
-    // 最多生成1个观点场景（选择最重要的观点）
-    const primaryOpinion = this.selectMostImportantOpinion(opinionResult.opinions)
+    // 生成所有高优先级观点场景（大于等于7分）
+    const highPriorityOpinions = opinionResult.opinions.filter(opinion => opinion.priority >= 7)
     
-    console.log(`🎨 [OPINION] 为观点"${primaryOpinion.text}"生成可视化场景`)
+    if (highPriorityOpinions.length === 0) {
+      // 如果没有高优先级观点，选择最高分的观点
+      const primaryOpinion = this.selectMostImportantOpinion(opinionResult.opinions)
+      console.log(`🎨 [OPINION] 没有高优先级观点，选择最高分观点"${primaryOpinion.text}"`)
+      highPriorityOpinions.push(primaryOpinion)
+    }
+    
+    console.log(`🎨 [OPINION] 将为${highPriorityOpinions.length}个高优先级观点生成可视化场景:`, highPriorityOpinions.map(o => `${o?.text || 'undefined'} (${o?.priority || 0}分)`))
+    
+    // 验证观点对象结构
+    const validOpinions = []
+    for (const opinion of highPriorityOpinions) {
+      if (!opinion || typeof opinion !== 'object') {
+        console.error('❌ [OPINION] 观点对象不是有效对象:', opinion)
+        continue
+      }
+      
+      if (!opinion.text || typeof opinion.text !== 'string') {
+        console.error('❌ [OPINION] 观点对象缺少text字段或不是字符串:', opinion)
+        continue
+      }
+      
+      if (typeof opinion.priority !== 'number') {
+        console.error('❌ [OPINION] 观点对象缺少priority字段或不是数字:', opinion)
+        continue
+      }
+      
+      console.log(`✅ [OPINION] 观点对象验证通过: ${opinion.text} (${opinion.priority}分)`)
+      validOpinions.push(opinion)
+    }
+    
+    // 使用验证后的观点列表
+    const finalOpinions = validOpinions.length > 0 ? validOpinions : highPriorityOpinions
+    
+    // 为每个高优先级观点生成场景
+    for (const opinion of finalOpinions) {
+      // 检查观点对象是否有效
+      if (!opinion || !opinion.text) {
+        console.error('❌ [OPINION] 观点对象无效:', opinion)
+        continue
+      }
+      
+      console.log(`🎨 [OPINION] 为观点"${opinion.text}"生成可视化场景`)
     
     // 🔍 智能识别哪个场景体现了这个观点
     let relatedSceneIndex = -1
-    const opinionKeywords = primaryOpinion.text.toLowerCase()
+      const opinionKeywords = opinion.text.toLowerCase()
     
     for (let i = 0; i < logicalScenes.length; i++) {
       const scene = logicalScenes[i]
@@ -353,7 +401,7 @@ ${allInputs.map((input, i) => `${i + 1}. ${input}`).join('\n')}
       
       // 检查场景内容是否体现了这个观点
       const isRelated = sceneText.includes(opinionKeywords) ||
-                        sceneText.includes(primaryOpinion.trigger.toLowerCase())
+                          (opinion.trigger && sceneText.includes(opinion.trigger.toLowerCase()))
       
       // 优先选择 reality/发现真相 类型的场景
       if (isRealityScene && isRelated) {
@@ -372,7 +420,7 @@ ${allInputs.map((input, i) => `${i + 1}. ${input}`).join('\n')}
     }
     
     const opinionScene = await this.generateOpinionScene(
-      primaryOpinion,
+        opinion,
       initialPrompt,
       answers,
       userInfo,
@@ -410,15 +458,9 @@ ${allInputs.map((input, i) => `${i + 1}. ${input}`).join('\n')}
       }
       
       // 🔥 插入策略：在体现观点的场景后插入观点场景
-      for (let i = 0; i < logicalScenes.length; i++) {
-        newLogicalScenes.push(logicalScenes[i])
-        
-        // 在找到的相关场景后插入观点场景
-        if (i === relatedSceneIndex) {
-          newLogicalScenes.push(opinionSceneData)
+        newLogicalScenes.splice(relatedSceneIndex + 1, 0, opinionSceneData)
           opinionScenesAdded++
-          console.log(`✅ [OPINION] 观点场景已插入到Scene ${i + 1}（${logicalScenes[i].title}）后面`)
-        }
+        console.log(`✅ [OPINION] 观点场景已插入到Scene ${relatedSceneIndex + 1}（${logicalScenes[relatedSceneIndex].title}）后面`)
       }
     }
     
