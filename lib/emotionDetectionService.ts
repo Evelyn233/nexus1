@@ -41,8 +41,15 @@ export async function detectEmotionsWithLLM(text: string): Promise<EmotionDetect
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        message: prompt,
-        useStreaming: false
+        messages: [
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        model: 'deepseek-chat',
+        temperature: 0.2,
+        max_tokens: 500
       })
     })
 
@@ -51,7 +58,7 @@ export async function detectEmotionsWithLLM(text: string): Promise<EmotionDetect
     }
 
     const data = await response.json()
-    const aiResponse = data.response || data.message || ''
+    const aiResponse = data.choices?.[0]?.message?.content || data.response || data.message || ''
 
     // 尝试解析JSON响应
     try {
