@@ -87,6 +87,48 @@ export class PsychodramaSceneService {
       const userInfo = await getUserInfo()
       const userMetadata = await getUserMetadata()
       
+      // 🔥 确保用户信息完整性，添加默认值
+      if (!userInfo) {
+        console.warn('⚠️ [PSYCHODRAMA] 用户信息为空，使用默认值')
+        userInfo = {
+          name: '用户',
+          gender: 'female',
+          birthDate: {
+            year: '1999',
+            month: '3',
+            day: '16'
+          },
+          height: '165cm',
+          weight: '50kg',
+          location: '上海',
+          personality: '理性思维与艺术感知的独特结合',
+          hairLength: '长发',
+          age: 26
+        }
+      }
+      
+      // 确保关键信息存在
+      if (!userInfo.name) userInfo.name = '用户'
+      if (!userInfo.gender) userInfo.gender = 'female'
+      if (!userInfo.age) userInfo.age = 26
+      if (!userInfo.height) userInfo.height = '165cm'
+      if (!userInfo.hairLength) userInfo.hairLength = '长发'
+      if (!userInfo.personality) userInfo.personality = '理性思维与艺术感知的独特结合'
+      if (!userInfo.birthDate) {
+        userInfo.birthDate = {
+          year: '1999',
+          month: '3',
+          day: '16'
+        }
+      }
+      
+      console.log('✅ [PSYCHODRAMA] 用户信息验证完成:', {
+        gender: userInfo.gender,
+        age: userInfo.age,
+        height: userInfo.height,
+        hairLength: userInfo.hairLength
+      })
+      
       // 3. 选择情绪最强烈的点（或创建默认情绪用于强制生成）
       let strongestEmotion
       
@@ -1766,7 +1808,15 @@ ${previousMetaphors.map((m, idx) => `心理剧${idx + 1}: ${m}`).join('\n')}
 情绪层次：从表面到内心的对比，体现复杂情感。
 场景包含：具体时间地点、多人物互动、丰富动作描述、现象描述、生动内心独白、情绪层次变化、视觉细节描写。`,
         sceneDescription_EN: `At ${extractedLocation}, ${userInfo.age}-year-old Chinese ${userInfo.gender === 'female' ? 'female' : 'male'} maintaining calm surface while experiencing intense ${emotion.type} internally. Inner thought: "${emotion.quote}"`,
-        imagePrompt: `PSYCHODRAMA - Theatrical stage photography at ${extractedLocation}. COMPOSITION: MEDIUM SHOT showing USER complete figure from head to waist. USER: ${userInfo.age}-year-old Chinese ${userInfo.gender === 'female' ? 'female' : 'male'}, ${userInfo.height}cm, ${userInfo.hairLength || 'long hair'}, wearing sharp tailored clothing, ${emotionStyle.body}, hands VISIBLY positioned showing emotion. Face: eyes ${emotionStyle.eyes}, ${emotionStyle.lips}. OTHERS: background figures blurred and stylized. THEATRICAL STAGING: dramatic theatrical lighting, artistic COLOR TREATMENT with ${emotionStyle.color}. Shadows creating theatrical atmosphere. Background blurred. ATMOSPHERE: psychological tension, theatrical. Cinematic theatrical photography with artistic color grading and stage lighting. Full figure composition showing complete body in theatrical space. NOT close-up portrait. --ar 16:9`
+        imagePrompt: `PSYCHODRAMA - Chinese ${userInfo.gender === 'female' ? 'woman' : 'man'} at ${extractedLocation}. 
+COMPOSITION: MEDIUM SHOT showing complete figure from head to waist. 
+USER: ${userInfo.age}-year-old Chinese ${userInfo.gender === 'female' ? 'female' : 'male'}, ${userInfo.height}cm, ${userInfo.hairLength || 'long hair'}, 
+wearing modern Chinese business attire, ${emotionStyle.body}, hands showing emotion. 
+Face: Chinese features, ${emotionStyle.eyes}, ${emotionStyle.lips}. 
+ENVIRONMENT: ${extractedLocation} with Chinese office setting, modern Chinese interior design.
+LIGHTING: dramatic theatrical lighting, ${emotionStyle.color} color treatment. 
+ATMOSPHERE: psychological tension, theatrical. 
+STYLE: Cinematic photography, Chinese business environment, NOT close-up portrait. --ar 16:9`
       }
     }
   }

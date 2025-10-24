@@ -65,12 +65,19 @@ export class SceneGenerationService {
       if (!userInfo) {
         console.warn('⚠️ [SCENE-GEN] 用户信息为空，使用默认值')
         userInfo = {
+          name: '用户',
           gender: 'female',
-          hairLength: '长发',
-          age: 26,
+          birthDate: {
+            year: '1999',
+            month: '3',
+            day: '16'
+          },
           height: '165cm',
           weight: '50kg',
-          location: '上海'
+          location: '上海',
+          personality: '理性思维与艺术感知的独特结合',
+          hairLength: '长发',
+          age: 26
         }
       }
       
