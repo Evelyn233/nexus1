@@ -1653,30 +1653,30 @@ description格式（双主角）："26-year-old Chinese female [user's actual ac
       ⚠️ 不要硬套具体地点！可以用抽象空间表达情绪
       
       **类型3-观点现象场景**（如'熟人经济'、'依赖微信'）：
-      🚨 必须有真实人物！不要抽象符号！
-      示例："熟人经济" → 'Multiple people exchanging WeChat contacts, showing phones with chat groups, people introducing each other in circle, user observing from side, realistic networking scene'
-      ❌ 错误："熟人经济" → 'abstract circles connected by lines, symbolic network visualization' ← 死刑！没有人！
-      ✅ 正确：真实的人际互动、微信聊天、递名片、熟人介绍
+      🎨 使用Illustrator插画风格！精准象征物！
+      示例："熟人经济" → 'Illustrator style illustration, Chinese business networking scene, people exchanging business cards, WeChat QR codes floating around, connection lines between people, modern flat design, clean vector art, symbolic representation of networking culture'
+      ❌ 错误："熟人经济" → 'realistic photo of people networking' ← 太写实！
+      ✅ 正确：插画风格 + 精准象征物 + 现代扁平设计
       
-      **通用规则**：所有人物必须有性别、年龄、外貌描述",
+      **通用规则**：观点场景使用插画风格，精准象征物，不一定是人物",
       "description_zh": "中文场景描述，用于显示给用户",
       "location": "Specific location - 根据场景类型：
       1) 具体事件→真实地点（如'Conference Room', 'Office'）
       2) 情绪表达→可以用抽象空间（如'Abstract Emotional Space'）
-      3) 🚨 观点现象→真实场所（如'Office Networking Area', 'WeChat Group Chat Scene'）
-         ❌ 不要：'Cultural Crossroads', 'Symbolic Space' ← 太抽象！
-         ✅ 要：真实的社交场合、办公室、聊天场景",
+      3) 🎨 观点现象→插画场景（如'Illustrator Business Networking Scene', 'Vector Art Social Media Scene'）
+         ❌ 不要：'realistic office scene' ← 太写实！
+         ✅ 要：插画风格 + 精准象征物 + 现代扁平设计",
       "age": 18,  // 具体年龄数字
       "peopleCount": "alone or with others (e.g., 'alone', 'with 2-3 classmates', 'in large group')",
       "keywords": ["keyword1", "keyword2"],
       "visualDetails": {
-        "lighting": "lighting description (English)",
-        "colorTone": "color tone description (English)",
-        "atmosphere": "atmosphere description (English)",
-        "objects": ["具体物品1", "具体物品2"...],  // ⚠️ 必须是该地点会有的具体物品！如会议室：laptop, whiteboard, projector, coffee cups, documents, pens, water bottles, conference phone；办公室：desk, dual monitors, keyboard, mouse, desk lamp, plants, notebooks；咖啡厅：coffee machine, cups, pastries, menu, wooden tables
-        "sounds": ["sound1", "sound2"],
-        "clothing": "clothing description (English)",
-        "mood": "mood description with specific micro-expressions and body language that naturally reflect user's core personality traits (English)"
+        "lighting": "illustration lighting description (English)",
+        "colorTone": "flat design color palette (English)",
+        "atmosphere": "illustration atmosphere description (English)",
+        "objects": ["symbolic objects1", "symbolic objects2"...],  // 🎨 观点场景使用精准象征物！如"熟人经济"：business cards, WeChat QR codes, connection lines, network symbols；"AI取代工作"：robot symbols, human silhouettes, job icons, technology symbols
+        "sounds": ["illustration sound effects"],
+        "clothing": "illustration style clothing (English)",
+        "mood": "illustration mood with symbolic elements that represent the opinion/point of view (English)"
       }
     }
   ],
@@ -1697,6 +1697,13 @@ description格式（双主角）："26-year-old Chinese female [user's actual ac
 **场景描述（scene.description）：**
 ✅ 只描述客观环境：地点、物品、光线、声音、人物动作
 ❌ 不要包含主观情感：解脱、希望、自由、愉悦、感受
+
+**观点场景特殊要求：**
+🎨 观点场景必须使用Illustrator插画风格！
+✅ 精准象征物：如"熟人经济"用business cards, WeChat QR codes, connection lines
+✅ 现代扁平设计：clean vector art, flat design, minimal illustration
+✅ 不一定是人物：可以用symbols, icons, abstract shapes
+❌ 不要写实照片：realistic photos, photorealistic images
 ❌ 不要包含分析性语言：体现了、反映了、象征着
 
 **故事描述（storyDescription/narrative）：**

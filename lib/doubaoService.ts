@@ -99,8 +99,8 @@ async function fallbackToLocalAPI(messages: ChatMessage[]): Promise<DoubaoRespon
     
     if (answersCount >= 3) {
       console.log(`⚠️ [FALLBACK] 已经问了${answersCount}个问题，停止提问`)
-      return {
-        success: true,
+        return {
+          success: true,
         content: JSON.stringify({ questions: [] })  // 返回空数组，停止提问
       }
     }
@@ -114,10 +114,10 @@ async function fallbackToLocalAPI(messages: ChatMessage[]): Promise<DoubaoRespon
     }
     
     console.log('🎯 [FALLBACK] 返回备用问题:', fallbackQuestions.questions)
-    return {
-      success: true,
+      return {
+        success: true,
       content: JSON.stringify(fallbackQuestions)
-    }
+        }
   }
   
   // 对于其他类型的请求，返回简单回复
@@ -177,7 +177,7 @@ ${userAnalysisPrompt}
 
 **用户特点分析：**
 ${userInfo?.gender === 'male' ?
-  '用户是男性，有创业经历，经历过失败和挫折，需要具体的、实用的建议' :  
+  '用户是男性，有创业经历，经历过失败和挫折，需要具体的、实用的建议' : 
   '用户是女性，需要平衡的问题权重'
 }
 
@@ -243,7 +243,7 @@ ${userInfo?.gender === 'male' ?
         // 尝试从文本中提取问题
         const lines = content.split('\n').filter((line: string) => line.trim().length > 0)
         const questions = lines.filter((line: string) =>
-          line.includes('？') || line.includes('?') ||
+          line.includes('？') || line.includes('?') || 
           line.length > 10 && !line.includes('```')
         ).slice(0, 3)
         

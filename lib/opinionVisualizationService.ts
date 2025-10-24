@@ -26,6 +26,52 @@ export interface OpinionScene {
 export class OpinionVisualizationService {
   
   /**
+   * 选择最重要的观点
+   */
+  private static selectMostImportantOpinion(opinions: Array<{ type: string, text: string, trigger: string }>): { type: string, text: string, trigger: string } {
+    if (!opinions || opinions.length === 0) {
+      return { type: '价值判断', text: '默认观点', trigger: '默认触发' }
+    }
+    
+    if (opinions.length === 1) {
+      return opinions[0]
+    }
+    
+    // 优先级排序：社会现象评论 > 文化批判 > 价值判断 > 讽刺/嘲讽
+    const priorityOrder = {
+      '社会现象评论': 4,
+      '文化批判': 3, 
+      '价值判断': 2,
+      '讽刺/嘲讽': 1
+    }
+    
+    // 特殊关键词加分
+    const specialKeywords = ['盈利', '模式', '智性', '深度', '思考', '本质', '核心', '关键']
+    const enhancedOpinions = opinions.map(opinion => {
+      let score = priorityOrder[opinion.type as keyof typeof priorityOrder] || 0
+      
+      // 检查是否包含特殊关键词
+      const hasSpecialKeyword = specialKeywords.some(keyword => 
+        opinion.text.includes(keyword) || opinion.trigger.includes(keyword)
+      )
+      
+      if (hasSpecialKeyword) {
+        score += 2 // 特殊关键词加分
+        console.log(`🎯 [OPINION] 观点"${opinion.text}"包含特殊关键词，加分`)
+      }
+      
+      return { ...opinion, score }
+    })
+    
+    // 按分数排序
+    const sortedOpinions = enhancedOpinions.sort((a, b) => b.score - a.score)
+    
+    console.log('🎯 [OPINION] 观点优先级排序:', sortedOpinions.map(o => `${o.type}: ${o.text} (分数: ${o.score})`))
+    
+    return sortedOpinions[0]
+  }
+  
+  /**
    * 检测用户输入中的观点表达
    */
   private static async detectOpinions(
@@ -283,8 +329,8 @@ ${allInputs.map((input, i) => `${i + 1}. ${input}`).join('\n')}
     // 第二步：为每个观点生成可视化场景
     // 策略：🔥 找到体现观点的真实场景，在那个场景后插入观点场景
     
-    // 最多生成1个观点场景（选择第一个/最重要的观点）
-    const primaryOpinion = opinionResult.opinions[0]
+    // 最多生成1个观点场景（选择最重要的观点）
+    const primaryOpinion = this.selectMostImportantOpinion(opinionResult.opinions)
     
     console.log(`🎨 [OPINION] 为观点"${primaryOpinion.text}"生成可视化场景`)
     
