@@ -59,6 +59,7 @@ export default function LandingPage() {
     setPasswordVerified(verified)
   }, [])
   
+  // 简化逻辑：直接检查密码验证状态
   if (passwordVerified === null) {
     // 正在检查密码验证状态
     return (
@@ -137,17 +138,8 @@ export default function LandingPage() {
     )
   }
 
-  // 正在检查登录状态
-  if (!showPage) {
-  return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 flex items-center justify-center">
-      <div className="text-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
-        <p className="text-gray-600">正在加载...</p>
-      </div>
-      </div>
-    )
-  }
+  // 简化逻辑：如果通过密码验证，直接显示落地页
+  // 移除复杂的showPage逻辑
 
   // 显示落地页
   return (
