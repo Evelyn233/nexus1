@@ -61,14 +61,14 @@ export async function GET() {
       // 格式化新创建的元数据
       const metadata = {
         ...createdMetadata,
-        coreTraits: JSON.parse(createdMetadata.coreTraits),
-        communicationStyle: JSON.parse(createdMetadata.communicationStyle),
-        emotionalPattern: JSON.parse(createdMetadata.emotionalPattern),
-        behaviorPatterns: JSON.parse(createdMetadata.behaviorPatterns),
-        conversationInsights: JSON.parse(createdMetadata.conversationInsights),
-        frequentLocations: JSON.parse(createdMetadata.frequentLocations),
-        fashionStyle: JSON.parse(createdMetadata.fashionStyle),
-        aestheticPreferences: JSON.parse(createdMetadata.aestheticPreferences)
+        coreTraits: createdMetadata.coreTraits ? JSON.parse(createdMetadata.coreTraits) : [],
+        communicationStyle: createdMetadata.communicationStyle ? JSON.parse(createdMetadata.communicationStyle) : [],
+        emotionalPattern: createdMetadata.emotionalPattern ? JSON.parse(createdMetadata.emotionalPattern) : [],
+        behaviorPatterns: createdMetadata.behaviorPatterns ? JSON.parse(createdMetadata.behaviorPatterns) : [],
+        conversationInsights: createdMetadata.conversationInsights ? JSON.parse(createdMetadata.conversationInsights) : [],
+        frequentLocations: createdMetadata.frequentLocations ? JSON.parse(createdMetadata.frequentLocations) : [],
+        fashionStyle: createdMetadata.fashionStyle ? JSON.parse(createdMetadata.fashionStyle) : [],
+        aestheticPreferences: createdMetadata.aestheticPreferences ? JSON.parse(createdMetadata.aestheticPreferences) : []
       }
       
       return NextResponse.json({
