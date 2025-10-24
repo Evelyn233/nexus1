@@ -61,6 +61,25 @@ export class SceneGenerationService {
       let userInfo = await getUserInfo()
       let userMetadata = await getUserMetadata()
       
+      // 🔥 确保用户信息完整性，添加默认值
+      if (!userInfo) {
+        console.warn('⚠️ [SCENE-GEN] 用户信息为空，使用默认值')
+        userInfo = {
+          gender: 'female',
+          hairLength: '长发',
+          age: 26,
+          height: '165cm',
+          weight: '50kg',
+          location: '上海'
+        }
+      }
+      
+      // 确保头发信息存在
+      if (!userInfo.hairLength) {
+        userInfo.hairLength = '长发'
+        console.warn('⚠️ [SCENE-GEN] 头发信息缺失，设置为默认值：长发')
+      }
+      
       // 🔥 极简metadata：只保留最必要的字段（避免干扰用户输入）
       const sceneMetadata = {
         frequentLocations: (userMetadata.subconscious?.frequentLocations || []).slice(0, 5), // 只取前5个
