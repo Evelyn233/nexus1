@@ -14,6 +14,17 @@ interface EmotionDetectionResult {
  * 使用LLM检测文本中的情绪
  */
 export async function detectEmotionsWithLLM(text: string): Promise<EmotionDetectionResult> {
+  // 🔥 检查是否启用情绪检测（可以通过环境变量控制）
+  if (process.env.DISABLE_EMOTION_DETECTION === 'true') {
+    console.log('🔇 [EMOTION] 情绪检测已禁用')
+    return {
+      emotions: [],
+      primaryEmotion: '',
+      intensity: 'low',
+      confidence: 0
+    }
+  }
+  
   try {
     const prompt = `请分析以下文本中的情绪，返回JSON格式：
 {
@@ -25,7 +36,13 @@ export async function detectEmotionsWithLLM(text: string): Promise<EmotionDetect
 
 文本：${text}
 
-请识别文本中表达的所有情绪，包括：
+⚠️ 重要：这是心理剧功能，只识别明确表达的情绪！
+- 如果文本只是描述事实或中性内容，返回空数组 []
+- 只有明确表达负面情绪时才识别
+- 避免把正常描述误判为情绪
+- 用于心理剧场景生成，需要准确的情绪识别
+
+请识别文本中明确表达的情绪，包括：
 - 愤怒类：生气、愤怒、火大、不爽、气死
 - 恐惧类：害怕、恐惧、担心、焦虑
 - 孤独类：孤独、孤单、寂寞、想念、思念

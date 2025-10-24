@@ -1170,15 +1170,18 @@ ${aiPrompt}`
               scene.subconsciousDesire || ''
             ].join(' ')
             
-            // 使用LLM进行智能情绪检测
+            // 使用LLM进行智能情绪检测（心理剧功能）
             try {
               const emotionResult = await detectEmotionsWithLLM(allEmotionText)
-              if (emotionResult.emotions.length > 0) {
+              // 只在高置信度且明确情绪时才使用
+              if (emotionResult.emotions.length > 0 && emotionResult.confidence > 0.7) {
                 const emotionEN = translateEmotionsToEnglish(emotionResult.emotions).join(', ')
                 const intensityText = emotionResult.intensity === 'high' ? 'intense' : 
                                    emotionResult.intensity === 'medium' ? 'moderate' : 'subtle'
                 imagePrompt = `Core emotions: ${emotionEN} (${intensityText} intensity). ` + imagePrompt
-                console.log(`🎭 [EMOTION] 检测到情绪: ${emotionResult.emotions.join(', ')} (${emotionResult.intensity})`)
+                console.log(`🎭 [EMOTION] 心理剧情绪检测: ${emotionResult.emotions.join(', ')} (${emotionResult.intensity}, 置信度: ${emotionResult.confidence})`)
+              } else {
+                console.log(`🎭 [EMOTION] 情绪检测置信度不足，跳过情绪增强 (置信度: ${emotionResult.confidence})`)
               }
             } catch (error) {
               console.warn('⚠️ [EMOTION] LLM情绪检测失败，跳过情绪增强:', error)
