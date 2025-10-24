@@ -8,7 +8,7 @@ export async function POST(request: NextRequest) {
     
     // SeeDream API配置
     const config = {
-      API_KEY: '17b4a6a5-1a2b-4c3d-827b-cef480fd1580',
+      API_KEY: process.env.SEEDREAM_API_KEY || '17b4a6a5-1a2b-4c3d-827b-cef480fd1580',
       ENDPOINT: 'https://ark.cn-beijing.volces.com/api/v3/images/generations',
       MODEL: 'doubao-seedream-4-0-250828'
     }

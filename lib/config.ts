@@ -2,7 +2,7 @@
 export const API_CONFIG = {
   // DeepSeek语言模型配置
   DOUBAO_LLM: {
-    API_KEY: 'sk-e3911ff08dae4f4fb59c7b521e2a5415',
+    API_KEY: process.env.DEEPSEEK_API_KEY || 'sk-e3911ff08dae4f4fb59c7b521e2a5415',
     ENDPOINT: 'https://api.deepseek.com/chat/completions',
     MODEL: 'deepseek-chat',
     TIMEOUT: 30000,
@@ -11,7 +11,7 @@ export const API_CONFIG = {
   
   // SeeDream生图API配置
   SEEDREAM_IMAGE: {
-    API_KEY: '17b4a6a5-1a2b-4c3d-827b-cef480fd1580',
+    API_KEY: process.env.SEEDREAM_API_KEY || '17b4a6a5-1a2b-4c3d-827b-cef480fd1580',
     ENDPOINT: 'https://ark.cn-beijing.volces.com/api/v3/images/generations',
     MODEL: 'doubao-seedream-4-0-250828',
     TIMEOUT: 60000, // 60秒超时，生图需要更长时间
