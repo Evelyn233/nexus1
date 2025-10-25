@@ -222,25 +222,25 @@ export default function HomePage() {
         </div>
       </main>
 
-      {/* Quick Generate Buttons - 移到输入框上方 */}
-      <div className="fixed bottom-20 left-0 right-0 p-4 bg-white max-w-md mx-auto">
-        <div className="mb-3">
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="text-sm font-medium text-gray-500">快速生成</h2>
+      {/* Quick Generate Buttons - 无缝连接 */}
+      <div className="fixed bottom-20 left-0 right-0 p-3 bg-white max-w-md mx-auto">
+        <div className="mb-0">
+          <div className="flex items-center justify-between mb-1">
+            <h2 className="text-xs font-medium text-gray-500">快速生成</h2>
             <button
               onClick={() => setShowUserProfile(true)}
-              className="text-sm text-purple-600 hover:text-purple-700 flex items-center space-x-1"
+              className="text-xs text-purple-600 hover:text-purple-700 flex items-center space-x-1"
             >
               <span>👤</span>
               <span>我的信息</span>
             </button>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-1.5">
             {QUICK_GENERATE_OPTIONS.map((prompt) => (
               <button
                 key={prompt}
                 onClick={() => setInputValue(prompt)}
-                className="px-3 py-1.5 text-sm bg-purple-50 text-purple-700 rounded-full hover:bg-purple-100 transition-colors"
+                className="px-2 py-1 text-xs bg-purple-50 text-purple-700 rounded-full hover:bg-purple-100 transition-colors"
               >
                 {prompt}
               </button>
@@ -249,8 +249,8 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Input Section */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-100 max-w-md mx-auto">
+      {/* Input Section - 无缝连接 */}
+      <div className="fixed bottom-0 left-0 right-0 p-3 bg-white border-t border-gray-100 max-w-md mx-auto">
         <InputSection 
           value={inputValue}
           onChange={setInputValue}
@@ -550,10 +550,10 @@ function UserProfileContent() {
         </div>
       </div>
       
-      {/* 基本信息 */}
-      <div className="bg-gray-50 p-4 rounded-lg">
-        <h3 className="font-medium text-gray-900 mb-2">基本信息</h3>
-        <div className="space-y-2 text-sm">
+      {/* 基本信息 - 紧凑显示 */}
+      <div className="bg-gray-50 p-3 rounded-lg mt-2">
+        <h3 className="font-medium text-gray-900 mb-2 text-sm">基本信息</h3>
+        <div className="space-y-1 text-xs">
           <div className="flex justify-between">
             <span className="text-gray-600">性别：</span>
             <span className="text-gray-900">{userInfo.gender === 'male' ? '男' : userInfo.gender === 'female' ? '女' : '未设置'}</span>
@@ -579,9 +579,9 @@ function UserProfileContent() {
 
       {/* 生日信息 */}
       {userInfo.birthDate.year && (
-        <div className="bg-gray-50 p-4 rounded-lg">
-          <h3 className="font-medium text-gray-900 mb-2">生日信息</h3>
-          <div className="text-sm text-gray-600">
+        <div className="bg-gray-50 p-3 rounded-lg">
+          <h3 className="font-medium text-gray-900 mb-2 text-sm">生日信息</h3>
+          <div className="text-xs text-gray-600">
             {userInfo.birthDate.year}年{userInfo.birthDate.month}月{userInfo.birthDate.day}日
             {userInfo.birthDate.hour && ` ${userInfo.birthDate.hour}时`}
           </div>
@@ -590,9 +590,9 @@ function UserProfileContent() {
 
       {/* 性格描述 */}
       {userInfo.personality && (
-        <div className="bg-gray-50 p-4 rounded-lg">
-          <h3 className="font-medium text-gray-900 mb-2">性格描述</h3>
-          <div className="text-sm text-gray-600">{userInfo.personality}</div>
+        <div className="bg-gray-50 p-3 rounded-lg">
+          <h3 className="font-medium text-gray-900 mb-2 text-sm">性格描述</h3>
+          <div className="text-xs text-gray-600">{userInfo.personality}</div>
         </div>
       )}
 

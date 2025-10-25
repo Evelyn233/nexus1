@@ -77,15 +77,24 @@ export default function PaymentPage() {
         {/* Usage Stats */}
         {userUsage && (
           <div className="bg-gray-50 rounded-lg p-4 mb-6">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-gray-600">已使用免费额度</span>
-              <span className="font-semibold">{userUsage.freeImagesUsed}/12</span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div 
-                className="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full transition-all duration-300"
-                style={{ width: `${(userUsage.freeImagesUsed / 12) * 100}%` }}
-              ></div>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-600">已使用免费额度</span>
+                <span className="font-semibold">{userUsage.freeImagesUsed}/12</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div 
+                  className="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full transition-all duration-300"
+                  style={{ width: `${(userUsage.freeImagesUsed / 12) * 100}%` }}
+                ></div>
+              </div>
+              
+              {userUsage.paidImagesUsed > 0 && (
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600">已使用付费额度</span>
+                  <span className="font-semibold text-purple-600">{userUsage.paidImagesUsed} 张</span>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -113,6 +122,10 @@ export default function PaymentPage() {
                 <CheckCircle className="w-4 h-4 text-green-500 mr-2" />
                 <span>无使用期限限制</span>
               </div>
+              <div className="flex items-center">
+                <CheckCircle className="w-4 h-4 text-green-500 mr-2" />
+                <span>每5张图片仅需$2</span>
+              </div>
             </div>
           </div>
         </div>
@@ -136,12 +149,18 @@ export default function PaymentPage() {
           )}
         </button>
 
-        {/* PayPal Info */}
-        <div className="text-center mt-4">
+        {/* Payment Info */}
+        <div className="text-center mt-4 space-y-2">
+          <div className="bg-blue-50 rounded-lg p-3">
+            <p className="text-sm text-blue-800 font-medium">付费说明</p>
+            <p className="text-xs text-blue-600 mt-1">
+              前12张图片免费，超出后每5张图片收费$2
+            </p>
+          </div>
           <p className="text-xs text-gray-500">
             支付链接将跳转到PayPal安全支付页面
           </p>
-          <p className="text-xs text-gray-400 mt-1">
+          <p className="text-xs text-gray-400">
             支付完成后，额度将自动到账
           </p>
         </div>

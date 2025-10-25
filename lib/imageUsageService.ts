@@ -19,6 +19,23 @@ export interface ImageUsageData {
  */
 export async function getUserImageUsage(userId: string): Promise<ImageUsageData> {
   try {
+    // 从数据库获取用户信息，检查是否为管理员
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { email: true }
+    })
+
+    // 如果是管理员账户，返回无限制状态
+    if (user?.email === '595674464@qq.com') {
+      return {
+        userId,
+        totalImagesGenerated: 999999,
+        freeImagesUsed: 0,
+        paidImagesUsed: 0,
+        isPremiumUser: true // 管理员视为高级用户
+      }
+    }
+
     // 从数据库获取用户已生成的内容
     const userContent = await prisma.userGeneratedContent.findMany({
       where: { userId },
@@ -73,6 +90,16 @@ export async function canUserGenerateImages(userId: string): Promise<{
   message: string
 }> {
   const usage = await getUserImageUsage(userId)
+  
+  // 如果是管理员账户，无限制生成
+  if (usage.isPremiumUser && usage.totalImagesGenerated === 999999) {
+    return {
+      canGenerate: true,
+      remainingFreeImages: 999999,
+      needsPayment: false,
+      message: '管理员账户，无限制使用'
+    }
+  }
   
   // 如果用户已付费，检查是否还有付费额度
   if (usage.isPremiumUser) {

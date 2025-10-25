@@ -20,16 +20,16 @@ function UserInfoBarContent() {
   }
   
   return (
-    <div className="bg-white border-b border-gray-200 px-4 py-2">
+    <div className="bg-white border-b border-gray-200 px-4 py-1 mt-2">
       <div className="max-w-md mx-auto flex items-center justify-between">
-        {/* 左侧：用户信息 */}
-        <div className="flex items-center space-x-3">
-          <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
-            <User className="w-4 h-4 text-purple-600" />
+        {/* 左侧：用户信息 - 超紧凑显示 */}
+        <div className="flex items-center space-x-1.5">
+          <div className="w-5 h-5 bg-purple-100 rounded-full flex items-center justify-center">
+            <User className="w-2.5 h-2.5 text-purple-600" />
           </div>
-          <div className="flex-1">
-            <div className="text-sm font-medium text-gray-900">{currentUserName}</div>
-            <div className="text-xs text-gray-500">
+          <div className="flex-1 min-w-0">
+            <div className="text-xs font-medium text-gray-900 truncate leading-tight">{currentUserName}</div>
+            <div className="text-xs text-gray-500 truncate leading-tight">
               {userInfo.gender === 'male' ? '男' : userInfo.gender === 'female' ? '女' : '未设置'} 
               {userInfo.age && ` • ${userInfo.age}岁`}
               {userInfo.location && ` • ${userInfo.location}`}
@@ -38,23 +38,23 @@ function UserInfoBarContent() {
         </div>
         
         {/* 右侧：操作按钮 */}
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-0.5">
           {/* 返回Home按钮 */}
           <button
             onClick={() => router.push('/home')}
-            className="p-2 text-gray-600 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+            className="p-1 text-gray-600 hover:text-purple-600 hover:bg-purple-50 rounded transition-colors"
             title="返回主页"
           >
-            <Home className="w-4 h-4" />
+            <Home className="w-3 h-3" />
           </button>
           
           {/* 展开/收起详情按钮 */}
           <button
             onClick={() => setShowDetails(!showDetails)}
-            className="p-2 text-gray-600 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+            className="p-1 text-gray-600 hover:text-purple-600 hover:bg-purple-50 rounded transition-colors"
             title={showDetails ? "收起详情" : "查看详情"}
           >
-            {showDetails ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            {showDetails ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
           </button>
         </div>
       </div>

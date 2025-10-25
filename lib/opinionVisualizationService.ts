@@ -140,6 +140,8 @@ export class OpinionVisualizationService {
       const data = await response.json()
       let content = data.choices[0].message.content.trim()
       
+      console.log('🔍 [OPINION] LLM原始响应:', content.substring(0, 200) + '...')
+      
       // 清理markdown代码块
       if (content.includes('```json')) {
         content = content.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim()
@@ -150,13 +152,42 @@ export class OpinionVisualizationService {
       // 清理可能的中文标点
       content = content.replace(/，/g, ',').replace(/：/g, ':').replace(/"/g, '"').replace(/"/g, '"')
       
-      const analysis = JSON.parse(content)
-      console.log('✅ [OPINION] 观点检测完成:', analysis)
+      console.log('🔍 [OPINION] 清理后的内容:', content.substring(0, 200) + '...')
       
-      return analysis
+      // 尝试找到JSON部分
+      const jsonMatch = content.match(/\{[\s\S]*\}/)
+      if (jsonMatch) {
+        content = jsonMatch[0]
+        console.log('🔍 [OPINION] 提取的JSON部分:', content.substring(0, 200) + '...')
+      }
+      
+      // 尝试修复常见的JSON格式问题
+      try {
+        const analysis = JSON.parse(content)
+        console.log('✅ [OPINION] 观点检测完成:', analysis)
+        return analysis
+      } catch (parseError) {
+        console.warn('⚠️ [OPINION] 第一次JSON解析失败，尝试修复...')
+        
+        // 尝试修复常见的JSON问题
+        let fixedContent = content
+          .replace(/,(\s*[}\]])/g, '$1') // 移除多余的逗号
+          .replace(/([{\[,])\s*([}\]])/g, '$1$2') // 移除空值
+          .replace(/(\w+):/g, '"$1":') // 确保键被引号包围
+          .replace(/'/g, '"') // 替换单引号为双引号
+        
+        console.log('🔧 [OPINION] 修复后的内容:', fixedContent.substring(0, 200) + '...')
+        
+        const analysis = JSON.parse(fixedContent)
+        console.log('✅ [OPINION] 观点检测完成（修复后）:', analysis)
+        return analysis
+      }
       
     } catch (error) {
       console.error('❌ [OPINION] 观点检测失败:', error)
+      if (error instanceof SyntaxError) {
+        console.error('❌ [OPINION] JSON解析错误，错误位置:', error.message)
+      }
       return { hasOpinion: false, opinions: [] }
     }
   }

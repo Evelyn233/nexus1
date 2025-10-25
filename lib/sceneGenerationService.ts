@@ -908,10 +908,11 @@ ${questions.map((q, i) => `
 - 用户说的需求：____________（如："想休息"、"要加班"）
 
 **活动和时间（⚠️ 时间信息特别重要！）：**
-- 用户说的具体活动：____________（如：做AI项目、看书、休息）
-- 用户说的时间点：____________（如：中午、晚上、早上、下午）
+- 用户说的具体活动：____________（如：做AI项目、看书、休息、上班、工作）
+- 用户说的时间点：____________（如：中午、晚上、早上、下午、上班的时候、工作时）
   ⚠️⚠️⚠️ **如果用户说"中午"，lighting必须是"midday sunlight"，不能写"morning"！**
   ⚠️⚠️⚠️ **如果用户说"晚上"，lighting必须是"evening/night lighting"！**
+  ⚠️⚠️⚠️ **如果用户说"上班的时候"，lighting必须是"office lighting"或"workplace lighting"，不能写"night"！**
   ⚠️⚠️⚠️ **时间词必须完全匹配用户说的！**
 
 **地点和物品（⚠️ 必须精准提取！）：**
@@ -1837,13 +1838,25 @@ ${questions.map((q, i) => `
               
               // 所有场景统一处理，使用LLM生成的description和mood
               scene.detailedPrompt = `${scene.description}. Lighting: ${vd.lighting}. Color tone: ${vd.colorTone}. Atmosphere: ${vd.atmosphere}. Objects: ${vd.objects.join(', ')}. Sounds: ${vd.sounds.join(', ')}. Clothing: ${vd.clothing}. Expressions and emotional state: ${vd.mood}. Photorealistic, cinematic photography, high quality, detailed composition.`
-              console.log(`✅ 场景${index + 1}完成`)
+              console.log(`✅ 场景${index + 1}完成，detailedPrompt已生成`)
             } else {
               console.log(`⚠️ 场景${index + 1}缺少visualDetails`)
               scene.detailedPrompt = `${scene.description}`
             }
           })
           console.log(`✅ [SCENE-GEN] ${parsedData.logicalScenes.length}个场景生成完成`)
+          
+          // 🔥 验证detailedPrompt字段是否已生成
+          parsedData.logicalScenes.forEach((scene: SceneData, index: number) => {
+            if (!scene.detailedPrompt) {
+              console.error(`❌ [SCENE-GEN] 场景${index + 1}缺少detailedPrompt字段！`)
+              // 紧急修复：使用description作为备用
+              scene.detailedPrompt = scene.description || 'Default scene description'
+              console.log(`🔧 [SCENE-GEN] 场景${index + 1}已使用备用detailedPrompt`)
+            } else {
+              console.log(`✅ [SCENE-GEN] 场景${index + 1}detailedPrompt字段正常`)
+            }
+          })
         }
         
         return parsedData

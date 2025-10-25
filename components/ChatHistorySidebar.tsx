@@ -28,7 +28,7 @@ interface ChatHistorySidebarProps {
 }
 
 export default function ChatHistorySidebar({ isOpen, onClose, onSessionSelect }: ChatHistorySidebarProps) {
-  const [activeTab, setActiveTab] = useState<'chats' | 'images'>('chats')
+  const [activeTab, setActiveTab] = useState<'chats' | 'images'>('images')
   const [sessions, setSessions] = useState<ChatSession[]>([])
   const [images, setImages] = useState<UserGeneratedContentRecord[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -36,9 +36,27 @@ export default function ChatHistorySidebar({ isOpen, onClose, onSessionSelect }:
   // 加载历史记录
   useEffect(() => {
     if (isOpen) {
+      console.log('🔍 [SIDEBAR] 侧边栏打开，开始加载数据，当前标签:', activeTab)
       loadHistory()
     }
   }, [isOpen, activeTab])
+
+  // 当侧边栏打开时，确保默认加载故事记录
+  useEffect(() => {
+    if (isOpen && activeTab === 'images') {
+      console.log('🔍 [SIDEBAR] 确保加载故事记录数据')
+      loadHistory()
+    }
+  }, [isOpen])
+
+  // 监听images状态变化
+  useEffect(() => {
+    console.log('🔍 [SIDEBAR] images状态变化:', {
+      length: images.length,
+      firstId: images[0]?.id || 'none',
+      activeTab: activeTab
+    })
+  }, [images, activeTab])
 
   const loadHistory = async () => {
     setIsLoading(true)
@@ -49,8 +67,18 @@ export default function ChatHistorySidebar({ isOpen, onClose, onSessionSelect }:
         setSessions(data.sessions || [])
       } else {
         // 使用新的用户生成内容API
+        console.log('🔍 [SIDEBAR] 开始加载用户生成内容...')
         const response = await fetch('/api/user/generated-content?limit=20&offset=0')
+        console.log('🔍 [SIDEBAR] API响应状态:', response.status)
+        
         const data = await response.json()
+        console.log('🔍 [SIDEBAR] API返回数据:', {
+          success: data.success,
+          contentsLength: data.contents?.length || 0,
+          total: data.total || 0,
+          error: data.error
+        })
+        
         if (data.success && data.contents) {
           // 转换数据格式以匹配现有接口
           const formattedImages = data.contents.map((content: any) => {
@@ -58,7 +86,8 @@ export default function ChatHistorySidebar({ isOpen, onClose, onSessionSelect }:
               id: content.id,
               initialPrompt: content.initialPrompt,
               hasPrompt: !!content.initialPrompt,
-              promptLength: content.initialPrompt?.length || 0
+              promptLength: content.initialPrompt?.length || 0,
+              imageCount: content.imageCount
             })
             return {
               id: content.id,
@@ -67,21 +96,30 @@ export default function ChatHistorySidebar({ isOpen, onClose, onSessionSelect }:
               initialPrompt: content.initialPrompt || '',
               storyNarrative: content.storyNarrative || '',
               savedAt: content.createdAt,
+              createdAt: content.createdAt,
               localPath: '',
-              imageCount: content.imageCount,
+              imageCount: content.imageCount || 0,
               category: content.category,
               questions: content.questions || [],
               answers: content.answers || []
             }
           })
           console.log('✅ [SIDEBAR] 格式化后的数据:', formattedImages.length, '条')
+          console.log('🔍 [SIDEBAR] 设置images状态前:', {
+            currentImagesLength: images.length,
+            newImagesLength: formattedImages.length,
+            firstNewImage: formattedImages[0]?.id || 'none'
+          })
           setImages(formattedImages)
+          console.log('✅ [SIDEBAR] 已调用setImages')
         } else {
+          console.log('❌ [SIDEBAR] API返回失败或无数据:', data)
           setImages([])
         }
       }
     } catch (error) {
-      console.error('加载历史记录失败:', error)
+      console.error('❌ [SIDEBAR] 加载历史记录失败:', error)
+      setImages([])
     } finally {
       setIsLoading(false)
     }
@@ -242,11 +280,23 @@ export default function ChatHistorySidebar({ isOpen, onClose, onSessionSelect }:
                     )}
                   </div>
                 ) : (
-                  <div className="p-4 grid grid-cols-2 gap-3">
+                  <div className="p-4 space-y-3">
+                    {(() => {
+                      console.log('🔍 [SIDEBAR] 渲染时检查images状态:', {
+                        imagesLength: images.length,
+                        isLoading: isLoading,
+                        activeTab: activeTab,
+                        firstImage: images[0]?.id || 'none'
+                      })
+                      return null
+                    })()}
                     {images.length === 0 ? (
-                      <div className="col-span-2 text-center py-12 text-gray-500">
+                      <div className="text-center py-12 text-gray-500">
                         <ImageIcon className="w-12 h-12 mx-auto mb-3 opacity-30" />
                         <p>暂无图片记录</p>
+                        <p className="text-xs text-gray-400 mt-2">
+                          调试: images.length = {images.length}
+                        </p>
                       </div>
                     ) : (
                       images.map((content) => (

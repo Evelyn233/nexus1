@@ -444,7 +444,9 @@ ${questions.map((q, i) => `Q${i+1}: ${q}\nA${i+1}: ${answers[i] || '无'}`).join
       
       // 根据上下文智能判断默认值
       // 如果提到工作相关词汇，默认办公室；否则默认家中
-      if (allText.includes('工作') || allText.includes('项目') || allText.includes('同事') || allText.includes('老板')) {
+      if (allText.includes('工作') || allText.includes('项目') || allText.includes('同事') || allText.includes('老板') || 
+          allText.includes('上班') || allText.includes('办公室') || allText.includes('公司') || 
+          allText.includes('chatgpt') || allText.includes('ChatGPT') || allText.includes('chat')) {
       return '办公室'
       }
       

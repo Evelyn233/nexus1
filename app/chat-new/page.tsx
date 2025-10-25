@@ -1166,6 +1166,18 @@ ${aiPrompt}`
         }])
         
         try {
+          // 🔍 调试：检查场景对象的字段
+          console.log(`🔍 [CHAT-NEW] 场景${i + 1}字段检查:`, {
+            title: scene.title,
+            isPsychodrama: scene.isPsychodrama,
+            hasDetailedPrompt: !!scene.detailedPrompt,
+            hasImagePrompt: !!scene.imagePrompt,
+            hasDescription: !!scene.description,
+            detailedPrompt: scene.detailedPrompt?.substring(0, 100) + '...',
+            imagePrompt: scene.imagePrompt?.substring(0, 100) + '...',
+            description: scene.description?.substring(0, 100) + '...'
+          })
+          
           // 根据场景类型选择正确的提示词字段
           let imagePrompt = scene.isPsychodrama 
             ? scene.imagePrompt  // 心理剧使用imagePrompt
@@ -1206,6 +1218,13 @@ ${aiPrompt}`
           
           if (!imagePrompt || imagePrompt.trim() === '') {
             console.error(`❌ [CHAT-NEW] 场景 ${i + 1} 缺少提示词，跳过`)
+            console.error(`❌ [CHAT-NEW] 场景对象:`, {
+              title: scene.title,
+              isPsychodrama: scene.isPsychodrama,
+              detailedPrompt: scene.detailedPrompt,
+              imagePrompt: scene.imagePrompt,
+              description: scene.description
+            })
             setMessages(prev => prev.map(msg => 
               msg.id === placeholderId
                 ? { ...msg, content: `❌ 场景 ${i + 1} 缺少提示词` }
@@ -1213,6 +1232,8 @@ ${aiPrompt}`
             ))
             return // map中使用return代替continue
           }
+          
+          console.log(`✅ [CHAT-NEW] 场景 ${i + 1} 图片提示词已准备:`, imagePrompt.substring(0, 200) + '...')
           
           // 调用SeeDream API生成图片
           const imageResponse = await fetch('/api/seedream-generate', {
