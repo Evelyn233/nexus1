@@ -45,6 +45,161 @@ export class OpinionVisualizationService {
     
     return sortedOpinions[0]
   }
+
+  /**
+   * 去重观点（合并相似观点）
+   */
+  private static deduplicateOpinions(opinions: Array<{ type: string, text: string, trigger: string, priority: number, reason: string }>): Array<{ type: string, text: string, trigger: string, priority: number, reason: string }> {
+    if (!opinions || opinions.length <= 1) {
+      return opinions
+    }
+    
+    const uniqueOpinions: Array<{ type: string, text: string, trigger: string, priority: number, reason: string }> = []
+    
+    for (const opinion of opinions) {
+      // 检查是否与已有观点相似
+      const isSimilar = uniqueOpinions.some(existing => {
+        const similarity = this.calculateSimilarity(opinion.text, existing.text)
+        return similarity > 0.5 // 50%相似度阈值（更严格）
+      })
+      
+      if (!isSimilar) {
+        uniqueOpinions.push(opinion)
+      } else {
+        console.log(`🔄 [OPINION] 跳过相似观点: "${opinion.text}" (与已有观点相似)`)
+      }
+    }
+    
+    console.log(`✅ [OPINION] 观点去重完成: ${opinions.length} → ${uniqueOpinions.length}`)
+    return uniqueOpinions
+  }
+
+  /**
+   * 计算两个观点的相似度
+   */
+  private static calculateSimilarity(text1: string, text2: string): number {
+    // 移除分数信息
+    const cleanText1 = text1.replace(/\s*\(\d+分\)\s*$/, '').trim()
+    const cleanText2 = text2.replace(/\s*\(\d+分\)\s*$/, '').trim()
+    
+    // 如果完全一样，返回1
+    if (cleanText1 === cleanText2) {
+      return 1
+    }
+    
+    // 检查是否包含相同的关键词
+    const keywords1 = cleanText1.toLowerCase().split(/[\s，。！？、]+/).filter(w => w.length > 1)
+    const keywords2 = cleanText2.toLowerCase().split(/[\s，。！？、]+/).filter(w => w.length > 1)
+    
+    const set1 = new Set(keywords1)
+    const set2 = new Set(keywords2)
+    
+    const intersection = new Set(Array.from(set1).filter(x => set2.has(x)))
+    const union = new Set([...Array.from(set1), ...Array.from(set2)])
+    
+    // 计算Jaccard相似度
+    const jaccardSimilarity = intersection.size / union.size
+    
+    // 检查是否包含相同的核心概念（使用简化的关键词匹配）
+    const conceptKeywords1 = this.extractSimpleConcepts(cleanText1)
+    const conceptKeywords2 = this.extractSimpleConcepts(cleanText2)
+    const conceptOverlap = conceptKeywords1.filter(c => conceptKeywords2.includes(c)).length
+    const conceptSimilarity = conceptOverlap / Math.max(conceptKeywords1.length, conceptKeywords2.length, 1)
+    
+    // 返回较高的相似度
+    return Math.max(jaccardSimilarity, conceptSimilarity)
+  }
+
+  /**
+   * 简化的概念提取（同步方法）
+   */
+  private static extractSimpleConcepts(text: string): string[] {
+    const concepts: string[] = []
+    
+    // 提取关键概念（简化版）
+    if (text.includes('中国') && text.includes('杂志')) {
+      concepts.push('中国杂志')
+    }
+    if (text.includes('高端') || text.includes('智性')) {
+      concepts.push('高端杂志')
+    }
+    if (text.includes('没有') || text.includes('缺乏')) {
+      concepts.push('市场缺失')
+    }
+    if (text.includes('惋惜') || text.includes('愤怒')) {
+      concepts.push('情感反应')
+    }
+    if (text.includes('Neoma') || text.includes('neoma')) {
+      concepts.push('Neoma')
+    }
+    
+    return concepts
+  }
+
+  /**
+   * 使用LLM提取核心概念
+   */
+  private static async extractCoreConcepts(text: string): Promise<string[]> {
+    try {
+      const response = await fetch('/api/ai/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          model: 'deepseek-chat',
+          messages: [
+            {
+              role: 'system',
+              content: `你是概念提取专家。任务：从用户观点中提取核心概念。
+
+**要求：**
+1. 只提取1-3个最重要的核心概念
+2. 概念要简洁明确（2-4个字）
+3. 避免重复和冗余
+
+**示例：**
+- "中国缺乏高端杂志市场" → ["中国杂志市场", "高端杂志"]
+- "Neoma杂志做得特别好" → ["Neoma杂志", "杂志质量"]
+- "很惋惜愤怒" → ["情感反应"]
+
+返回JSON格式：
+{
+  "concepts": ["概念1", "概念2", "概念3"]
+}
+
+只返回JSON，不要其他文字！`
+            },
+            {
+              role: 'user',
+              content: `用户观点：${text}`
+            }
+          ],
+          temperature: 0.3,
+          max_tokens: 200
+        })
+      })
+
+      if (!response.ok) {
+        return []
+      }
+
+      const data = await response.json()
+      let content = data.choices[0].message.content.trim()
+      
+      // 清理JSON
+      if (content.includes('```json')) {
+        content = content.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim()
+      }
+      
+      const result = JSON.parse(content)
+      return result.concepts || []
+    } catch (error) {
+      console.warn('⚠️ [OPINION] 概念提取失败:', error)
+      return []
+    }
+  }
   
   /**
    * 检测用户输入中的观点表达
@@ -84,44 +239,57 @@ export class OpinionVisualizationService {
 3. **文化批判**（如"传统vs现代"、"理想vs现实"）
 4. **讽刺/嘲讽**（如"呵呵"、"笑死"、"装模作样"）
 
-**🚨 严格排除情绪表达：**
-- 用户说"很开心"、"很感动"、"觉得开心"、"感觉很好" → 这是情绪，不是观点！
-- 用户说"喜欢"、"讨厌"、"觉得"（情感词汇）→ 这是情绪，不是观点！
-- 只有涉及社会现象、价值判断、文化批判的才是观点！
+**🎯 观点检测标准（精准识别）：**
+- **只识别抽象的观点表达，不要描述具体行为**
+- 包括：社会现象评论（如"中国缺乏高端杂志市场"）
+- 包括：价值判断（如"Neoma杂志做得特别好"）
+- 包括：情感表达（如"很惋惜愤怒"）
+- **不包括**：具体行为（如"用chatgpt搜到的"、"上班的时候"）
+- **不包括**：场景描述（如"就是在公司"、"在书店"）
+- **不包括**：发现过程（如"第一次看到"、"发现了"）
 
-**🎯 观点检测标准（更严格）：**
-- 必须包含**社会现象、价值判断、文化批判**的具体内容
-- 不能只是情感表达（如"开心"、"感动"）
-- 不能只是描述性语言（如"看到"、"发现"）
-- 必须是用户对某个现象、问题、文化的**评价和判断**
+**🚨 重要：只识别抽象观点，不描述具体行为！**
+- ✅ "中国缺乏高端杂志市场" → 这是观点（社会现象评论）
+- ✅ "Neoma杂志做得特别好" → 这是观点（价值判断）
+- ✅ "我很惋惜愤怒" → 这是观点（情感表达）
+- ✅ "很惋惜愤怒" → 这是观点（情感表达）
+- ❌ "用chatgpt搜到的" → 这不是观点（具体行为）
+- ❌ "上班的时候" → 这不是观点（场景描述）
+- ❌ "第一次看到neoma" → 这不是观点（发现过程）
 
 **优先级分析标准：**
-1. **深度思考程度**：是否涉及深层次的思考、分析、质疑
-2. **商业价值**：是否涉及商业模式、盈利、市场分析
-3. **社会意义**：是否涉及社会现象、文化批判、价值判断
-4. **创新性**：是否提出新的观点、角度、思考
-5. **实用性**：是否对实际生活、工作有指导意义
+1. **社会现象评论**：如"中国缺乏高端杂志市场"、"熟人经济"等
+2. **价值判断**：如"Neoma杂志做得特别好"、"本质是XX"等
+3. **情感表达**：如"很惋惜愤怒"、"开心"、"失望"等
+4. **文化批判**：如"传统vs现代"、"理想vs现实"等
+5. **讽刺/嘲讽**：如"呵呵"、"笑死"、"装模作样"等
 
 **优先级评分（1-10分）：**
-- 10分：深度商业分析、创新思考、社会批判
-- 8-9分：深度思考、价值判断、文化分析
-- 6-7分：一般观点、表面评价
-- 4-5分：简单赞赏、基础对比
-- 1-3分：表面描述、无深度思考
+- 10分：社会现象评论、深度商业分析、文化批判
+- 9分：价值判断、情感表达、讽刺嘲讽
+- 6-7分：个人偏好表达
+- 4-5分：简单评价
+- 1-3分：基础描述、场景描述
 
 返回JSON：
 {
   "hasOpinion": boolean,
   "opinions": [
     {
-      "type": "社会现象/价值判断/文化批判/讽刺",
+      "type": "社会现象评论/价值判断/情感表达/文化批判/讽刺嘲讽",
       "text": "观点的简短概括（5-10字）",
       "trigger": "用户原文中触发观点的句子",
       "priority": 8,
       "reason": "分析原因"
     }
   ]
-}`
+}
+
+**重要要求：**
+- 最多只返回2个最重要的观点
+- 优先选择社会现象评论、价值判断、情感表达
+- 不要返回具体行为、场景描述、发现过程
+- 观点必须是抽象的，不是具体的`
             },
             {
               role: 'user',
@@ -193,6 +361,145 @@ export class OpinionVisualizationService {
   }
   
   /**
+   * 生成现实场景（写实风格）
+   */
+  private static async generateRealityScene(
+    opinion: { type: string, text: string, trigger: string },
+    initialPrompt: string,
+    answers: string[],
+    userInfo: any,
+    userMetadata: any
+  ): Promise<OpinionScene | null> {
+    console.log('📸 [REALITY] 开始生成现实场景')
+    console.log('📌 [REALITY] 观点类型:', opinion.type)
+    console.log('📌 [REALITY] 观点内容:', opinion.text)
+    
+    // 🔄 本次完整对话
+    const allInputs = [initialPrompt, ...answers].filter(input => input && input.trim())
+    
+    try {
+      const response = await fetch('/api/ai/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          model: 'deepseek-chat',
+          messages: [
+            {
+              role: 'system',
+              content: `你是现实场景生成专家。任务：将用户的观点转化为真实的现实场景。
+
+**🎯 核心原则（现实场景使用写实风格）：**
+1. **📸 使用写实照片风格**：现实场景必须是写实照片风格，不是插画
+2. **必须有人物**：现实场景必须包含真实人物，展现真实生活场景
+3. **真实环境**：真实的办公环境、书店、咖啡厅等
+4. **🚨 不要插画风格！**：illustration, vector art, flat design
+
+**🚨🚨🚨 死刑规则：**
+- ❌ "中国缺乏高端杂志市场" → illustration style → 死刑！
+- ✅ "中国缺乏高端杂志市场" → realistic photo of bookstore, people browsing magazines, real bookstore environment
+- ❌ "熟人经济" → vector art illustration → 死刑！
+- ✅ "熟人经济" → realistic photo of people networking, business meeting, real office environment
+
+**现实场景生成策略：**
+
+**1. 社会现象（如"中国缺乏高端杂志市场"）：**
+→ 生成：写实照片风格，真实书店场景
+→ 示例："中国缺乏高端杂志市场" = realistic photo of bookstore, people browsing magazines, real bookstore environment, customers looking at magazine racks
+
+**2. 价值判断（如"赞赏杂志的智性水平"）：**
+→ 生成：写实照片风格，真实阅读场景
+→ 示例："智性水平" = realistic photo of person reading magazine, real reading environment, natural lighting
+
+**用户信息：**
+- 年龄：${userInfo.age || 26}岁
+- 性别：${userInfo.gender === 'female' ? '女性' : '男性'}
+- 身高：${userInfo.height || 165}cm
+- 发型：${userInfo.hairLength || '长发'}
+
+**用户输入：**
+${allInputs.map((input, i) => `${i + 1}. ${input}`).join('\n')}
+
+**观点类型：** ${opinion.type}
+**观点内容：** ${opinion.text}
+**触发句子：** ${opinion.trigger}
+
+**生成要求（写实风格）：**
+1. 场景必须是写实照片风格，必须包含真实人物
+2. 用真实人物和真实环境来体现观点
+3. **🚨 不要插画风格！**使用写实照片风格
+4. 使用真实环境，realistic photography
+5. imagePrompt必须详细描述写实风格、真实人物、真实环境、真实物品
+6. 采用写实视角，像真实照片一样呈现
+
+返回JSON：
+{
+  "opinion": "${opinion.text}",
+  "opinionType": "${opinion.type}",
+  "visualizationApproach": "可视化策略（1-2句话）",
+  "sceneDescription_CN": "中文场景描述（详细）",
+  "sceneDescription_EN": "English scene description (detailed)",
+  "imagePrompt": "🚨 REALISTIC PHOTOGRAPHY STYLE! Realistic photo, natural lighting, real environment. MUST include: REAL PEOPLE in the scene, REALISTIC SETTING that represents the opinion/phenomenon, natural lighting, realistic objects, real environment. NOT illustration, NOT vector art, NOT flat design. Focus on realistic people and realistic environment that embodies the opinion/phenomenon. --ar 16:9",
+  "location": "真实场景（如：Real Bookstore, Real Office, Real Coffee Shop）",
+  "peopleInvolved": ["真实人物1", "真实人物2", "真实物品1"],
+  "storyFragment": "写实描述（100-150字，描述真实场景中的人物、环境和物品，体现观点）"
+}
+
+只返回JSON，不要其他文字！`
+            }
+          ],
+          temperature: 0.8,
+          max_tokens: 2000
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error(`API调用失败: ${response.status}`)
+      }
+
+      const data = await response.json()
+      let content = data.choices[0].message.content.trim()
+      
+      console.log('🔍 [REALITY] LLM原始响应:', content.substring(0, 200) + '...')
+      
+      // 清理markdown代码块
+      if (content.includes('```json')) {
+        content = content.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim()
+      } else if (content.includes('```')) {
+        content = content.replace(/```/g, '').trim()
+      }
+      
+      // 清理可能的中文标点
+      content = content.replace(/，/g, ',').replace(/：/g, ':').replace(/"/g, '"').replace(/"/g, '"')
+      
+      console.log('🔍 [REALITY] 清理后的内容:', content.substring(0, 200) + '...')
+      
+      // 尝试找到JSON部分
+      const jsonMatch = content.match(/\{[\s\S]*\}/)
+      if (jsonMatch) {
+        content = jsonMatch[0]
+        console.log('🔍 [REALITY] 提取的JSON部分:', content.substring(0, 200) + '...')
+      }
+      
+      // 尝试修复常见的JSON格式问题
+      try {
+        const scene = JSON.parse(content)
+        console.log('✅ [REALITY] 现实场景生成完成:', scene)
+        return scene
+      } catch (parseError) {
+        console.error('❌ [REALITY] JSON解析失败:', parseError)
+        console.log('📄 [REALITY] 原始内容:', content)
+        return null
+      }
+    } catch (error) {
+      console.error('❌ [REALITY] 生成现实场景失败:', error)
+      return null
+    }
+  }
+
+  /**
    * 生成观点可视化场景
    */
   private static async generateOpinionScene(
@@ -221,39 +528,38 @@ export class OpinionVisualizationService {
           messages: [
             {
               role: 'system',
-              content: `你是观点可视化专家。任务：将用户的抽象观点转化为具体的视觉场景。
+              content: `你是观点可视化专家。任务：将用户的抽象观点转化为高质量、有诗意的视觉场景。
 
-**🎯 核心原则（观点场景使用插画风格）：**
-1. **🎨 使用Illustrator插画风格**：观点场景必须是插画风格，不是写实照片
-2. **必须有人物**：观点场景必须包含人物，用人物来体现观点
-3. **现代扁平设计**：clean vector art, flat design, minimal illustration
-4. **🚨 不要写实照片！**：realistic photos, photorealistic images
+**🎯 核心原则（高质量Editorial illustration风格）：**
+1. **🎨 使用The New Yorker风格的Editorial illustration**：高质量、有诗意的杂志插图风格
+2. **象征性场景**：用象征性、概念性的场景来体现观点，而不是直接描述
+3. **诗意表达**：场景要有诗意、有深度、有思考性
+4. **高质量设计**：像The New Yorker、The Atlantic等高端杂志的插图质量
 
-**🚨🚨🚨 死刑规则：**
-- ❌ "熟人经济" → realistic photo of people networking → 死刑！
-- ✅ "熟人经济" → Illustrator style illustration with people, business cards, WeChat QR codes, connection lines, modern flat design
-- ❌ "形式主义" → realistic photo of office workers → 死刑！
-- ✅ "形式主义" → Vector art illustration with people, mechanical symbols, repetitive patterns, clean design
-- ❌ "虚伪" → realistic photo of person with different expressions → 死刑！
-- ✅ "虚伪" → Flat design illustration with people, mask symbols, contrast elements, symbolic representation
+**🎨 高质量Editorial illustration风格要求：**
+- Editorial illustration in The New Yorker style
+- Conceptual, symbolic, and poetic
+- Minimalist composition with intelligent mood
+- Muted pastel tones, painterly texture
+- Sophisticated and thoughtful visual metaphors
 
-**观点类型与可视化策略（插画风格）：**
+**观点类型与高质量可视化策略：**
 
-**1. 社会现象（如"熟人经济"）：**
-→ 生成：插画风格，必须有人物
-→ 示例："熟人经济" = Illustrator style illustration with people, business cards, WeChat QR codes, connection lines, network symbols
+**1. 社会现象（如"中国缺乏高端杂志市场"）：**
+→ 生成：象征性场景，用隐喻表达社会现象
+→ 示例："中国缺乏高端杂志市场" = Editorial illustration in The New Yorker style, conceptual scene of a small isolated island shaped like an open magazine, surrounded by a vast turbulent ocean made of data, social media icons, and message bubbles; the island glows softly under sunlight, symbolizing intellectual solitude and refinement in a chaotic digital age; minimalist composition, muted pastel tones, painterly texture, intelligent and poetic mood
 
 **2. 价值判断（如"赞赏杂志的智性水平"）：**
-→ 生成：插画风格，必须有人物
-→ 示例："智性水平" = Vector art illustration with people, brain symbols, light bulbs, knowledge icons, intellectual symbols
+→ 生成：象征性场景，用隐喻表达价值判断
+→ 示例："智性水平" = Editorial illustration in The New Yorker style, conceptual scene of a lighthouse made of stacked books, casting beams of light through fog of information overload, symbolizing intellectual guidance; minimalist composition, muted pastel tones, painterly texture, intelligent and poetic mood
 
 **3. 文化批判（如"传统vs现代"）：**
-→ 生成：插画风格，必须有人物
-→ 示例："传统vs现代" = Flat design illustration with people, contrast elements, traditional vs modern symbols
+→ 生成：象征性场景，用隐喻表达文化冲突
+→ 示例："传统vs现代" = Editorial illustration in The New Yorker style, conceptual scene of two trees - one ancient and gnarled, one sleek and digital - their branches intertwining in a dance of conflict and harmony; minimalist composition, muted pastel tones, painterly texture, intelligent and poetic mood
 
-**4. 讽刺/嘲讽（如"装模作样"）：**
-→ 生成：插画风格，必须有人物
-→ 示例："装模作样" = Vector art illustration with people, exaggerated symbols, performance elements
+**4. 情感表达（如"很惋惜愤怒"）：**
+→ 生成：象征性场景，用隐喻表达情感
+→ 示例："很惋惜愤怒" = Editorial illustration in The New Yorker style, conceptual scene of a beautiful flower wilting in a storm of digital noise and superficial content, symbolizing the loss of authentic beauty; minimalist composition, muted pastel tones, painterly texture, intelligent and poetic mood
 
 **用户信息：**
 - 年龄：${userInfo.age || 26}岁
@@ -268,13 +574,13 @@ ${allInputs.map((input, i) => `${i + 1}. ${input}`).join('\n')}
 **观点内容：** ${opinion.text}
 **触发句子：** ${opinion.trigger}
 
-**生成要求（插画风格）：**
-1. 场景必须是插画风格，必须包含人物
-2. 用人物和象征物来体现观点
-3. **🚨 不要写实照片！**使用Illustrator插画风格
-4. 使用现代扁平设计，clean vector art
-5. imagePrompt必须详细描述插画风格、人物、象征物、设计元素
-6. 采用插画视角，像现代杂志插图一样呈现
+**生成要求（高质量Editorial illustration风格）：**
+1. 场景必须是The New Yorker风格的Editorial illustration
+2. 用象征性、概念性的场景来体现观点
+3. 场景要有诗意、有深度、有思考性
+4. 使用高质量的杂志插图风格，不是简单的插画
+5. imagePrompt必须详细描述高质量Editorial illustration风格、象征性元素、诗意表达
+6. 采用高端杂志插图的视角，像The New Yorker一样呈现
 
 返回JSON：
 {
@@ -283,10 +589,10 @@ ${allInputs.map((input, i) => `${i + 1}. ${input}`).join('\n')}
   "visualizationApproach": "可视化策略（1-2句话）",
   "sceneDescription_CN": "中文场景描述（详细）",
   "sceneDescription_EN": "English scene description (detailed)",
-  "imagePrompt": "🚨 ILLUSTRATOR ILLUSTRATION STYLE! Vector art illustration, modern flat design, clean vector art. MUST include: PEOPLE in the scene, PRECISE SYMBOLIC ELEMENTS that represent the opinion/phenomenon, symbolic icons, abstract shapes, design elements. NOT realistic photos, NOT photorealistic images. Focus on people and symbolic representation that embodies the opinion/phenomenon. --ar 16:9",
-  "location": "插画场景（如：Illustrator Business Scene, Vector Art Social Scene）",
-  "peopleInvolved": ["人物1", "人物2", "象征物1"],
-  "storyFragment": "插画描述（100-150字，描述插画中的人物、象征物和设计元素，体现观点）"
+  "imagePrompt": "Editorial illustration in The New Yorker style, conceptual scene of [具体的象征性场景描述], symbolizing [观点含义]; minimalist composition, muted pastel tones, painterly texture, intelligent and poetic mood. --ar 16:9",
+  "location": "象征性场景（如：Conceptual Social Scene, Symbolic Cultural Space）",
+  "peopleInvolved": ["象征元素1", "象征元素2", "概念元素1"],
+  "storyFragment": "高质量Editorial illustration描述（100-150字，描述象征性场景中的元素、隐喻和诗意表达，体现观点）"
 }
 
 只返回JSON，不要其他文字！`
@@ -403,8 +709,12 @@ ${allInputs.map((input, i) => `${i + 1}. ${input}`).join('\n')}
     // 使用验证后的观点列表
     const finalOpinions = validOpinions.length > 0 ? validOpinions : highPriorityOpinions
     
-    // 为每个高优先级观点生成场景
-    for (const opinion of finalOpinions) {
+    // 去重观点（合并相似观点）
+    const uniqueOpinions = this.deduplicateOpinions(finalOpinions)
+    console.log(`🎯 [OPINION] 去重后观点数量: ${uniqueOpinions.length}`)
+    
+    // 为每个去重后的观点生成场景
+    for (const opinion of uniqueOpinions) {
       // 检查观点对象是否有效
       if (!opinion || !opinion.text) {
         console.error('❌ [OPINION] 观点对象无效:', opinion)
@@ -450,6 +760,7 @@ ${allInputs.map((input, i) => `${i + 1}. ${input}`).join('\n')}
       console.log(`⚠️ [OPINION] 未找到明确体现观点的场景，将观点场景放在最后一个基础场景后`)
     }
     
+    // 只生成观点场景（插画风格），不生成现实场景避免重复
     const opinionScene = await this.generateOpinionScene(
         opinion,
       initialPrompt,
@@ -457,6 +768,9 @@ ${allInputs.map((input, i) => `${i + 1}. ${input}`).join('\n')}
       userInfo,
       userMetadata
     )
+    
+    // 不生成现实场景，避免与基础场景重复
+    const realityScene = null
     
     if (opinionScene) {
       const opinionSceneData = {
@@ -493,6 +807,9 @@ ${allInputs.map((input, i) => `${i + 1}. ${input}`).join('\n')}
           opinionScenesAdded++
         console.log(`✅ [OPINION] 观点场景已插入到Scene ${relatedSceneIndex + 1}（${logicalScenes[relatedSceneIndex].title}）后面`)
       }
+      
+      // 不生成现实场景，避免与基础场景重复
+      // 现实场景生成已禁用
     }
     
     // 如果没有生成观点场景，返回原场景
@@ -513,7 +830,8 @@ ${allInputs.map((input, i) => `${i + 1}. ${input}`).join('\n')}
       ...scenes,
       logicalScenes: newLogicalScenes,
       hasOpinionScene: true,
-      opinionScenesCount: opinionScenesAdded
+      opinionScenesCount: opinionScenesAdded,
+      realityScenesCount: 0 // 不生成现实场景
     }
   }
 }

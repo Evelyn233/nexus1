@@ -39,7 +39,7 @@ export default function PaymentPage() {
         body: JSON.stringify({
           amount: 2.00,
           images: 5,
-          description: 'inflow - 5张图片额度'
+          description: '5张图片额度'
         })
       })
 
@@ -67,10 +67,14 @@ export default function PaymentPage() {
       <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Zap className="w-8 h-8 text-white" />
+          <div className="flex items-center justify-center mb-4">
+            <img 
+              src="/inflow-logo.jpeg" 
+              alt="logo" 
+              className="w-24 h-20 rounded-lg"
+            />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">继续创作之旅</h1>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">继续创作之旅</h2>
           <p className="text-gray-600">解锁更多图片生成额度</p>
         </div>
 

@@ -53,7 +53,13 @@ export default function SignInPage() {
       <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-2xl shadow-xl">
         {/* Logo */}
         <div className="text-center">
-          <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-pink-600">inflow</h1>
+          <div className="flex items-center justify-center mb-4">
+            <img 
+              src="/inflow-logo.jpeg" 
+              alt="logo" 
+              className="w-28 h-22 rounded-lg"
+            />
+          </div>
           <h2 className="mt-6 text-2xl font-bold text-gray-900">
             欢迎回来
           </h2>

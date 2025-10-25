@@ -63,9 +63,9 @@ export default function LandingPage() {
   if (passwordVerified === null) {
     // 正在检查密码验证状态
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-teal-50 via-cyan-50 to-blue-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto mb-4"></div>
           <p className="text-gray-600">正在加载...</p>
         </div>
       </div>
@@ -74,14 +74,20 @@ export default function LandingPage() {
   
   if (passwordVerified !== 'true') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-teal-900 via-cyan-900 to-blue-900 flex items-center justify-center p-4">
         <div className="max-w-md w-full">
           {/* Logo */}
           <div className="text-center mb-8">
             <div className="w-20 h-20 bg-white/10 backdrop-blur-sm rounded-2xl flex items-center justify-center mx-auto mb-4">
               <span className="text-2xl">🔒</span>
             </div>
-            <h1 className="text-3xl font-bold text-white mb-2">inflow</h1>
+            <div className="w-16 h-16 bg-white/10 backdrop-blur-sm rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <img 
+                src="/inflow-logo.jpeg" 
+                alt="logo" 
+                className="w-24 h-16 rounded-lg"
+              />
+            </div>
             <p className="text-white/70">请输入访问密码</p>
           </div>
 
@@ -120,7 +126,7 @@ export default function LandingPage() {
 
               <button
                 type="submit"
-                className="w-full bg-white text-purple-900 py-3 px-6 rounded-xl font-semibold hover:bg-white/90 focus:outline-none focus:ring-2 focus:ring-white/50 transition-all"
+                className="w-full bg-white text-teal-900 py-3 px-6 rounded-xl font-semibold hover:bg-white/90 focus:outline-none focus:ring-2 focus:ring-white/50 transition-all"
               >
                 进入应用
               </button>
@@ -130,7 +136,7 @@ export default function LandingPage() {
           {/* Footer */}
           <div className="text-center mt-8">
             <p className="text-white/50 text-sm">
-              © 2024 inflow. All rights reserved.
+              © 2024 All rights reserved.
             </p>
           </div>
         </div>
@@ -143,26 +149,28 @@ export default function LandingPage() {
 
   // 显示落地页
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50">
+    <div className="min-h-screen bg-gradient-to-br from-teal-50 via-cyan-50 to-blue-50">
       {/* 导航栏 */}
       <nav className="bg-white/80 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
-              <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-pink-600">
-                inflow
-              </h1>
+              <img 
+                src="/inflow-logo.jpeg" 
+                alt="logo" 
+                className="w-28 h-20 rounded-lg"
+              />
             </div>
             <div className="flex items-center gap-4">
               <Link
                 href="/auth/signin"
-                className="px-4 py-2 text-gray-700 hover:text-purple-600 transition-colors"
+                className="px-4 py-2 text-gray-700 hover:text-teal-600 transition-colors"
               >
                 登录
               </Link>
               <Link
                 href="/auth/signup"
-                className="px-6 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:opacity-90 transition-opacity"
+                className="px-6 py-2 bg-gradient-to-r from-teal-600 to-cyan-600 text-white rounded-lg hover:opacity-90 transition-opacity"
               >
                 注册
               </Link>
@@ -177,7 +185,7 @@ export default function LandingPage() {
         <div className="text-center mb-20">
           <h2 className="text-5xl font-bold text-gray-900 mb-6">
             用AI创造你的
-            <span className="bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-pink-600">
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-teal-600 to-cyan-600">
               专属故事
             </span>
           </h2>
@@ -191,8 +199,8 @@ export default function LandingPage() {
             <div className="relative max-w-4xl mx-auto">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
                 <div className="space-y-4">
-                  <div className="bg-gradient-to-br from-purple-100 to-pink-100 rounded-2xl p-6 shadow-lg">
-                    <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center mb-4">
+                  <div className="bg-gradient-to-br from-teal-100 to-cyan-100 rounded-2xl p-6 shadow-lg">
+                    <div className="w-16 h-16 bg-gradient-to-br from-teal-500 to-cyan-500 rounded-xl flex items-center justify-center mb-4">
                       <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                       </svg>
@@ -240,13 +248,13 @@ export default function LandingPage() {
           <div className="flex gap-4 justify-center">
             <Link
               href="/auth/signup"
-              className="px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-lg rounded-xl hover:opacity-90 transition-opacity shadow-lg"
+              className="px-8 py-4 bg-gradient-to-r from-teal-600 to-cyan-600 text-white text-lg rounded-xl hover:opacity-90 transition-opacity shadow-lg"
             >
               开始创作
             </Link>
             <Link
               href="/auth/signin"
-              className="px-8 py-4 bg-white text-purple-600 text-lg rounded-xl hover:bg-gray-50 transition-colors shadow-lg border-2 border-purple-600"
+              className="px-8 py-4 bg-white text-teal-600 text-lg rounded-xl hover:bg-gray-50 transition-colors shadow-lg border-2 border-teal-600"
             >
               已有账号？登录
             </Link>
@@ -256,8 +264,8 @@ export default function LandingPage() {
         {/* 功能特点 */}
         <div className="grid md:grid-cols-3 gap-8 mb-20">
           <div className="bg-white p-8 rounded-2xl shadow-lg">
-            <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-4">
-              <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-12 h-12 bg-teal-100 rounded-lg flex items-center justify-center mb-4">
+              <svg className="w-6 h-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
               </svg>
             </div>
@@ -297,56 +305,83 @@ export default function LandingPage() {
           <h3 className="text-3xl font-bold text-center text-gray-900 mb-12">
             看看其他用户的作品
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-6 shadow-lg">
-              <div className="w-full h-48 bg-gradient-to-br from-purple-200 to-pink-200 rounded-xl mb-4 flex items-center justify-center">
-                <div className="text-center">
-                  <div className="w-16 h-16 bg-white/50 rounded-full flex items-center justify-center mx-auto mb-2">
-                    <svg className="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                    </svg>
-                  </div>
-                  <p className="text-sm text-gray-600">情绪场景</p>
-                </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            <div className="bg-gradient-to-br from-teal-50 to-cyan-50 rounded-2xl p-6 shadow-lg">
+              <div className="w-full h-48 rounded-xl mb-4 overflow-hidden">
+                <img 
+                  src="/generated-images/generated-1759673194234.jpg" 
+                  alt="情绪场景" 
+                  className="w-full h-full object-cover"
+                />
               </div>
               <h4 className="font-semibold text-gray-800 mb-2">"我今天上班很伤心"</h4>
-              <p className="text-sm text-gray-600">AI将用户的情绪转化为视觉化的场景，展现内心世界</p>
+              <p className="text-sm text-gray-600 mb-4">AI将用户的情绪转化为视觉化的场景，展现内心世界</p>
+              <div className="flex items-center gap-2 pt-2 border-t border-gray-200">
+                <div className="w-6 h-6 bg-gradient-to-br from-teal-400 to-cyan-400 rounded-full flex items-center justify-center">
+                  <span className="text-white text-xs font-bold">E</span>
+                </div>
+                <span className="text-sm text-gray-600">Evelyn</span>
+              </div>
             </div>
             
             <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-6 shadow-lg">
-              <div className="w-full h-48 bg-gradient-to-br from-blue-200 to-indigo-200 rounded-xl mb-4 flex items-center justify-center">
-                <div className="text-center">
-                  <div className="w-16 h-16 bg-white/50 rounded-full flex items-center justify-center mx-auto mb-2">
-                    <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                    </svg>
-                  </div>
-                  <p className="text-sm text-gray-600">观点场景</p>
-                </div>
+              <div className="w-full h-48 rounded-xl mb-4 overflow-hidden">
+                <img 
+                  src="/images/magazine.jpeg" 
+                  alt="观点场景" 
+                  className="w-full h-full object-cover"
+                />
               </div>
               <h4 className="font-semibold text-gray-800 mb-2">"中国缺乏高端杂志市场"</h4>
-              <p className="text-sm text-gray-600">用插画风格展现用户对社会现象的深度思考</p>
+              <p className="text-sm text-gray-600 mb-4">用插画风格展现用户对社会现象的深度思考</p>
+              <div className="flex items-center gap-2 pt-2 border-t border-gray-200">
+                <div className="w-6 h-6 bg-gradient-to-br from-blue-400 to-indigo-400 rounded-full flex items-center justify-center">
+                  <span className="text-white text-xs font-bold">A</span>
+                </div>
+                <span className="text-sm text-gray-600">Alex</span>
+              </div>
             </div>
             
             <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl p-6 shadow-lg">
-              <div className="w-full h-48 bg-gradient-to-br from-green-200 to-emerald-200 rounded-xl mb-4 flex items-center justify-center">
-                <div className="text-center">
-                  <div className="w-16 h-16 bg-white/50 rounded-full flex items-center justify-center mx-auto mb-2">
-                    <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
-                  <p className="text-sm text-gray-600">心理剧</p>
-                </div>
+              <div className="w-full h-48 rounded-xl mb-4 overflow-hidden">
+                <img 
+                  src="/images/intellectual.jpeg" 
+                  alt="智性场景" 
+                  className="w-full h-full object-cover"
+                />
               </div>
-              <h4 className="font-semibold text-gray-800 mb-2">"发现Noema杂志的智性"</h4>
-              <p className="text-sm text-gray-600">深度挖掘用户的内心世界，展现心理冲突和成长</p>
+              <h4 className="font-semibold text-gray-800 mb-2">"智性思考"</h4>
+              <p className="text-sm text-gray-600 mb-4">展现用户深度思考和智性探索的内心世界</p>
+              <div className="flex items-center gap-2 pt-2 border-t border-gray-200">
+                <div className="w-6 h-6 bg-gradient-to-br from-green-400 to-emerald-400 rounded-full flex items-center justify-center">
+                  <span className="text-white text-xs font-bold">S</span>
+                </div>
+                <span className="text-sm text-gray-600">Sophie</span>
+              </div>
+            </div>
+            
+            <div className="bg-gradient-to-br from-gray-50 to-slate-50 rounded-2xl p-6 shadow-lg">
+              <div className="w-full h-48 rounded-xl mb-4 overflow-hidden">
+                <img 
+                  src="/images/work.jpeg" 
+                  alt="工作场景" 
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <h4 className="font-semibold text-gray-800 mb-2">"我上班好累"</h4>
+              <p className="text-sm text-gray-600 mb-4">用视觉化方式表达现代职场人的疲惫和压力</p>
+              <div className="flex items-center gap-2 pt-2 border-t border-gray-200">
+                <div className="w-6 h-6 bg-gradient-to-br from-gray-400 to-slate-400 rounded-full flex items-center justify-center">
+                  <span className="text-white text-xs font-bold">M</span>
+                </div>
+                <span className="text-sm text-gray-600">Mike</span>
+              </div>
             </div>
           </div>
         </div>
 
         {/* CTA */}
-        <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl shadow-lg p-12 text-center">
+        <div className="bg-gradient-to-br from-teal-50 to-cyan-50 rounded-2xl shadow-lg p-12 text-center">
           <h3 className="text-3xl font-bold text-gray-900 mb-4">
             准备好开始了吗？
           </h3>
@@ -355,7 +390,7 @@ export default function LandingPage() {
           </p>
           <Link
             href="/auth/signup"
-            className="inline-block px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-lg rounded-xl hover:opacity-90 transition-opacity shadow-lg"
+            className="inline-block px-8 py-4 bg-gradient-to-r from-teal-600 to-cyan-600 text-white text-lg rounded-xl hover:opacity-90 transition-opacity shadow-lg"
           >
             免费开始创作
           </Link>
@@ -366,7 +401,7 @@ export default function LandingPage() {
       <footer className="bg-white border-t border-gray-200 mt-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center text-gray-600">
-            <p>© 2024 inflow. All rights reserved.</p>
+            <p>© 2024 All rights reserved.</p>
           </div>
         </div>
       </footer>

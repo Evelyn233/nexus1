@@ -274,7 +274,13 @@ export default function UserInfoPage() {
       {/* Header */}
       <div className="bg-white shadow-sm border-b">
         <div className="max-w-md mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="text-2xl font-bold text-purple-600">logo</div>
+          <div className="flex items-center">
+            <img 
+              src="/inflow-logo.jpeg" 
+              alt="logo" 
+              className="w-16 h-16 rounded-lg"
+            />
+          </div>
           <h1 className="text-lg font-medium text-gray-900">用户信息</h1>
           <div className="w-6 h-6 bg-gray-400 rounded-full flex items-center justify-center">
             <span className="text-white text-xs">?</span>

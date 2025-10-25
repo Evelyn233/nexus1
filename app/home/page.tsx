@@ -55,7 +55,7 @@ export default function HomePage() {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-magazine-primary mx-auto mb-4"></div>
           <p className="text-gray-600">正在加载...</p>
         </div>
       </div>
@@ -65,7 +65,7 @@ export default function HomePage() {
   const staticContentData = [
     {
       id: 1,
-      image: 'https://images.unsplash.com/photo-1544022613-e87ca75a784a?w=400&h=300&fit=crop',
+      image: '/loneliness.jpeg',
       title: '情绪穿搭指南',
       subtitle: '当你不想社交时，衣服替你表达',
       quote: '"孤独也可以被设计得很高级。"',
@@ -73,7 +73,7 @@ export default function HomePage() {
     },
     {
       id: 2,
-      image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=300&fit=crop',
+      image: '/images/night.jpeg',
       title: '☕ 月亮奶盖与凌晨两点的文档',
       subtitle: '创作者的夜生活样本',
       quote: '"不是失眠，是灵感在流动。"',
@@ -110,7 +110,7 @@ export default function HomePage() {
       suggestion: '🌿 周末复苏手册 - 为高敏感都市人设计的精神逃生出口',
       source: '来自AI 的生活建议',
       type: 'ai-suggestion' as const,
-      bgColor: 'bg-purple-50'
+      bgColor: 'bg-magazine-light-gray'
     }
   ]
 
@@ -140,69 +140,73 @@ export default function HomePage() {
 
       {/* Header */}
       <header className="flex items-center justify-between p-4 bg-white border-b border-gray-100">
-        <div className="font-handwriting text-2xl text-magazine-purple">
-          logo
+        <div className="flex items-center">
+          <img 
+            src="/inflow-logo.jpeg" 
+            alt="logo" 
+            className="w-24 h-16 rounded-lg"
+          />
         </div>
         <div className="flex items-center space-x-4">
           <button
             onClick={() => setIsSidebarOpen(true)}
-            className="text-magazine-gray hover:text-magazine-purple transition-colors"
+            className="text-magazine-gray hover:text-magazine-primary transition-colors"
             title="历史记录"
           >
             <History className="w-6 h-6" />
           </button>
           <button
             onClick={() => setShowUserProfile(true)}
-            className="text-magazine-gray hover:text-magazine-purple transition-colors"
+            className="text-magazine-gray hover:text-magazine-primary transition-colors"
             title="查看个人信息"
           >
             👤
           </button>
           <button
             onClick={() => router.push('/gallery')}
-            className="text-magazine-gray hover:text-magazine-purple transition-colors"
+            className="text-magazine-gray hover:text-magazine-primary transition-colors"
             title="图片画廊"
           >
             🖼️
           </button>
           <button
             onClick={() => router.push('/chat-new?prompt=' + encodeURIComponent(inputValue || '我明天面试穿什么'))}
-            className="text-magazine-gray hover:text-magazine-purple transition-colors"
+            className="text-magazine-gray hover:text-magazine-primary transition-colors"
             title="智能对话"
           >
             💬
           </button>
           <button
             onClick={() => router.push('/test-real-api')}
-            className="text-magazine-gray hover:text-magazine-purple transition-colors"
+            className="text-magazine-gray hover:text-magazine-primary transition-colors"
             title="真实API测试"
           >
             🧪
           </button>
           <button
             onClick={() => router.push('/test-chat')}
-            className="text-magazine-gray hover:text-magazine-purple transition-colors"
+            className="text-magazine-gray hover:text-magazine-primary transition-colors"
             title="Chat功能测试"
           >
             🔧
           </button>
           <button
             onClick={() => router.push('/chat-debug?prompt=' + encodeURIComponent('我明天面试穿什么'))}
-            className="text-magazine-gray hover:text-magazine-purple transition-colors"
+            className="text-magazine-gray hover:text-magazine-primary transition-colors"
             title="Chat调试页面"
           >
             🐛
           </button>
           <button
             onClick={() => router.push('/chat-new?prompt=' + encodeURIComponent('我明天面试穿什么'))}
-            className="text-magazine-gray hover:text-magazine-purple transition-colors"
+            className="text-magazine-gray hover:text-magazine-primary transition-colors"
             title="新版Chat"
           >
             💬
           </button>
           <button
             onClick={() => router.push('/test-seedream')}
-            className="text-magazine-gray hover:text-magazine-purple transition-colors"
+            className="text-magazine-gray hover:text-magazine-primary transition-colors"
             title="SeeDream生图测试"
           >
             🎨
@@ -217,7 +221,12 @@ export default function HomePage() {
 
         <div className="grid grid-cols-2 gap-4">
           {staticContentData.map((item) => (
-            <ContentCard key={item.id} data={item} />
+            <div key={item.id} className="border-2 border-green-500 p-2">
+              <ContentCard data={item} />
+              <div className="mt-2 text-xs text-green-600">
+                Debug: {item.type} - {item.title}
+              </div>
+            </div>
           ))}
         </div>
       </main>
@@ -229,7 +238,7 @@ export default function HomePage() {
             <h2 className="text-xs font-medium text-gray-500">快速生成</h2>
             <button
               onClick={() => setShowUserProfile(true)}
-              className="text-xs text-purple-600 hover:text-purple-700 flex items-center space-x-1"
+              className="text-xs text-magazine-primary hover:text-magazine-secondary flex items-center space-x-1"
             >
               <span>👤</span>
               <span>我的信息</span>
@@ -240,7 +249,7 @@ export default function HomePage() {
               <button
                 key={prompt}
                 onClick={() => setInputValue(prompt)}
-                className="px-2 py-1 text-xs bg-purple-50 text-purple-700 rounded-full hover:bg-purple-100 transition-colors"
+                className="px-2 py-1 text-xs bg-magazine-light-gray text-magazine-primary rounded-full hover:bg-magazine-accent transition-colors"
               >
                 {prompt}
               </button>
@@ -282,7 +291,7 @@ export default function HomePage() {
                   setShowUserProfile(false)
                   router.push('/user-info')
                 }}
-                className="flex-1 bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 transition-colors"
+                className="flex-1 bg-magazine-primary text-white py-2 px-4 rounded-lg hover:bg-magazine-secondary transition-colors"
               >
                 编辑信息
               </button>
@@ -389,7 +398,7 @@ function UserProfileContent() {
   if (isLoadingUserInfo) {
     return (
       <div className="text-center py-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto mb-2"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-magazine-primary mx-auto mb-2"></div>
         <p className="text-sm text-gray-500">加载用户信息...</p>
       </div>
     )
@@ -445,7 +454,7 @@ function UserProfileContent() {
                   <div className="flex space-x-2">
                     <button
                       onClick={() => switchUser(name)}
-                      className="px-3 py-1 bg-purple-600 text-white text-sm rounded hover:bg-purple-700"
+                      className="px-3 py-1 bg-magazine-primary text-white text-sm rounded hover:bg-magazine-secondary"
                     >
                       选择
                     </button>
@@ -463,21 +472,21 @@ function UserProfileContent() {
         )}
         
         {/* 创建新用户 */}
-        <div className="bg-purple-50 p-4 rounded-lg">
-          <h3 className="font-medium text-purple-900 mb-3">创建新用户</h3>
+        <div className="bg-magazine-light-gray p-4 rounded-lg">
+          <h3 className="font-medium text-magazine-dark mb-3">创建新用户</h3>
           <div className="flex space-x-2">
             <input
               type="text"
               value={newUserName}
               onChange={(e) => setNewUserName(e.target.value)}
               placeholder="输入用户名字"
-              className="flex-1 px-3 py-2 border border-purple-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="flex-1 px-3 py-2 border border-magazine-accent rounded-lg focus:outline-none focus:ring-2 focus:ring-magazine-primary"
               onKeyPress={(e) => e.key === 'Enter' && addNewUser()}
             />
             <button
               onClick={addNewUser}
               disabled={!newUserName.trim()}
-              className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 bg-magazine-primary text-white rounded-lg hover:bg-magazine-secondary disabled:opacity-50 disabled:cursor-not-allowed"
             >
               创建
             </button>
@@ -523,16 +532,16 @@ function UserProfileContent() {
   return (
     <div className="space-y-4">
       {/* 当前用户信息 */}
-      <div className="bg-purple-50 p-4 rounded-lg">
+      <div className="bg-magazine-light-gray p-4 rounded-lg">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="font-medium text-purple-900">当前用户</h3>
-            <p className="text-lg font-semibold text-purple-800">{currentUserName}</p>
+            <h3 className="font-medium text-magazine-dark">当前用户</h3>
+            <p className="text-lg font-semibold text-magazine-primary">{currentUserName}</p>
           </div>
           <div className="flex space-x-2">
             <button
               onClick={() => setShowUserSelector(true)}
-              className="px-3 py-1 bg-purple-600 text-white text-sm rounded hover:bg-purple-700"
+              className="px-3 py-1 bg-magazine-primary text-white text-sm rounded hover:bg-magazine-secondary"
             >
               切换用户
             </button>
@@ -598,9 +607,9 @@ function UserProfileContent() {
 
       {/* 深度分析 - 隐藏，只作为后台数据存储 */}
       {/* {userInfoDescription && (
-        <div className="bg-purple-50 p-4 rounded-lg">
-          <h3 className="font-medium text-purple-900 mb-2">深度分析</h3>
-          <div className="text-sm text-purple-700 whitespace-pre-wrap">{userInfoDescription}</div>
+        <div className="bg-magazine-light-gray p-4 rounded-lg">
+          <h3 className="font-medium text-magazine-dark mb-2">深度分析</h3>
+          <div className="text-sm text-magazine-primary whitespace-pre-wrap">{userInfoDescription}</div>
         </div>
       )} */}
 
@@ -691,7 +700,7 @@ function UserProfileContent() {
                         <div className="flex space-x-2">
                           <button
                             onClick={() => switchUser(name)}
-                            className="px-3 py-1 bg-purple-600 text-white text-sm rounded hover:bg-purple-700"
+                            className="px-3 py-1 bg-magazine-primary text-white text-sm rounded hover:bg-magazine-secondary"
                           >
                             选择
                           </button>
@@ -709,21 +718,21 @@ function UserProfileContent() {
               )}
               
               {/* 创建新用户 */}
-              <div className="bg-purple-50 p-4 rounded-lg">
-                <h3 className="font-medium text-purple-900 mb-3">创建新用户</h3>
+              <div className="bg-magazine-light-gray p-4 rounded-lg">
+                <h3 className="font-medium text-magazine-dark mb-3">创建新用户</h3>
                 <div className="flex space-x-2">
                   <input
                     type="text"
                     value={newUserName}
                     onChange={(e) => setNewUserName(e.target.value)}
                     placeholder="输入用户名字"
-                    className="flex-1 px-3 py-2 border border-purple-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    className="flex-1 px-3 py-2 border border-magazine-accent rounded-lg focus:outline-none focus:ring-2 focus:ring-magazine-primary"
                     onKeyPress={(e) => e.key === 'Enter' && addNewUser()}
                   />
                   <button
                     onClick={addNewUser}
                     disabled={!newUserName.trim()}
-                    className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-4 py-2 bg-magazine-primary text-white rounded-lg hover:bg-magazine-secondary disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     创建
                   </button>

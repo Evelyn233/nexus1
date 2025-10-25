@@ -4,6 +4,7 @@ import { PsychodramaSceneService, PsychodramaScene } from './psychodramaSceneSer
 import { OpinionVisualizationService } from './opinionVisualizationService'
 import { MagazineCoverService, MagazineCover } from './magazineCoverService'
 import { getUserInfo } from './userDataApi'
+import { saveUserRawInput } from './userRawInputService'
 
 export interface ContentGenerationResult {
   scenes: SceneGenerationResult
@@ -94,6 +95,23 @@ static async generateQuickContent(options: {
   const safeContextHistory = Array.isArray(contextHistory) ? contextHistory : []
   console.log('✅ [CONTENT-GEN] 安全的contextHistory:', safeContextHistory)
 
+  // 🔥 保存用户原始输入到数据库
+  console.log('💾 [CONTENT-GEN] 保存用户原始输入...')
+  try {
+    // 保存元键入（新的初始输入）
+    await saveUserRawInput(initialPrompt, '元键入')
+    
+    // 保存所有回答
+    for (let i = 0; i < answers.length; i++) {
+      const question = questions?.[i] || `问题${i + 1}`
+      await saveUserRawInput(answers[i], question)
+    }
+    
+    console.log('✅ [CONTENT-GEN] 用户原始输入已保存')
+  } catch (error) {
+    console.error('❌ [CONTENT-GEN] 保存用户原始输入失败:', error)
+  }
+
   // 🔥 检测输入类型
   const inputType = this.detectInputType(initialPrompt, answers)
   console.log('🎯 [CONTENT-GEN] 输入类型:', inputType)
@@ -111,60 +129,22 @@ static async generateQuickContent(options: {
       console.log('✅ [CONTENT-GEN] 场景生成完成')
     console.log('🔹 [CONTENT-GEN] 场景数量:', scenes.logicalScenes?.length || 0)
 
-    // 步骤2: 检测并生成观点可视化场景（先于心理剧）
-    console.log('🎨 [CONTENT-GEN] 步骤2: 检测观点...')
-    const scenesWithOpinion = await OpinionVisualizationService.enhanceSceneWithOpinion(
-        scenes,
-        initialPrompt,
-        answers
-      )
-      
-    // 🔥 使用包含观点场景的新scenes对象
-    let finalScenes = scenesWithOpinion || scenes
-
-    if (scenesWithOpinion?.hasOpinionScene) {
-      console.log('✅ [CONTENT-GEN] 观点场景生成完成，场景数:', finalScenes.logicalScenes?.length)
-      } else {
-      console.log('ℹ️ [CONTENT-GEN] 未生成观点场景')
-    }
-
-    // 步骤3: 检测并生成心理剧
-    console.log('🎭 [CONTENT-GEN] 步骤3: 检测心理剧...')
-    const scenesWithPsychodrama = await PsychodramaSceneService.enhanceSceneWithPsychodrama(
-      finalScenes,
-          initialPrompt,
-          answers
-        )
-        
-    // 🔥 使用包含心理剧的新scenes对象
-    finalScenes = scenesWithPsychodrama || finalScenes
-
-    if (scenesWithPsychodrama?.hasPsychodrama) {
-      console.log('✅ [CONTENT-GEN] 心理剧生成完成，场景数:', finalScenes.logicalScenes?.length)
-        } else {
-      console.log('ℹ️ [CONTENT-GEN] 未生成心理剧')
-    }
-
-    // 步骤4: 生成故事（不阻塞）
-    console.log('📖 [CONTENT-GEN] 步骤4: 准备故事生成（占位）')
-    const story = {
-      completeStory: '',
-      storyFragments: []
-    }
-
+    // 🔥 立即返回场景，让用户先生图
+    console.log('🎨 [CONTENT-GEN] 场景生成完成，立即返回供生图')
+    
     return {
-      scenes: finalScenes,  // 🔥 返回包含观点场景和心理剧的完整scenes  
+      scenes: scenes,  // 🔥 立即返回基础场景
       story: {
-        narrative: story.completeStory,
+        narrative: '',
         aiPrompt: '',
         sceneDescription: '',
         characterDescription: '',
         settingDescription: '',
         moodDescription: ''
       },
-      psychodramaScene: null,  // 已废弃，心理剧现在在scenes.logicalScenes中                                                                            
+      psychodramaScene: null,
       magazineCover: null,
-      finalPrompt: '' // 已删除
+      finalPrompt: initialPrompt
     }
 
     } catch (error) {

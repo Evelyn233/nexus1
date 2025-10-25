@@ -48,9 +48,17 @@ export default function ContentCard({ data }: ContentCardProps) {
               {data.suggestion}
             </p>
           </div>
-          <p className="text-xs text-magazine-gray">
-            {data.source}
-          </p>
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-magazine-gray">
+              {data.source}
+            </p>
+            <div className="flex items-center gap-2 bg-yellow-100 p-2 rounded">
+              <div className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center">
+                <span className="text-white text-sm font-bold">E</span>
+              </div>
+              <span className="text-sm text-red-600 font-bold">Evelyn</span>
+            </div>
+          </div>
         </div>
       </div>
     )
@@ -70,18 +78,28 @@ export default function ContentCard({ data }: ContentCardProps) {
         </div>
       )}
       
-      <div className="p-4">
-        <h3 className="font-semibold text-base mb-2 text-magazine-dark leading-tight">
-          {data.title}
-        </h3>
-        <p className="text-sm text-magazine-gray mb-3 leading-relaxed">
-          {data.subtitle}
-        </p>
-        {data.quote && (
-          <blockquote className="text-sm text-magazine-dark italic border-l-2 border-magazine-purple pl-3">
-            {data.quote}
-          </blockquote>
-        )}
+      <div className="p-4 flex flex-col h-full">
+        <div className="flex-1">
+          <h3 className="font-semibold text-base mb-2 text-magazine-dark leading-tight">
+            {data.title}
+          </h3>
+          <p className="text-sm text-magazine-gray mb-3 leading-relaxed">
+            {data.subtitle}
+          </p>
+          {data.quote && (
+            <blockquote className="text-sm text-magazine-dark italic border-l-2 border-magazine-primary pl-3">
+              {data.quote}
+            </blockquote>
+          )}
+        </div>
+        
+        {/* 用户头像和用户名 */}
+        <div className="flex items-center gap-2 pt-3 border-t-2 border-red-500 mt-auto bg-yellow-100 p-2">
+          <div className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center">
+            <span className="text-white text-sm font-bold">E</span>
+          </div>
+          <span className="text-sm text-red-600 font-bold">Evelyn</span>
+        </div>
       </div>
     </div>
   )

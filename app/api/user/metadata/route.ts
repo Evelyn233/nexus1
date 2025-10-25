@@ -121,7 +121,14 @@ export async function GET() {
       styleInsights: user.metadata.styleInsights ? JSON.parse(user.metadata.styleInsights) : [],
       
       // 分析历史
-      analysisHistory: user.metadata.analysisHistory ? JSON.parse(user.metadata.analysisHistory) : []
+      analysisHistory: user.metadata.analysisHistory ? JSON.parse(user.metadata.analysisHistory) : [],
+      
+      // 潜意识数据
+      subconscious: {
+        frequentLocations: user.metadata.frequentLocations ? JSON.parse(user.metadata.frequentLocations) : [],
+        fashionStyle: user.metadata.fashionStyle ? JSON.parse(user.metadata.fashionStyle) : [],
+        aestheticPreferences: user.metadata.aestheticPreferences ? JSON.parse(user.metadata.aestheticPreferences) : []
+      }
     } : null
 
     return NextResponse.json({

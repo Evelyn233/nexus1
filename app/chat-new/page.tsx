@@ -1717,7 +1717,7 @@ AI问题：${aiQuestion}
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50">
+    <div className="min-h-screen bg-gradient-to-br from-teal-50 to-blue-50">
       {/* 历史记录侧边栏 */}
       <ChatHistorySidebar
         isOpen={isSidebarOpen}
@@ -1729,6 +1729,13 @@ AI问题：${aiQuestion}
       <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-sm border-b border-gray-200">
         <div className="max-w-md mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
+            <div className="flex items-center mr-2">
+              <img 
+                src="/inflow-logo.jpeg" 
+                alt="logo" 
+                className="w-20 h-14 rounded-lg"
+              />
+            </div>
             <button
               onClick={() => setIsSidebarOpen(true)}
               className="p-2 hover:bg-gray-100 rounded-lg transition-colors"

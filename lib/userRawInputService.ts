@@ -27,9 +27,18 @@ export async function saveUserRawInput(
     
     // 获取现有的原始输入
     const metadata = await getUserMetadata()
-    const existingInputs: UserRawInput[] = metadata.userRawInputs 
-      ? JSON.parse(metadata.userRawInputs) 
-      : []
+    let existingInputs: UserRawInput[] = []
+    
+    try {
+      if (metadata.userRawInputs && typeof metadata.userRawInputs === 'string') {
+        existingInputs = JSON.parse(metadata.userRawInputs)
+      } else if (Array.isArray(metadata.userRawInputs)) {
+        existingInputs = metadata.userRawInputs
+      }
+    } catch (error) {
+      console.warn('⚠️ [RAW-INPUT] 解析现有输入失败，使用空数组:', error)
+      existingInputs = []
+    }
     
     // 添加新输入（直接保存问答对）
     const newInput: UserRawInput = {
@@ -43,9 +52,19 @@ export async function saveUserRawInput(
     
     // 提取关键短语（从用户回答中提取）
     const keyPhrases = extractMeaningfulPhrases(userAnswer)
-    const existingPhrases: string[] = metadata.userMentionedKeywords 
-      ? JSON.parse(metadata.userMentionedKeywords) 
-      : []
+    let existingPhrases: string[] = []
+    
+    try {
+      if (metadata.userMentionedKeywords && typeof metadata.userMentionedKeywords === 'string') {
+        existingPhrases = JSON.parse(metadata.userMentionedKeywords)
+      } else if (Array.isArray(metadata.userMentionedKeywords)) {
+        existingPhrases = metadata.userMentionedKeywords
+      }
+    } catch (error) {
+      console.warn('⚠️ [RAW-INPUT] 解析现有关键词失败，使用空数组:', error)
+      existingPhrases = []
+    }
+    
     const updatedPhrases = Array.from(new Set([...keyPhrases, ...existingPhrases])).slice(0, 200)
     
     // 保存到Prisma

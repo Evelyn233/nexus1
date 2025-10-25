@@ -137,7 +137,13 @@ export default function SignUpPhonePage() {
       <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-2xl shadow-xl">
         {/* Logo */}
         <div className="text-center">
-          <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-pink-600">inflow</h1>
+          <div className="flex items-center justify-center mb-4">
+            <img 
+              src="/inflow-logo.jpeg" 
+              alt="logo" 
+              className="w-24 h-20 rounded-lg"
+            />
+          </div>
           <h2 className="mt-2 text-xl font-semibold text-gray-900">📱 手机号注册</h2>
           <p className="mt-2 text-sm text-gray-600">
             使用手机号快速创建账号

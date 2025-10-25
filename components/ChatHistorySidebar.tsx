@@ -215,7 +215,7 @@ export default function ChatHistorySidebar({ isOpen, onClose, onSessionSelect }:
                 window.location.href = '/'
                 onClose()
               }}
-              className="w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium"
+              className="w-full px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors text-sm font-medium"
             >
               + 新对话
             </button>
@@ -223,7 +223,7 @@ export default function ChatHistorySidebar({ isOpen, onClose, onSessionSelect }:
 
           {/* 标签 - 只显示故事记录 */}
           <div className="flex border-b border-gray-200">
-            <div className="flex-1 flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-purple-600 border-b-2 border-purple-600">
+            <div className="flex-1 flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-teal-600 border-b-2 border-teal-600">
               <ImageIcon className="w-4 h-4" />
               故事记录
             </div>
@@ -233,7 +233,7 @@ export default function ChatHistorySidebar({ isOpen, onClose, onSessionSelect }:
           <div className="flex-1 overflow-y-auto">
             {isLoading ? (
               <div className="flex items-center justify-center py-12">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600"></div>
               </div>
             ) : (
               <>
@@ -302,7 +302,7 @@ export default function ChatHistorySidebar({ isOpen, onClose, onSessionSelect }:
                       images.map((content) => (
                         <div
                           key={content.id}
-                          className="group relative rounded-lg overflow-hidden bg-gray-50 cursor-pointer border border-gray-200 hover:border-purple-300 transition-colors"
+                          className="group relative rounded-lg overflow-hidden bg-gray-50 cursor-pointer border border-gray-200 hover:border-teal-300 transition-colors"
                           onClick={() => {
                             window.location.href = `/history/${content.id}`
                             onClose()
@@ -310,12 +310,12 @@ export default function ChatHistorySidebar({ isOpen, onClose, onSessionSelect }:
                         >
                           <div className="p-3">
                             <div className="flex items-center gap-2 mb-2">
-                              <ImageIcon className="w-4 h-4 text-purple-600" />
-                              <span className="text-xs text-purple-600 font-medium">
+                              <ImageIcon className="w-4 h-4 text-teal-600" />
+                              <span className="text-xs text-teal-600 font-medium">
                                 {content.imageCount} 张图片
                               </span>
                               {content.category && content.category !== 'daily' && (
-                                <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full">
+                                <span className="text-xs bg-teal-100 text-teal-700 px-2 py-1 rounded-full">
                                   {content.category}
                                 </span>
                               )}
