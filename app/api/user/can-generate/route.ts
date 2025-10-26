@@ -20,20 +20,7 @@ export async function GET() {
       )
     }
 
-    // 从数据库获取用户ID
-    const { prisma } = await import('@/lib/prisma')
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email }
-    })
-
-    if (!user) {
-      return NextResponse.json(
-        { error: '用户不存在' },
-        { status: 404 }
-      )
-    }
-
-    const result = await canUserGenerateImages(user.id)
+    const result = await canUserGenerateImages(session.user.email)
     
     return NextResponse.json(result)
     

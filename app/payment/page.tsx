@@ -3,13 +3,23 @@
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { CheckCircle, CreditCard, Image, Zap } from 'lucide-react'
+import { CheckCircle, CreditCard, Image, Zap, Wallet } from 'lucide-react'
+
+interface UserUsage {
+  dailyFreeUsed: number
+  dailyFreeLimit: number
+  walletBalance: number
+  canGenerateFree: boolean
+  canGeneratePaid: boolean
+  isNewUser: boolean
+  totalImagesGenerated: number
+}
 
 export default function PaymentPage() {
   const { data: session } = useSession()
   const router = useRouter()
   const [isProcessing, setIsProcessing] = useState(false)
-  const [userUsage, setUserUsage] = useState<any>(null)
+  const [userUsage, setUserUsage] = useState<UserUsage | null>(null)
 
   useEffect(() => {
     if (session?.user?.email) {
@@ -29,7 +39,7 @@ export default function PaymentPage() {
     }
   }
 
-  const handlePayment = async () => {
+  const handleRecharge = async (amount: number, images: number) => {
     setIsProcessing(true)
     try {
       // 创建PayPal支付链接
@@ -37,9 +47,9 @@ export default function PaymentPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          amount: 2.00,
-          images: 5,
-          description: '5张图片额度'
+          amount: amount,
+          images: images,
+          description: `${images}张图片额度`
         })
       })
 
@@ -58,125 +68,173 @@ export default function PaymentPage() {
     }
   }
 
-  const handleBackToHome = () => {
-    router.push('/home')
+  if (!userUsage) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">加载中...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center mb-4">
-            <img 
-              src="/inflow-logo.jpeg" 
-              alt="logo" 
-              className="w-24 h-20 rounded-lg"
-            />
-          </div>
-          <h2 className="text-xl font-bold text-gray-900 mb-2">继续创作之旅</h2>
-          <p className="text-gray-600">解锁更多图片生成额度</p>
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-white border-b border-gray-200 px-4 py-4">
+        <div className="flex items-center justify-between max-w-md mx-auto">
+          <button
+            onClick={() => router.back()}
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+          <h1 className="text-lg font-semibold text-gray-900">图片额度</h1>
+          <button
+            onClick={() => router.push('/wallet')}
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            <Wallet className="w-6 h-6 text-gray-600" />
+          </button>
         </div>
+      </header>
 
-        {/* Usage Stats */}
-        {userUsage && (
-          <div className="bg-gray-50 rounded-lg p-4 mb-6">
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">已使用免费额度</span>
-                <span className="font-semibold">{userUsage.freeImagesUsed}/12</span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div 
-                  className="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${(userUsage.freeImagesUsed / 12) * 100}%` }}
-                ></div>
-              </div>
-              
-              {userUsage.paidImagesUsed > 0 && (
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">已使用付费额度</span>
-                  <span className="font-semibold text-purple-600">{userUsage.paidImagesUsed} 张</span>
-                </div>
-              )}
-            </div>
+      <main className="max-w-md mx-auto p-4 space-y-6">
+        {/* 今日免费额度 */}
+        <div className="bg-white rounded-xl p-6 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-900">今日免费额度</h3>
+            {userUsage.isNewUser && (
+              <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
+                新用户
+              </span>
+            )}
           </div>
-        )}
-
-        {/* Pricing Card */}
-        <div className="border-2 border-purple-200 rounded-xl p-6 mb-6 bg-gradient-to-br from-purple-50 to-pink-50">
-          <div className="text-center">
-            <div className="flex items-center justify-center mb-2">
-              <Image className="w-5 h-5 text-purple-600 mr-2" />
-              <span className="text-lg font-semibold text-gray-900">5张图片</span>
+          
+          <div className="space-y-3">
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-600">已使用</span>
+              <span className="font-medium">{userUsage.dailyFreeUsed}/{userUsage.dailyFreeLimit}</span>
             </div>
-            <div className="text-3xl font-bold text-purple-600 mb-2">$2.00</div>
-            <p className="text-sm text-gray-600 mb-4">一次性购买，永久有效</p>
             
-            <div className="space-y-2 text-sm text-gray-700">
-              <div className="flex items-center">
-                <CheckCircle className="w-4 h-4 text-green-500 mr-2" />
-                <span>高质量AI生成图片</span>
-              </div>
-              <div className="flex items-center">
-                <CheckCircle className="w-4 h-4 text-green-500 mr-2" />
-                <span>个性化故事叙述</span>
-              </div>
-              <div className="flex items-center">
-                <CheckCircle className="w-4 h-4 text-green-500 mr-2" />
-                <span>无使用期限限制</span>
-              </div>
-              <div className="flex items-center">
-                <CheckCircle className="w-4 h-4 text-green-500 mr-2" />
-                <span>每5张图片仅需$2</span>
-              </div>
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div 
+                className="bg-teal-500 h-2 rounded-full transition-all duration-300"
+                style={{ 
+                  width: `${(userUsage.dailyFreeUsed / userUsage.dailyFreeLimit) * 100}%` 
+                }}
+              ></div>
             </div>
-          </div>
-        </div>
-
-        {/* Payment Button */}
-        <button
-          onClick={handlePayment}
-          disabled={isProcessing}
-          className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-3 px-6 rounded-xl font-semibold hover:from-purple-700 hover:to-pink-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
-        >
-          {isProcessing ? (
-            <>
-              <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
-              处理中...
-            </>
-          ) : (
-            <>
-              <CreditCard className="w-4 h-4 mr-2" />
-              通过PayPal支付 $2.00
-            </>
-          )}
-        </button>
-
-        {/* Payment Info */}
-        <div className="text-center mt-4 space-y-2">
-          <div className="bg-blue-50 rounded-lg p-3">
-            <p className="text-sm text-blue-800 font-medium">付费说明</p>
-            <p className="text-xs text-blue-600 mt-1">
-              前12张图片免费，超出后每5张图片收费$2
+            
+            <p className="text-xs text-gray-500">
+              {userUsage.isNewUser ? '新用户每日9张免费图片' : '老用户每日3张免费图片'}
             </p>
           </div>
-          <p className="text-xs text-gray-500">
-            支付链接将跳转到PayPal安全支付页面
-          </p>
-          <p className="text-xs text-gray-400">
-            支付完成后，额度将自动到账
-          </p>
         </div>
 
-        {/* Back Button */}
-        <button
-          onClick={handleBackToHome}
-          className="w-full mt-4 text-gray-600 hover:text-gray-800 transition-colors"
-        >
-          返回首页
-        </button>
-      </div>
+        {/* 钱包余额 */}
+        <div className="bg-gradient-to-br from-teal-500 to-cyan-600 rounded-xl p-6 text-white">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Wallet className="w-6 h-6" />
+              <span className="font-medium">钱包余额</span>
+            </div>
+            <div className="text-right">
+              <div className="text-2xl font-bold">${userUsage.walletBalance.toFixed(2)}</div>
+              <div className="text-teal-100 text-sm">USD</div>
+            </div>
+          </div>
+        </div>
+
+        {/* 充值选项 */}
+        <div className="bg-white rounded-xl p-6 shadow-sm">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">充值图片额度</h3>
+          
+          <div className="space-y-3">
+            <button
+              onClick={() => handleRecharge(5, 10)}
+              disabled={isProcessing}
+              className="w-full p-4 border-2 border-gray-200 rounded-xl hover:border-teal-500 hover:bg-teal-50 transition-colors disabled:opacity-50"
+            >
+              <div className="flex items-center justify-between">
+                <div className="text-left">
+                  <div className="font-semibold text-gray-900">$5 - 10张图片</div>
+                  <div className="text-sm text-gray-600">每张$0.5</div>
+                </div>
+                <CreditCard className="w-6 h-6 text-gray-400" />
+              </div>
+            </button>
+            
+            <button
+              onClick={() => handleRecharge(10, 25)}
+              disabled={isProcessing}
+              className="w-full p-4 border-2 border-gray-200 rounded-xl hover:border-teal-500 hover:bg-teal-50 transition-colors disabled:opacity-50"
+            >
+              <div className="flex items-center justify-between">
+                <div className="text-left">
+                  <div className="font-semibold text-gray-900">$10 - 25张图片</div>
+                  <div className="text-sm text-gray-600">每张$0.4</div>
+                </div>
+                <CreditCard className="w-6 h-6 text-gray-400" />
+              </div>
+            </button>
+            
+            <button
+              onClick={() => handleRecharge(20, 50)}
+              disabled={isProcessing}
+              className="w-full p-4 border-2 border-gray-200 rounded-xl hover:border-teal-500 hover:bg-teal-50 transition-colors disabled:opacity-50"
+            >
+              <div className="flex items-center justify-between">
+                <div className="text-left">
+                  <div className="font-semibold text-gray-900">$20 - 50张图片</div>
+                  <div className="text-sm text-gray-600">每张$0.4</div>
+                </div>
+                <CreditCard className="w-6 h-6 text-gray-400" />
+              </div>
+            </button>
+            
+            <button
+              onClick={() => handleRecharge(50, 150)}
+              disabled={isProcessing}
+              className="w-full p-4 border-2 border-gray-200 rounded-xl hover:border-teal-500 hover:bg-teal-50 transition-colors disabled:opacity-50"
+            >
+              <div className="flex items-center justify-between">
+                <div className="text-left">
+                  <div className="font-semibold text-gray-900">$50 - 150张图片</div>
+                  <div className="text-sm text-gray-600">每张$0.33</div>
+                </div>
+                <CreditCard className="w-6 h-6 text-gray-400" />
+              </div>
+            </button>
+          </div>
+        </div>
+
+        {/* 使用说明 */}
+        <div className="bg-blue-50 rounded-xl p-4">
+          <h4 className="font-semibold text-blue-900 mb-2">使用说明</h4>
+          <ul className="text-sm text-blue-800 space-y-1">
+            <li>• 每张图片生成费用：$0.5</li>
+            <li>• 新用户注册7天内每日9张免费图片</li>
+            <li>• 老用户每日3张免费图片</li>
+            <li>• 免费额度每日0点重置</li>
+            <li>• 钱包余额永久有效</li>
+          </ul>
+        </div>
+
+        {/* 操作按钮 */}
+        <div className="space-y-3">
+          <button
+            onClick={() => router.push('/wallet')}
+            className="w-full p-4 bg-teal-600 text-white rounded-xl hover:bg-teal-700 transition-colors flex items-center justify-center space-x-2"
+          >
+            <Wallet className="w-5 h-5" />
+            <span>查看钱包详情</span>
+          </button>
+        </div>
+      </main>
     </div>
   )
 }

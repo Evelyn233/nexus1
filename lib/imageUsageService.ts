@@ -1,165 +1,224 @@
-/**
- * 图片使用量管理服务
- * 跟踪用户已生成的图片数量，实现付费限制
- */
+import { PrismaClient } from '@prisma/client'
 
-import prisma from './prisma'
+const prisma = new PrismaClient()
 
-export interface ImageUsageData {
+export interface UserImageUsage {
   userId: string
+  dailyFreeUsed: number
+  dailyFreeLimit: number
+  walletBalance: number
+  canGenerateFree: boolean
+  canGeneratePaid: boolean
+  isNewUser: boolean
   totalImagesGenerated: number
+}
+
+export interface DailyQuotaInfo {
+  date: string
   freeImagesUsed: number
-  paidImagesUsed: number
-  lastPaymentDate?: Date
-  isPremiumUser: boolean
+  freeImagesLimit: number
+  isNewUser: boolean
+}
+
+/**
+ * 获取用户今日免费额度信息
+ */
+export async function getUserDailyQuota(userId: string): Promise<DailyQuotaInfo> {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0) // 设置为今天的开始
+  
+  // 检查用户是否为注册7天内的新用户
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { createdAt: true }
+  })
+  
+  if (!user) {
+    throw new Error('用户不存在')
+  }
+  
+  const isNewUser = (Date.now() - user.createdAt.getTime()) < (7 * 24 * 60 * 60 * 1000) // 7天
+  const freeLimit = isNewUser ? 9 : 3 // 新用户9张，老用户3张
+  
+  // 获取今日额度记录
+  let dailyQuota = await prisma.userDailyQuota.findUnique({
+    where: {
+      userId_date: {
+        userId,
+        date: today
+      }
+    }
+  })
+  
+  // 如果没有今日记录，创建一个
+  if (!dailyQuota) {
+    dailyQuota = await prisma.userDailyQuota.create({
+      data: {
+        userId,
+        date: today,
+        freeImagesUsed: 0,
+        isNewUser
+      }
+    })
+  }
+  
+  return {
+    date: today.toISOString().split('T')[0],
+    freeImagesUsed: dailyQuota.freeImagesUsed,
+    freeImagesLimit: freeLimit,
+    isNewUser
+  }
+}
+
+/**
+ * 获取用户钱包余额
+ */
+export async function getUserWalletBalance(userId: string): Promise<number> {
+  const wallet = await prisma.userWallet.findUnique({
+    where: { userId }
+  })
+  
+  return wallet?.balance || 0
 }
 
 /**
  * 获取用户图片使用情况
  */
-export async function getUserImageUsage(userId: string): Promise<ImageUsageData> {
-  try {
-    // 从数据库获取用户信息，检查是否为管理员
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { email: true }
-    })
-
-    // 如果是管理员账户，返回无限制状态
-    if (user?.email === '595674464@qq.com') {
-      return {
-        userId,
-        totalImagesGenerated: 999999,
-        freeImagesUsed: 0,
-        paidImagesUsed: 0,
-        isPremiumUser: true // 管理员视为高级用户
+export async function getUserImageUsage(userEmail: string): Promise<UserImageUsage> {
+  // 查找用户
+  const user = await prisma.user.findUnique({
+    where: { email: userEmail },
+    include: {
+      wallet: true,
+      generatedContents: {
+        select: { imageCount: true }
       }
     }
-
-    // 从数据库获取用户已生成的内容
-    const userContent = await prisma.userGeneratedContent.findMany({
-      where: { userId },
-      select: { 
-        images: true,
-        createdAt: true
-      }
-    })
-
-    // 计算总图片数量
-    const totalImages = userContent.reduce((sum, content) => {
-      return sum + (content.images ? JSON.parse(content.images).length : 0)
-    }, 0)
-
-    // 检查是否有付费记录
-    const paymentRecord = await prisma.userPayment.findFirst({
-      where: { userId },
-      orderBy: { createdAt: 'desc' }
-    })
-
-    const isPremiumUser = !!paymentRecord
-    const freeImagesUsed = Math.min(totalImages, 12) // 前12张免费
-    const paidImagesUsed = Math.max(0, totalImages - 12) // 超过12张的为付费图片
-
+  })
+  
+  if (!user) {
+    throw new Error('用户不存在')
+  }
+  
+  // 管理员特殊处理
+  if (userEmail === '595674464@qq.com') {
     return {
-      userId,
-      totalImagesGenerated: totalImages,
-      freeImagesUsed,
-      paidImagesUsed,
-      lastPaymentDate: paymentRecord?.createdAt,
-      isPremiumUser
+      userId: user.id,
+      dailyFreeUsed: 0,
+      dailyFreeLimit: 999999,
+      walletBalance: 999999,
+      canGenerateFree: true,
+      canGeneratePaid: true,
+      isNewUser: false,
+      totalImagesGenerated: 0
     }
-  } catch (error) {
-    console.error('❌ [IMAGE-USAGE] 获取用户图片使用情况失败:', error)
-    return {
-      userId,
-      totalImagesGenerated: 0,
-      freeImagesUsed: 0,
-      paidImagesUsed: 0,
-      isPremiumUser: false
-    }
+  }
+  
+  // 获取今日免费额度
+  const dailyQuota = await getUserDailyQuota(user.id)
+  const walletBalance = await getUserWalletBalance(user.id)
+  
+  // 计算总生成图片数
+  const totalImagesGenerated = user.generatedContents.reduce(
+    (sum, content) => sum + content.imageCount, 
+    0
+  )
+  
+  return {
+    userId: user.id,
+    dailyFreeUsed: dailyQuota.freeImagesUsed,
+    dailyFreeLimit: dailyQuota.freeImagesLimit,
+    walletBalance,
+    canGenerateFree: dailyQuota.freeImagesUsed < dailyQuota.freeImagesLimit,
+    canGeneratePaid: walletBalance >= 0.5, // 假设每张图片0.5美元
+    isNewUser: dailyQuota.isNewUser,
+    totalImagesGenerated
   }
 }
 
 /**
- * 检查用户是否可以继续生成图片
+ * 检查用户是否可以生成图片
  */
-export async function canUserGenerateImages(userId: string): Promise<{
-  canGenerate: boolean
-  remainingFreeImages: number
-  needsPayment: boolean
-  message: string
-}> {
-  const usage = await getUserImageUsage(userId)
-  
-  // 如果是管理员账户，无限制生成
-  if (usage.isPremiumUser && usage.totalImagesGenerated === 999999) {
-    return {
-      canGenerate: true,
-      remainingFreeImages: 999999,
-      needsPayment: false,
-      message: '管理员账户，无限制使用'
-    }
-  }
-  
-  // 如果用户已付费，检查是否还有付费额度
-  if (usage.isPremiumUser) {
-    const paidImagesSinceLastPayment = usage.paidImagesUsed % 5
-    const remainingPaidImages = 5 - paidImagesSinceLastPayment
-    
-    if (remainingPaidImages > 0) {
-      return {
-        canGenerate: true,
-        remainingFreeImages: 0,
-        needsPayment: false,
-        message: `您还有 ${remainingPaidImages} 张付费图片额度`
-      }
-    } else {
-      return {
-        canGenerate: false,
-        remainingFreeImages: 0,
-        needsPayment: true,
-        message: '您的付费额度已用完，请购买更多图片额度'
-      }
-    }
-  }
-  
-  // 免费用户检查
-  if (usage.freeImagesUsed < 12) {
-    return {
-      canGenerate: true,
-      remainingFreeImages: 12 - usage.freeImagesUsed,
-      needsPayment: false,
-      message: `您还有 ${12 - usage.freeImagesUsed} 张免费图片额度`
-    }
-  } else {
-    return {
-      canGenerate: false,
-      remainingFreeImages: 0,
-      needsPayment: true,
-      message: '您已用完免费额度，请付费继续使用'
-    }
-  }
+export async function canUserGenerateImages(userEmail: string): Promise<boolean> {
+  const usage = await getUserImageUsage(userEmail)
+  return usage.canGenerateFree || usage.canGeneratePaid
 }
 
 /**
- * 记录付费购买
+ * 记录图片生成使用
  */
-export async function recordPayment(userId: string, amount: number, paymentId: string): Promise<boolean> {
-  try {
-    await prisma.userPayment.create({
-      data: {
+export async function recordImageGeneration(userId: string, imageCount: number = 1): Promise<void> {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  
+  // 更新今日免费额度使用
+  await prisma.userDailyQuota.upsert({
+    where: {
+      userId_date: {
         userId,
-        amount,
-        paymentId,
-        status: 'completed',
-        imagesPurchased: 5 // 每次购买5张图片
+        date: today
       }
-    })
-    
-    console.log('✅ [PAYMENT] 付费记录已保存:', { userId, amount, paymentId })
-    return true
-  } catch (error) {
-    console.error('❌ [PAYMENT] 保存付费记录失败:', error)
+    },
+    update: {
+      freeImagesUsed: {
+        increment: imageCount
+      }
+    },
+    create: {
+      userId,
+      date: today,
+      freeImagesUsed: imageCount,
+      isNewUser: false // 这里可以根据需要调整
+    }
+  })
+}
+
+/**
+ * 从钱包扣除费用
+ */
+export async function deductFromWallet(userId: string, amount: number): Promise<boolean> {
+  const wallet = await prisma.userWallet.findUnique({
+    where: { userId }
+  })
+  
+  if (!wallet || wallet.balance < amount) {
     return false
   }
+  
+  await prisma.userWallet.update({
+    where: { userId },
+    data: {
+      balance: {
+        decrement: amount
+      },
+      totalSpent: {
+        increment: amount
+      }
+    }
+  })
+  
+  return true
+}
+
+/**
+ * 充值到钱包
+ */
+export async function addToWallet(userId: string, amount: number): Promise<void> {
+  await prisma.userWallet.upsert({
+    where: { userId },
+    update: {
+      balance: {
+        increment: amount
+      },
+      totalEarned: {
+        increment: amount
+      }
+    },
+    create: {
+      userId,
+      balance: amount,
+      totalEarned: amount,
+      totalSpent: 0
+    }
+  })
 }

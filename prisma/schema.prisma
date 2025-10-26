@@ -46,6 +46,8 @@ model User {
   generatedImages GeneratedImage[]
   generatedContents UserGeneratedContent[]  // 用户生成的内容
   payments       UserPayment[]  // 付费记录
+  wallet         UserWallet?    // 钱包（一对一关系）
+  dailyQuotas    UserDailyQuota[] // 每日免费额度记录
   
   @@map("users")
 }
@@ -272,4 +274,35 @@ model UserPayment {
   updatedAt       DateTime @updatedAt
   
   @@map("user_payments")
+}
+
+// 用户钱包余额表
+model UserWallet {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  balance         Float    @default(0) // 钱包余额（美元）
+  totalSpent      Float    @default(0) // 总消费金额
+  totalEarned     Float    @default(0) // 总充值金额
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@map("user_wallets")
+}
+
+// 用户每日免费额度表
+model UserDailyQuota {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date            DateTime // 日期（只保存日期部分）
+  freeImagesUsed  Int      @default(0) // 当日已使用的免费图片数
+  isNewUser       Boolean  @default(false) // 是否为新用户（影响免费额度）
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@unique([userId, date])
+  @@map("user_daily_quotas")
 }
