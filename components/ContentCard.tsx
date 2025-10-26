@@ -52,11 +52,11 @@ export default function ContentCard({ data }: ContentCardProps) {
             <p className="text-xs text-magazine-gray">
               {data.source}
             </p>
-            <div className="flex items-center gap-2 bg-yellow-100 p-2 rounded">
-              <div className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center">
-                <span className="text-white text-sm font-bold">E</span>
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 bg-magazine-primary rounded-full flex items-center justify-center">
+                <span className="text-white text-xs font-bold">E</span>
               </div>
-              <span className="text-sm text-red-600 font-bold">Evelyn</span>
+              <span className="text-xs text-magazine-gray font-medium">Evelyn</span>
             </div>
           </div>
         </div>
@@ -94,11 +94,11 @@ export default function ContentCard({ data }: ContentCardProps) {
         </div>
         
         {/* 用户头像和用户名 */}
-        <div className="flex items-center gap-2 pt-3 border-t-2 border-red-500 mt-auto bg-yellow-100 p-2">
-          <div className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center">
-            <span className="text-white text-sm font-bold">E</span>
+        <div className="flex items-center gap-2 pt-3 border-t border-magazine-primary mt-auto">
+          <div className="w-6 h-6 bg-magazine-primary rounded-full flex items-center justify-center">
+            <span className="text-white text-xs font-bold">E</span>
           </div>
-          <span className="text-sm text-red-600 font-bold">Evelyn</span>
+          <span className="text-xs text-magazine-gray font-medium">Evelyn</span>
         </div>
       </div>
     </div>
