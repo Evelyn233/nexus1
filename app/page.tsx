@@ -34,7 +34,7 @@ export default function LandingPage() {
   useEffect(() => {
     const timer = setTimeout(() => {
       setShowPage(true)
-    }, 2000) // 2秒超时
+    }, 1000) // 减少到1秒超时
 
     return () => clearTimeout(timer)
   }, [])
@@ -312,6 +312,7 @@ export default function LandingPage() {
                   src="/generated-images/generated-1759673194234.jpg" 
                   alt="情绪场景" 
                   className="w-full h-full object-cover"
+                  loading="lazy"
                 />
               </div>
               <h4 className="font-semibold text-gray-800 mb-2">"我今天上班很伤心"</h4>
@@ -330,6 +331,7 @@ export default function LandingPage() {
                   src="/images/magazine.jpeg" 
                   alt="观点场景" 
                   className="w-full h-full object-cover"
+                  loading="lazy"
                 />
               </div>
               <h4 className="font-semibold text-gray-800 mb-2">"中国缺乏高端杂志市场"</h4>
@@ -348,6 +350,7 @@ export default function LandingPage() {
                   src="/images/intellectual.jpeg" 
                   alt="智性场景" 
                   className="w-full h-full object-cover"
+                  loading="lazy"
                 />
               </div>
               <h4 className="font-semibold text-gray-800 mb-2">"智性思考"</h4>
@@ -366,6 +369,7 @@ export default function LandingPage() {
                   src="/images/work.jpeg" 
                   alt="工作场景" 
                   className="w-full h-full object-cover"
+                  loading="lazy"
                 />
               </div>
               <h4 className="font-semibold text-gray-800 mb-2">"我上班好累"</h4>
