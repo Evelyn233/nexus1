@@ -221,12 +221,7 @@ export default function HomePage() {
 
         <div className="grid grid-cols-2 gap-4">
           {staticContentData.map((item) => (
-            <div key={item.id} className="border-2 border-green-500 p-2">
-              <ContentCard data={item} />
-              <div className="mt-2 text-xs text-green-600">
-                Debug: {item.type} - {item.title}
-              </div>
-            </div>
+            <ContentCard key={item.id} data={item} />
           ))}
         </div>
       </main>
