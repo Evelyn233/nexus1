@@ -97,7 +97,18 @@ export async function getUserImageUsage(userEmail: string): Promise<UserImageUsa
   })
   
   if (!user) {
-    throw new Error('用户不存在')
+    console.log('⚠️ [IMAGE-USAGE] 用户不存在，返回默认权限')
+    // 返回默认权限，允许生成
+    return {
+      userId: 'temp-user',
+      dailyFreeUsed: 0,
+      dailyFreeLimit: 10,
+      walletBalance: 0,
+      canGenerateFree: true,
+      canGeneratePaid: false,
+      isNewUser: true,
+      totalImagesGenerated: 0
+    }
   }
   
   // 管理员特殊处理
@@ -139,9 +150,21 @@ export async function getUserImageUsage(userEmail: string): Promise<UserImageUsa
 /**
  * 检查用户是否可以生成图片
  */
-export async function canUserGenerateImages(userEmail: string): Promise<boolean> {
-  const usage = await getUserImageUsage(userEmail)
-  return usage.canGenerateFree || usage.canGeneratePaid
+export async function canUserGenerateImages(userEmail: string): Promise<{ canGenerate: boolean; needsPayment: boolean }> {
+  try {
+    const usage = await getUserImageUsage(userEmail)
+    return {
+      canGenerate: usage.canGenerateFree || usage.canGeneratePaid,
+      needsPayment: !usage.canGenerateFree && usage.canGeneratePaid
+    }
+  } catch (error) {
+    console.error('❌ [CAN-GENERATE] 检查权限失败:', error)
+    // 如果检查失败，默认允许生成（避免阻塞用户体验）
+    return {
+      canGenerate: true,
+      needsPayment: false
+    }
+  }
 }
 
 /**
