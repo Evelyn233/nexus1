@@ -93,6 +93,15 @@ export default function SignInPage() {
           }
         }
         
+        // 添加延迟检查，如果跳转失败，显示错误信息
+        setTimeout(() => {
+          if (window.location.pathname === '/auth/signin') {
+            console.log('⚠️ [SIGNIN] 跳转失败，仍在登录页面')
+            setError('Login successful but redirect failed. Please click here to go to home page.')
+            setIsLoading(false)
+          }
+        }, 3000)
+        
       } else {
         console.log('⚠️ [SIGNIN] 登录结果异常:', result)
         setError('Login response was unexpected')
@@ -149,6 +158,16 @@ export default function SignInPage() {
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm">
             {error}
+            {error.includes('Login successful but redirect failed') && (
+              <div className="mt-2">
+                <button
+                  onClick={() => window.location.href = '/home'}
+                  className="px-4 py-2 bg-teal-600 text-white rounded hover:bg-teal-700 text-sm"
+                >
+                  Go to Home Page
+                </button>
+              </div>
+            )}
           </div>
         )}
 
