@@ -108,6 +108,57 @@ export async function getPrismaUserInfo(userEmail: string): Promise<{
 }
 
 /**
+ * 保存用户信息到数据库
+ */
+export async function savePrismaUserInfo(userEmail: string, userInfo: any): Promise<void> {
+  try {
+    // 检查用户是否存在
+    const existingUser = await prisma.user.findUnique({
+      where: { email: userEmail }
+    })
+
+    if (existingUser) {
+      // 更新现有用户
+      await prisma.user.update({
+        where: { email: userEmail },
+        data: {
+          name: userInfo.name,
+          gender: userInfo.gender,
+          birthDate: JSON.stringify(userInfo.birthDate),
+          height: userInfo.height,
+          weight: userInfo.weight,
+          location: userInfo.location,
+          personality: userInfo.personality,
+          hairLength: userInfo.hairLength,
+          age: userInfo.age
+        }
+      })
+    } else {
+      // 创建新用户
+      await prisma.user.create({
+        data: {
+          email: userEmail,
+          name: userInfo.name,
+          gender: userInfo.gender,
+          birthDate: JSON.stringify(userInfo.birthDate),
+          height: userInfo.height,
+          weight: userInfo.weight,
+          location: userInfo.location,
+          personality: userInfo.personality,
+          hairLength: userInfo.hairLength,
+          age: userInfo.age
+        }
+      })
+    }
+    
+    console.log('✅ [PRISMA-USER] 用户信息已保存:', userEmail)
+  } catch (error) {
+    console.error('❌ [PRISMA-USER] 保存用户信息失败:', error)
+    throw error
+  }
+}
+
+/**
  * API端点：获取当前登录用户的完整信息
  */
 export async function GET_USER_INFO_API(session: any) {
