@@ -38,7 +38,7 @@ export default function SessionTest() {
               <>
                 <div>邮箱: {session.user?.email}</div>
                 <div>姓名: {session.user?.name}</div>
-                <div>ID: {session.user?.id}</div>
+                <div>ID: {(session.user as any)?.id || 'N/A'}</div>
               </>
             )}
           </div>
