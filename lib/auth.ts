@@ -39,28 +39,43 @@ export const authOptions: NextAuthOptions = {
         }
 
         try {
+          console.log('🔍 [AUTH] 开始认证:', credentials.emailOrPhone)
+          
           // 判断是邮箱还是手机号
           const isPhone = /^1[3-9]\d{9}$/.test(credentials.emailOrPhone)
+          console.log('📱 [AUTH] 输入类型:', isPhone ? '手机号' : '邮箱')
           
-          const user = await prisma.user.findFirst({
+          // 添加超时处理
+          const userPromise = prisma.user.findFirst({
             where: isPhone 
               ? { phone: credentials.emailOrPhone }
               : { email: credentials.emailOrPhone }
           })
+          
+          const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('数据库查询超时')), 10000)
+          )
+          
+          const user = await Promise.race([userPromise, timeoutPromise]) as any
+          console.log('👤 [AUTH] 用户查询结果:', user ? '找到用户' : '用户不存在')
 
           if (!user || !user.password) {
+            console.log('❌ [AUTH] 用户不存在或密码为空')
             throw new Error('账号或密码错误')
           }
 
+          console.log('🔐 [AUTH] 开始验证密码...')
           const isPasswordValid = await bcrypt.compare(
             credentials.password,
             user.password
           )
 
           if (!isPasswordValid) {
+            console.log('❌ [AUTH] 密码验证失败')
             throw new Error('账号或密码错误')
           }
 
+          console.log('✅ [AUTH] 认证成功:', user.email || user.phone)
           return {
             id: user.id,
             email: user.email || user.phone || '',  // 兼容手机号登录
@@ -68,7 +83,10 @@ export const authOptions: NextAuthOptions = {
             image: user.image,
           }
         } catch (error) {
-          console.error('数据库查询失败:', error)
+          console.error('❌ [AUTH] 数据库查询失败:', error)
+          if (error instanceof Error && error.message.includes('超时')) {
+            throw new Error('数据库连接超时，请稍后重试')
+          }
           throw new Error('数据库连接失败，请稍后重试')
         }
       }
