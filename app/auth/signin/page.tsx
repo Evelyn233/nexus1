@@ -63,7 +63,35 @@ export default function SignInPage() {
         
         // 使用最简单的方式：直接设置 window.location
         console.log('🔄 [SIGNIN] 直接跳转到:', callbackUrl)
-        window.location.assign(callbackUrl)
+        
+        // 尝试多种跳转方式
+        try {
+          console.log('🔄 [SIGNIN] 尝试 window.location.href')
+          window.location.href = callbackUrl
+        } catch (e) {
+          console.error('❌ [SIGNIN] window.location.href 失败:', e)
+          try {
+            console.log('🔄 [SIGNIN] 尝试 window.location.assign')
+            window.location.assign(callbackUrl)
+          } catch (e2) {
+            console.error('❌ [SIGNIN] window.location.assign 失败:', e2)
+            try {
+              console.log('🔄 [SIGNIN] 尝试 window.location.replace')
+              window.location.replace(callbackUrl)
+            } catch (e3) {
+              console.error('❌ [SIGNIN] window.location.replace 失败:', e3)
+              try {
+                console.log('🔄 [SIGNIN] 尝试 document.location')
+                document.location = callbackUrl
+              } catch (e4) {
+                console.error('❌ [SIGNIN] document.location 失败:', e4)
+                // 最后的备用方案：刷新页面
+                console.log('🔄 [SIGNIN] 最后备用方案：刷新页面')
+                window.location.reload()
+              }
+            }
+          }
+        }
         
       } else {
         console.log('⚠️ [SIGNIN] 登录结果异常:', result)
