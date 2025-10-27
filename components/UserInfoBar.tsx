@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Home, User, ChevronDown, ChevronUp } from 'lucide-react'
 import { getCurrentUserName, getUserInfo, getUserInfoDescription, getLatestUserReport } from '@/lib/userInfoService'
@@ -9,14 +9,45 @@ import ClientOnly from './ClientOnly'
 function UserInfoBarContent() {
   const router = useRouter()
   const [showDetails, setShowDetails] = useState(false)
+  const [userInfo, setUserInfo] = useState<any>(null)
+  const [latestReport, setLatestReport] = useState<any>(null)
   
   const currentUserName = getCurrentUserName()
-  const userInfo = getUserInfo()
-  const latestReport = getLatestUserReport()
+  
+  // 异步加载用户信息
+  useEffect(() => {
+    const loadUserData = async () => {
+      try {
+        const info = await getUserInfo()
+        setUserInfo(info)
+        setLatestReport(getLatestUserReport())
+      } catch (error) {
+        console.error('加载用户信息失败:', error)
+      }
+    }
+    
+    loadUserData()
+  }, [currentUserName])
   
   // 如果没有当前用户，不显示
   if (!currentUserName) {
     return null
+  }
+  
+  // 如果没有用户信息，显示加载状态
+  if (!userInfo) {
+    return (
+      <div className="bg-white border-b border-gray-200 px-4 py-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-1.5">
+            <div className="w-5 h-5 bg-purple-100 rounded-full flex items-center justify-center">
+              <User className="w-2.5 h-2.5 text-purple-600" />
+            </div>
+            <div className="text-xs text-gray-500">加载中...</div>
+          </div>
+        </div>
+      </div>
+    )
   }
   
   return (

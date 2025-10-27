@@ -86,12 +86,29 @@ export default function GalleryPage() {
 
   // 用户信息组件
   const UserProfileInfo = () => {
-    if (!mounted) {
+    const [userInfo, setUserInfo] = useState<{description: string, metadata: any} | null>(null)
+    
+    useEffect(() => {
+      const loadUserInfo = async () => {
+        if (!mounted) return
+        
+        try {
+          const userInfoDescription = await getUserInfoDescription()
+          const userMetadata = await getUserMetadata()
+          setUserInfo({ description: userInfoDescription, metadata: userMetadata })
+        } catch (error) {
+          console.error('加载用户信息失败:', error)
+        }
+      }
+      
+      loadUserInfo()
+    }, [mounted])
+    
+    if (!mounted || !userInfo) {
       return null
     }
     
-    const userInfoDescription = getUserInfoDescription()
-    const userMetadata = getUserMetadata()
+    const { description: userInfoDescription, metadata: userMetadata } = userInfo
     
     // 检查是否有用户信息
     const hasUserInfo = userInfoDescription && userInfoDescription.trim() !== ''

@@ -840,8 +840,8 @@ export async function getUserInfoDescription(): Promise<string> {
 }
 
 // 检查用户信息是否完整
-export function isUserInfoComplete(): boolean {
-  const userInfo = getUserInfo()
+export async function isUserInfoComplete(): Promise<boolean> {
+  const userInfo = await getUserInfo()
   const baseComplete = !!(
     userInfo.name &&  // 姓名必填
     userInfo.gender &&
@@ -995,8 +995,8 @@ export function clearUserMetadata(): void {
 }
 
 // 检查用户元数据是否完整
-export function isUserMetadataComplete(): boolean {
-  const metadata = getUserMetadata()
+export async function isUserMetadataComplete(): Promise<boolean> {
+  const metadata = await getUserMetadata()
   return !!(
     metadata &&
     Array.isArray(metadata.corePersonalityTraits) &&

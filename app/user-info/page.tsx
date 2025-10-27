@@ -34,35 +34,39 @@ export default function UserInfoPage() {
   const [analysisStep, setAnalysisStep] = useState(0) // 真实分析步骤
 
   useEffect(() => {
-    // 如果用户已登录，自动填充邮箱对应的姓名
-    if (session?.user?.name && !userInfo.name) {
-      setUserInfo(prev => ({ ...prev, name: session.user?.name || '' }))
+    const loadUserData = async () => {
+      // 如果用户已登录，自动填充邮箱对应的姓名
+      if (session?.user?.name && !userInfo.name) {
+        setUserInfo(prev => ({ ...prev, name: session.user?.name || '' }))
+      }
+      
+      // 加载已保存的用户信息
+      const savedInfo = await getUserInfo()
+      if (savedInfo.name) {
+        setUserInfo(savedInfo)
+      }
+      const isInfoComplete = await isUserInfoComplete()
+      setIsComplete(isInfoComplete)
+      
+      // 检测是否是首次用户（没有保存的用户信息或信息不完整）
+      // 首次用户: 没有姓名或信息不完整
+      const hasExistingCompleteInfo = savedInfo.name && 
+                                     savedInfo.gender && 
+                                     savedInfo.birthDate?.year && 
+                                     isInfoComplete
+      setIsFirstTimeUser(!hasExistingCompleteInfo)
+      
+      console.log('🔍 [USER-INFO] 用户状态检测:', {
+        hasName: !!savedInfo.name,
+        hasGender: !!savedInfo.gender,
+        hasBirthYear: !!savedInfo.birthDate?.year,
+        isComplete: isInfoComplete,
+        isFirstTimeUser: !hasExistingCompleteInfo,
+        sessionUser: session?.user?.name
+      })
     }
     
-    // 加载已保存的用户信息
-    const savedInfo = getUserInfo()
-    if (savedInfo.name) {
-      setUserInfo(savedInfo)
-    }
-    const isInfoComplete = isUserInfoComplete()
-    setIsComplete(isInfoComplete)
-    
-    // 检测是否是首次用户（没有保存的用户信息或信息不完整）
-    // 首次用户: 没有姓名或信息不完整
-    const hasExistingCompleteInfo = savedInfo.name && 
-                                   savedInfo.gender && 
-                                   savedInfo.birthDate?.year && 
-                                   isInfoComplete
-    setIsFirstTimeUser(!hasExistingCompleteInfo)
-    
-    console.log('🔍 [USER-INFO] 用户状态检测:', {
-      hasName: !!savedInfo.name,
-      hasGender: !!savedInfo.gender,
-      hasBirthYear: !!savedInfo.birthDate?.year,
-      isComplete: isInfoComplete,
-      isFirstTimeUser: !hasExistingCompleteInfo,
-      sessionUser: session?.user?.name
-    })
+    loadUserData()
   }, [session])
 
   // 更新性别

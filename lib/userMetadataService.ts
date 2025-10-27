@@ -681,8 +681,8 @@ export class UserMetadataAnalyzer {
       const { getUserInfo } = await import('./userInfoService')
       const { getUserMetadata } = await import('./userInfoService')
       
-      const userInfo = getUserInfo()
-      const existingMetadata = getUserMetadata()
+      const userInfo = await getUserInfo()
+      const existingMetadata = await getUserMetadata()
       
       if (!userInfo.birthDate.year) {
         throw new Error('用户信息不完整，无法进行分析')

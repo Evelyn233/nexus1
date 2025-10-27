@@ -379,9 +379,25 @@ function UserProfileContent() {
   //   }
   // }, [])
   
-  const userInfoDescription = getUserInfoDescription()
-  const latestReport = getLatestUserReport()
-  const allReports = getUserReports()
+  const [userInfoDescription, setUserInfoDescription] = useState<string>('')
+  const [latestReport, setLatestReport] = useState<any>(null)
+  const [allReports, setAllReports] = useState<any[]>([])
+  
+  // 异步加载用户信息
+  useEffect(() => {
+    const loadUserData = async () => {
+      try {
+        const description = await getUserInfoDescription()
+        setUserInfoDescription(description)
+        setLatestReport(getLatestUserReport())
+        setAllReports(getUserReports())
+      } catch (error) {
+        console.error('加载用户数据失败:', error)
+      }
+    }
+    
+    loadUserData()
+  }, [currentUserName])
   
   // 检查是否有任何用户信息
   const hasAnyInfo = userInfo && (userInfo.gender || userInfo.height || userInfo.weight || userInfo.location || userInfo.personality || userInfo.birthDate?.year)
@@ -634,7 +650,7 @@ function UserProfileContent() {
               <div>
                 <span className="font-medium">性格洞察：</span>
                 <div className="mt-1">
-                  {latestReport.personalityInsights.map((insight, index) => (
+                  {latestReport.personalityInsights.map((insight: string, index: number) => (
                     <div key={index} className="text-xs bg-blue-100 px-2 py-1 rounded mr-1 mb-1 inline-block">
                       {insight}
                     </div>
@@ -646,7 +662,7 @@ function UserProfileContent() {
               <div>
                 <span className="font-medium">建议：</span>
                 <div className="mt-1">
-                  {latestReport.recommendations.map((rec, index) => (
+                  {latestReport.recommendations.map((rec: string, index: number) => (
                     <div key={index} className="text-xs bg-green-100 px-2 py-1 rounded mr-1 mb-1 inline-block">
                       {rec}
                     </div>
