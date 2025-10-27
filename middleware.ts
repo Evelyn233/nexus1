@@ -11,18 +11,17 @@ export default withAuth(
       pathname: req.nextUrl.pathname,
       isAuth,
       isAuthPage,
-      hasToken: !!token
+      hasToken: !!token,
+      tokenEmail: token?.email
     })
 
+    // 如果是认证页面，允许访问（不重定向）
     if (isAuthPage) {
-      if (isAuth) {
-        console.log('🔄 [MIDDLEWARE] 已登录用户在认证页面，重定向到 /home')
-        return NextResponse.redirect(new URL('/home', req.url))
-      }
-      console.log('✅ [MIDDLEWARE] 未登录用户在认证页面，允许访问')
+      console.log('✅ [MIDDLEWARE] 认证页面，允许访问')
       return null
     }
 
+    // 如果未登录，重定向到登录页
     if (!isAuth) {
       let from = req.nextUrl.pathname
       if (req.nextUrl.search) {
