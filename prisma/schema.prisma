@@ -24,6 +24,7 @@ model User {
   // 基本信息
   gender        String?
   birthDate     String?   // JSON: {year, month, day, hour}
+  age           Int?      // 年龄
   height        String?
   weight        String?
   location      String?

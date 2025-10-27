@@ -125,12 +125,12 @@ export async function savePrismaUserInfo(userEmail: string, userInfo: any): Prom
           name: userInfo.name,
           gender: userInfo.gender,
           birthDate: JSON.stringify(userInfo.birthDate),
+          age: userInfo.age,
           height: userInfo.height,
           weight: userInfo.weight,
           location: userInfo.location,
           personality: userInfo.personality,
-          hairLength: userInfo.hairLength,
-          age: userInfo.age
+          hairLength: userInfo.hairLength
         }
       })
     } else {
@@ -141,12 +141,12 @@ export async function savePrismaUserInfo(userEmail: string, userInfo: any): Prom
           name: userInfo.name,
           gender: userInfo.gender,
           birthDate: JSON.stringify(userInfo.birthDate),
+          age: userInfo.age,
           height: userInfo.height,
           weight: userInfo.weight,
           location: userInfo.location,
           personality: userInfo.personality,
-          hairLength: userInfo.hairLength,
-          age: userInfo.age
+          hairLength: userInfo.hairLength
         }
       })
     }
