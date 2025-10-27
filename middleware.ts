@@ -39,7 +39,14 @@ export default withAuth(
   },
   {
     callbacks: {
-      authorized: ({ token }) => !!token,
+      authorized: ({ token, req }) => {
+        console.log('🔍 [MIDDLEWARE-AUTH] authorized callback:', {
+          hasToken: !!token,
+          tokenEmail: token?.email,
+          pathname: req.nextUrl.pathname
+        })
+        return !!token
+      },
     },
   }
 )
@@ -47,12 +54,13 @@ export default withAuth(
 // 保护以下路由
 export const config = {
   matcher: [
-    '/home/:path*',
-    '/chat/:path*',
-    '/chat-new/:path*',
-    '/generate/:path*',
-    '/gallery/:path*',
-    '/user-info/:path*',
+    // 暂时注释掉所有保护，用于调试
+    // '/home/:path*',
+    // '/chat/:path*',
+    // '/chat-new/:path*',
+    // '/generate/:path*',
+    // '/gallery/:path*',
+    // '/user-info/:path*',
   ],
 }
 
