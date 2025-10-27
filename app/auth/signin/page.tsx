@@ -49,9 +49,46 @@ export default function SignInPage() {
       if (result?.ok) {
         console.log('✅ [SIGNIN] 登录成功，跳转到:', callbackUrl)
         
-        // 直接使用 window.location.href 进行跳转，更可靠
-        console.log('🔄 [SIGNIN] 使用 window.location.href 跳转')
-        window.location.href = callbackUrl
+        // 尝试多种跳转方式
+        console.log('🔄 [SIGNIN] 尝试 window.location.href 跳转')
+        try {
+          window.location.href = callbackUrl
+        } catch (e) {
+          console.error('❌ [SIGNIN] window.location.href 失败:', e)
+        }
+        
+        // 备用方案1: 使用 window.location.replace
+        setTimeout(() => {
+          if (window.location.pathname === '/auth/signin') {
+            console.log('🔄 [SIGNIN] 使用 window.location.replace 作为备用')
+            try {
+              window.location.replace(callbackUrl)
+            } catch (e) {
+              console.error('❌ [SIGNIN] window.location.replace 失败:', e)
+            }
+          }
+        }, 500)
+        
+        // 备用方案2: 使用 router.replace
+        setTimeout(() => {
+          if (window.location.pathname === '/auth/signin') {
+            console.log('🔄 [SIGNIN] 使用 router.replace 作为备用')
+            try {
+              router.replace(callbackUrl)
+            } catch (e) {
+              console.error('❌ [SIGNIN] router.replace 失败:', e)
+            }
+          }
+        }, 1000)
+        
+        // 备用方案3: 强制刷新页面
+        setTimeout(() => {
+          if (window.location.pathname === '/auth/signin') {
+            console.log('🔄 [SIGNIN] 强制刷新页面')
+            window.location.reload()
+          }
+        }, 2000)
+        
       } else {
         console.log('⚠️ [SIGNIN] 登录结果异常:', result)
         setError('Login response was unexpected')
