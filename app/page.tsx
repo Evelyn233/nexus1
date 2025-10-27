@@ -2,12 +2,10 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 
 export default function LandingPage() {
   const router = useRouter()
-  const { data: session, status } = useSession()
   const [showPage, setShowPage] = useState(false)
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -21,22 +19,9 @@ export default function LandingPage() {
     }
   }, [])
 
-  // 显示落地页，不自动跳转
+  // 直接显示页面，不依赖任何认证状态
   useEffect(() => {
-    if (status === 'unauthenticated') {
-      setShowPage(true)
-    } else if (status === 'authenticated') {
-      setShowPage(true) // 已登录也显示落地页，但导航栏会显示不同内容
-    }
-  }, [status, router])
-
-  // 设置超时，避免无限加载
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setShowPage(true)
-    }, 1000) // 减少到1秒超时
-
-    return () => clearTimeout(timer)
+    setShowPage(true)
   }, [])
 
   // 处理密码验证
@@ -66,7 +51,7 @@ export default function LandingPage() {
       <div className="min-h-screen bg-gradient-to-br from-teal-50 via-cyan-50 to-blue-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">正在加载...</p>
+          <p className="text-gray-600">Loading...</p>
         </div>
       </div>
     )
@@ -88,7 +73,7 @@ export default function LandingPage() {
                 className="w-24 h-16 rounded-lg"
               />
             </div>
-            <p className="text-white/70">请输入访问密码</p>
+            <p className="text-white/70">Please enter access password</p>
           </div>
 
           {/* Password Form */}
@@ -96,7 +81,7 @@ export default function LandingPage() {
             <form onSubmit={handlePasswordSubmit} className="space-y-6">
               <div>
                 <label htmlFor="password" className="block text-sm font-medium text-white/90 mb-2">
-                  访问密码
+                  Access Password
                 </label>
                 <div className="relative">
                   <input
@@ -105,7 +90,7 @@ export default function LandingPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="w-full px-4 py-3 pr-12 bg-white/20 border border-white/30 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-transparent transition-all"
-                    placeholder="请输入密码"
+                    placeholder="Enter password"
                     required
                   />
                   <button
@@ -128,7 +113,7 @@ export default function LandingPage() {
                 type="submit"
                 className="w-full bg-white text-teal-900 py-3 px-6 rounded-xl font-semibold hover:bg-white/90 focus:outline-none focus:ring-2 focus:ring-white/50 transition-all"
               >
-                进入应用
+                Enter App
               </button>
             </form>
           </div>
@@ -166,13 +151,13 @@ export default function LandingPage() {
                 href="/auth/signin"
                 className="px-4 py-2 text-gray-700 hover:text-teal-600 transition-colors"
               >
-                登录
+                Sign In
               </Link>
               <Link
                 href="/auth/signup"
                 className="px-6 py-2 bg-gradient-to-r from-teal-600 to-cyan-600 text-white rounded-lg hover:opacity-90 transition-opacity"
               >
-                注册
+                Sign Up
               </Link>
             </div>
           </div>
@@ -184,14 +169,14 @@ export default function LandingPage() {
         {/* Hero Section */}
         <div className="text-center mb-20">
           <h2 className="text-5xl font-bold text-gray-900 mb-6">
-            用AI创造你的
+            Turn your thoughts into
             <span className="bg-clip-text text-transparent bg-gradient-to-r from-teal-600 to-cyan-600">
-              专属故事
+              flowing scenes
             </span>
           </h2>
           <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
-            输入"我今天上班很伤心"，AI会通过对话深入了解你，
-            将你的情绪和经历转化为视觉化的场景和心理剧。
+            Input "I'm feeling sad at work today" and AI will deeply understand you through conversation,
+            transforming your emotions and experiences into visual scenes and psychodrama.
           </p>
           
           {/* 美观的图片展示 */}
@@ -205,8 +190,8 @@ export default function LandingPage() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                       </svg>
                     </div>
-                    <h3 className="text-lg font-semibold text-gray-800 mb-2">智能对话</h3>
-                    <p className="text-gray-600 text-sm">AI通过深度对话了解你的内心世界</p>
+                    <h3 className="text-lg font-semibold text-gray-800 mb-2">Smart Conversation</h3>
+                    <p className="text-gray-600 text-sm">AI understands your inner world through deep conversation</p>
                   </div>
                   
                   <div className="bg-gradient-to-br from-blue-100 to-indigo-100 rounded-2xl p-6 shadow-lg">
@@ -215,8 +200,8 @@ export default function LandingPage() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                       </svg>
                     </div>
-                    <h3 className="text-lg font-semibold text-gray-800 mb-2">场景生成</h3>
-                    <p className="text-gray-600 text-sm">将你的故事转化为精美的视觉场景</p>
+                    <h3 className="text-lg font-semibold text-gray-800 mb-2">Scene Generation</h3>
+                    <p className="text-gray-600 text-sm">Transform your stories into beautiful visual scenes</p>
                   </div>
                 </div>
                 
@@ -227,8 +212,8 @@ export default function LandingPage() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
                     </div>
-                    <h3 className="text-lg font-semibold text-gray-800 mb-2">心理剧</h3>
-                    <p className="text-gray-600 text-sm">深度挖掘你的内心世界和情绪</p>
+                    <h3 className="text-lg font-semibold text-gray-800 mb-2">Psychodrama</h3>
+                    <p className="text-gray-600 text-sm">Deep exploration of your inner world and emotions</p>
                   </div>
                   
                   <div className="bg-gradient-to-br from-orange-100 to-red-100 rounded-2xl p-6 shadow-lg">
@@ -237,8 +222,8 @@ export default function LandingPage() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                       </svg>
                     </div>
-                    <h3 className="text-lg font-semibold text-gray-800 mb-2">AI创作</h3>
-                    <p className="text-gray-600 text-sm">用AI技术创造独特的个人故事</p>
+                    <h3 className="text-lg font-semibold text-gray-800 mb-2">AI Creation</h3>
+                    <p className="text-gray-600 text-sm">Create unique personal stories with AI technology</p>
                   </div>
                 </div>
               </div>
@@ -250,13 +235,13 @@ export default function LandingPage() {
               href="/auth/signup"
               className="px-8 py-4 bg-gradient-to-r from-teal-600 to-cyan-600 text-white text-lg rounded-xl hover:opacity-90 transition-opacity shadow-lg"
             >
-              开始创作
+              Start Creating
             </Link>
             <Link
               href="/auth/signin"
               className="px-8 py-4 bg-white text-teal-600 text-lg rounded-xl hover:bg-gray-50 transition-colors shadow-lg border-2 border-teal-600"
             >
-              已有账号？登录
+              Already have an account? Sign In
             </Link>
           </div>
         </div>
@@ -269,9 +254,9 @@ export default function LandingPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
               </svg>
             </div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">智能对话</h3>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">Smart Conversation</h3>
             <p className="text-gray-600">
-              AI会通过对话深入了解你的经历、情绪和想法，建立专属的个性档案。
+              AI deeply understands your experiences, emotions, and thoughts through conversation, building a personalized profile.
             </p>
           </div>
 
@@ -281,9 +266,9 @@ export default function LandingPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
             </div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">场景生成</h3>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">Scene Generation</h3>
             <p className="text-gray-600">
-              基于你的输入，AI会生成逻辑连贯的场景序列，并转化为精美的视觉图像。
+              Based on your input, AI generates logically coherent scene sequences and transforms them into beautiful visual images.
             </p>
           </div>
 
@@ -293,9 +278,9 @@ export default function LandingPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">心理剧呈现</h3>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">Psychodrama Presentation</h3>
             <p className="text-gray-600">
-              将你的情绪和内心戏剧化呈现，用象征性的视觉元素表达潜意识。
+              Dramatize your emotions and inner world, expressing subconscious through symbolic visual elements.
             </p>
           </div>
         </div>
@@ -303,20 +288,20 @@ export default function LandingPage() {
         {/* 产品展示 */}
         <div className="mb-20">
           <h3 className="text-3xl font-bold text-center text-gray-900 mb-12">
-            看看其他用户的作品
+            See other users' creations
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             <div className="bg-gradient-to-br from-teal-50 to-cyan-50 rounded-2xl p-6 shadow-lg">
               <div className="w-full h-48 rounded-xl mb-4 overflow-hidden">
                 <img 
                   src="/generated-images/generated-1759673194234.jpg" 
-                  alt="情绪场景" 
+                  alt="Emotional scene" 
                   className="w-full h-full object-cover"
                   loading="lazy"
                 />
               </div>
-              <h4 className="font-semibold text-gray-800 mb-2">"我今天上班很伤心"</h4>
-              <p className="text-sm text-gray-600 mb-4">AI将用户的情绪转化为视觉化的场景，展现内心世界</p>
+              <h4 className="font-semibold text-gray-800 mb-2">"I'm feeling sad at work today"</h4>
+              <p className="text-sm text-gray-600 mb-4">AI transforms user's emotions into visual scenes, revealing inner world</p>
               <div className="flex items-center gap-2 pt-2 border-t border-gray-200">
                 <div className="w-6 h-6 bg-gradient-to-br from-teal-400 to-cyan-400 rounded-full flex items-center justify-center">
                   <span className="text-white text-xs font-bold">E</span>
@@ -329,13 +314,13 @@ export default function LandingPage() {
               <div className="w-full h-48 rounded-xl mb-4 overflow-hidden">
                 <img 
                   src="/images/magazine.jpeg" 
-                  alt="观点场景" 
+                  alt="Opinion scene" 
                   className="w-full h-full object-cover"
                   loading="lazy"
                 />
               </div>
-              <h4 className="font-semibold text-gray-800 mb-2">"中国缺乏高端杂志市场"</h4>
-              <p className="text-sm text-gray-600 mb-4">用插画风格展现用户对社会现象的深度思考</p>
+              <h4 className="font-semibold text-gray-800 mb-2">"China lacks a high-end magazine market"</h4>
+              <p className="text-sm text-gray-600 mb-4">Illustration style showcasing user's deep thoughts on social phenomena</p>
               <div className="flex items-center gap-2 pt-2 border-t border-gray-200">
                 <div className="w-6 h-6 bg-gradient-to-br from-blue-400 to-indigo-400 rounded-full flex items-center justify-center">
                   <span className="text-white text-xs font-bold">A</span>
@@ -348,13 +333,13 @@ export default function LandingPage() {
               <div className="w-full h-48 rounded-xl mb-4 overflow-hidden">
                 <img 
                   src="/images/intellectual.jpeg" 
-                  alt="智性场景" 
+                  alt="Intellectual scene" 
                   className="w-full h-full object-cover"
                   loading="lazy"
                 />
               </div>
-              <h4 className="font-semibold text-gray-800 mb-2">"智性思考"</h4>
-              <p className="text-sm text-gray-600 mb-4">展现用户深度思考和智性探索的内心世界</p>
+              <h4 className="font-semibold text-gray-800 mb-2">"Intellectual Thinking"</h4>
+              <p className="text-sm text-gray-600 mb-4">Showcasing user's deep thinking and intellectual exploration of inner world</p>
               <div className="flex items-center gap-2 pt-2 border-t border-gray-200">
                 <div className="w-6 h-6 bg-gradient-to-br from-green-400 to-emerald-400 rounded-full flex items-center justify-center">
                   <span className="text-white text-xs font-bold">S</span>
@@ -367,13 +352,13 @@ export default function LandingPage() {
               <div className="w-full h-48 rounded-xl mb-4 overflow-hidden">
                 <img 
                   src="/images/work.jpeg" 
-                  alt="工作场景" 
+                  alt="Work scene" 
                   className="w-full h-full object-cover"
                   loading="lazy"
                 />
               </div>
-              <h4 className="font-semibold text-gray-800 mb-2">"我上班好累"</h4>
-              <p className="text-sm text-gray-600 mb-4">用视觉化方式表达现代职场人的疲惫和压力</p>
+              <h4 className="font-semibold text-gray-800 mb-2">"I'm so tired at work"</h4>
+              <p className="text-sm text-gray-600 mb-4">Visual expression of modern workplace fatigue and pressure</p>
               <div className="flex items-center gap-2 pt-2 border-t border-gray-200">
                 <div className="w-6 h-6 bg-gradient-to-br from-gray-400 to-slate-400 rounded-full flex items-center justify-center">
                   <span className="text-white text-xs font-bold">M</span>
@@ -387,16 +372,16 @@ export default function LandingPage() {
         {/* CTA */}
         <div className="bg-gradient-to-br from-teal-50 to-cyan-50 rounded-2xl shadow-lg p-12 text-center">
           <h3 className="text-3xl font-bold text-gray-900 mb-4">
-            准备好开始了吗？
+            Ready to get started?
           </h3>
           <p className="text-gray-600 mb-8 max-w-2xl mx-auto">
-            注册账号，开始你的专属AI创作之旅。用对话和图像，记录你的情绪、故事和成长。
+            Sign up and begin your exclusive AI creation journey. Use conversation and images to record your emotions, stories, and growth.
           </p>
           <Link
             href="/auth/signup"
             className="inline-block px-8 py-4 bg-gradient-to-r from-teal-600 to-cyan-600 text-white text-lg rounded-xl hover:opacity-90 transition-opacity shadow-lg"
           >
-            免费开始创作
+            Start Creating for Free
           </Link>
         </div>
       </main>

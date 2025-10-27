@@ -242,6 +242,11 @@ export default function ChatNewPage() {
           const userInfoDescription = getUserInfoDescription()
           console.log('📊 [CHAT-NEW] 用户深度分析数据:', userInfoDescription)
           
+          // 如果没有用户信息，使用默认值
+          if (!userInfo || !userInfoDescription) {
+            console.warn('⚠️ [CHAT-NEW] 没有用户信息，使用默认配置')
+          }
+          
       const firstQuestionText = await generateFirstQuestion()
       console.log('📝 [CHAT-NEW] API响应:', { firstQuestion: firstQuestionText })
       console.log('📝 [CHAT-NEW] firstQuestionText类型:', typeof firstQuestionText)
@@ -930,7 +935,20 @@ ${userInfoDescription}
         })
       }
     } catch (error) {
-      console.log('⚠️ [CHAT-NEW] 获取Prisma用户信息失败，使用localStorage')
+      console.log('⚠️ [CHAT-NEW] 获取Prisma用户信息失败，使用localStorage或默认配置')
+      // 如果没有数据库连接，使用默认用户信息
+      userInfoFromAPI = {
+        userInfo: {
+          name: '用户',
+          age: 25,
+          location: '未知',
+          gender: 'unknown',
+          height: 170,
+          weight: 60,
+          personality: '待了解'
+        },
+        userMetadata: null
+      }
     }
     
     // 生成用户简介报告
@@ -1073,7 +1091,8 @@ ${aiPrompt}`
       }
     } catch (error) {
       console.error('❌ [CHAT-NEW] 检查用户额度失败:', error)
-      // 如果检查失败，允许继续生成（避免阻塞用户体验）
+      console.log('⚠️ [CHAT-NEW] 跳过权限检查，直接允许生图（可能是数据库未连接）')
+      // 如果检查失败（比如数据库没连上），允许继续生成（避免阻塞用户体验）
     }
     
     console.log('🎬 [CHAT-NEW] 开始在对话框中生成内容')
@@ -1299,11 +1318,16 @@ ${aiPrompt}`
             // 生成失败，获取错误信息
             const errorData = await imageResponse.json().catch(() => ({}))
             const errorMsg = errorData.error || imageResponse.statusText || '未知错误'
-            console.error(`❌ [CHAT-NEW] 场景 ${i + 1} API错误:`, errorMsg)
+            console.error(`❌ [CHAT-NEW] 场景 ${i + 1} API错误:`, {
+              status: imageResponse.status,
+              statusText: imageResponse.statusText,
+              error: errorData,
+              imagePrompt: imagePrompt.substring(0, 100) + '...'
+            })
             
             setMessages(prev => prev.map(msg => 
               msg.id === placeholderId
-                ? { ...msg, content: `❌ 第 ${i + 1} 幅创作失败: ${errorMsg}` }
+                ? { ...msg, content: `❌ 第 ${i + 1} 幅创作失败: ${errorMsg} (状态码: ${imageResponse.status})` }
                 : msg
             ))
           }
@@ -1853,7 +1877,7 @@ AI问题：${aiQuestion}
                   <div
                     className={`max-w-[80%] rounded-2xl px-4 py-3 ${
                       message.type === 'user'
-                        ? 'bg-purple-500 text-white'
+                        ? 'bg-magazine-primary text-white'
                         : message.type === 'assistant'
                         ? 'bg-white text-gray-800 shadow-sm border'
                         : 'bg-gray-100 text-gray-600'
@@ -1880,13 +1904,13 @@ AI问题：${aiQuestion}
                   onChange={(e) => setInputValue(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
                   placeholder="请输入您的回答..."
-                  className="flex-1 px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className="flex-1 px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-magazine-primary focus:border-transparent"
                   disabled={isLoading}
                 />
                 <button
                   onClick={handleSendMessage}
                   disabled={!inputValue.trim() || isLoading}
-                  className="px-4 py-2 bg-purple-500 text-white rounded-xl hover:bg-purple-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="px-4 py-2 bg-magazine-primary text-white rounded-xl hover:bg-magazine-secondary disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   {isLoading ? (
                     <Loader2 className="w-5 h-5 animate-spin" />

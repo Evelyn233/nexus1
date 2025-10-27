@@ -110,6 +110,7 @@ static async generateQuickContent(options: {
     console.log('✅ [CONTENT-GEN] 用户原始输入已保存')
   } catch (error) {
     console.error('❌ [CONTENT-GEN] 保存用户原始输入失败:', error)
+    console.log('⚠️ [CONTENT-GEN] 继续执行，跳过数据保存')
   }
 
   // 🔥 检测输入类型

@@ -28,7 +28,7 @@ export default function SignInPage() {
       })
 
       if (result?.error) {
-        setError('邮箱或密码错误')
+        setError('Email or password is incorrect')
         setIsLoading(false)
         return
       }
@@ -37,7 +37,7 @@ export default function SignInPage() {
         router.push(callbackUrl)
       }
     } catch (error) {
-      setError('登录失败，请稍后重试')
+      setError('Sign in failed, please try again')
       setIsLoading(false)
     }
   }
@@ -49,7 +49,7 @@ export default function SignInPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-gradient-to-br from-teal-50 to-cyan-50 flex items-center justify-center px-4">
       <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-2xl shadow-xl">
         {/* Logo */}
         <div className="text-center">
@@ -61,10 +61,10 @@ export default function SignInPage() {
             />
           </div>
           <h2 className="mt-6 text-2xl font-bold text-gray-900">
-            欢迎回来
+            Welcome Back
           </h2>
           <p className="mt-2 text-sm text-gray-600">
-            登录您的账号继续使用
+            Sign in to your account to continue
           </p>
         </div>
 
@@ -80,7 +80,7 @@ export default function SignInPage() {
           <div className="space-y-4">
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                邮箱
+                Email
               </label>
               <input
                 id="email"
@@ -90,14 +90,14 @@ export default function SignInPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-teal-500 focus:border-teal-500"
                 placeholder="your@email.com"
               />
             </div>
 
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                密码
+                Password
               </label>
               <input
                 id="password"
@@ -107,7 +107,7 @@ export default function SignInPage() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-teal-500 focus:border-teal-500"
                 placeholder="••••••••"
               />
             </div>
@@ -119,16 +119,16 @@ export default function SignInPage() {
                 id="remember-me"
                 name="remember-me"
                 type="checkbox"
-                className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+                className="h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-300 rounded"
               />
               <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
-                记住我
+                Remember me
               </label>
             </div>
 
             <div className="text-sm">
-              <Link href="/auth/forgot-password" className="font-medium text-purple-600 hover:text-purple-500">
-                忘记密码？
+              <Link href="/auth/forgot-password" className="font-medium text-teal-600 hover:text-teal-500">
+                Forgot password?
               </Link>
             </div>
           </div>
@@ -136,9 +136,9 @@ export default function SignInPage() {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isLoading ? '登录中...' : '登录'}
+            {isLoading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
 
@@ -149,7 +149,7 @@ export default function SignInPage() {
               <div className="w-full border-t border-gray-300" />
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-white text-gray-500">或者使用</span>
+              <span className="px-2 bg-white text-gray-500">Or continue with</span>
             </div>
           </div>
 
@@ -174,9 +174,9 @@ export default function SignInPage() {
 
         {/* 注册链接 */}
         <p className="mt-6 text-center text-sm text-gray-600">
-          还没有账号？{' '}
-          <Link href="/auth/signup" className="font-medium text-purple-600 hover:text-purple-500">
-            立即注册
+          Don't have an account?{' '}
+          <Link href="/auth/signup" className="font-medium text-teal-600 hover:text-teal-500">
+            Sign up now
           </Link>
         </p>
       </div>

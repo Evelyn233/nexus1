@@ -56,7 +56,7 @@ export default function HomePage() {
       <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-magazine-primary mx-auto mb-4"></div>
-          <p className="text-gray-600">正在加载...</p>
+          <p className="text-gray-600">Loading...</p>
         </div>
       </div>
     )
@@ -66,51 +66,58 @@ export default function HomePage() {
     {
       id: 1,
       image: '/loneliness.jpeg',
-      title: '情绪穿搭指南',
-      subtitle: '当你不想社交时，衣服替你表达',
-      quote: '"孤独也可以被设计得很高级。"',
-      type: 'article' as const
+      title: 'Emotional Style Guide',
+      subtitle: 'When you don\'t want to socialize, let your clothes speak for you',
+      type: 'article' as const,
+      authorInitial: 'E',
+      authorName: 'Evelyn'
     },
     {
       id: 2,
       image: '/images/night.jpeg',
-      title: '☕ 月亮奶盖与凌晨两点的文档',
-      subtitle: '创作者的夜生活样本',
-      quote: '"不是失眠，是灵感在流动。"',
-      type: 'article' as const
+      title: '☕ Moon Milk Foam & 2AM Documents',
+      subtitle: 'A creator\'s nightlife sample',
+      type: 'article' as const,
+      authorInitial: 'A',
+      authorName: 'Alex'
     },
     {
       id: 3,
       image: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=400&h=300&fit=crop',
-      title: '🧠 理解AI的正确方式',
-      subtitle: '当工具开始理解人类，我们又该如何理解自己',
-      quote: '"智能不一定有灵魂，但它能照见灵魂。"',
-      type: 'article' as const
+      title: 'Everyone on the subway stares at their phones, but no one is really communicating',
+      subtitle: 'Rediscovering authentic human connection in the digital age',
+      type: 'article' as const,
+      authorInitial: 'S',
+      authorName: 'Sophie'
     },
     {
       id: 4,
       image: 'https://images.unsplash.com/photo-1518709268805-4e9042af2176?w=400&h=300&fit=crop',
-      title: '🖋️ 一封写给未来自己的邮件',
-      subtitle: 'AI帮你整理那些没来得及说出口的话',
-      quote: '"所有\'草稿\'都有机会成为故事。"',
-      type: 'article' as const
+      title: '🖋️ A Letter to Your Future Self',
+      subtitle: 'AI helps you organize those words you never got to say',
+      type: 'article' as const,
+      authorInitial: 'M',
+      authorName: 'Mike'
     },
     {
       id: 5,
       image: 'https://images.unsplash.com/photo-1518709268805-4e9042af2176?w=400&h=300&fit=crop',
-      title: '🌒 在算法中寻找浪漫',
-      subtitle: '一个数字原生者的感情实验',
-      quote: '"当数据懂了情绪，也许爱只是另一种公式。"',
-      type: 'article' as const
+      title: '🌒 Finding Romance in Algorithms',
+      subtitle: 'A digital native\'s emotional experiment',
+      type: 'article' as const,
+      authorInitial: 'L',
+      authorName: 'Luna'
     },
     {
       id: 6,
-      title: 'AI 生活建议',
-      subtitle: '点击生成专属建议',
-      suggestion: '🌿 周末复苏手册 - 为高敏感都市人设计的精神逃生出口',
-      source: '来自AI 的生活建议',
+      title: 'AI Life Suggestions',
+      subtitle: 'Click to generate personalized advice',
+      suggestion: '🌿 Weekend Revival Manual - A spiritual escape outlet designed for highly sensitive urban dwellers',
+      source: 'AI Life Suggestions',
       type: 'ai-suggestion' as const,
-      bgColor: 'bg-magazine-light-gray'
+      bgColor: 'bg-magazine-light-gray',
+      authorInitial: 'E',
+      authorName: 'Evelyn'
     }
   ]
 
@@ -151,26 +158,26 @@ export default function HomePage() {
           <button
             onClick={() => setIsSidebarOpen(true)}
             className="text-magazine-gray hover:text-magazine-primary transition-colors"
-            title="历史记录"
+            title="History"
           >
             <History className="w-6 h-6" />
           </button>
           <button
             onClick={() => setShowUserProfile(true)}
             className="text-magazine-gray hover:text-magazine-primary transition-colors"
-            title="查看个人信息"
+            title="View Profile"
           >
             👤
           </button>
           <button
             onClick={() => router.push('/gallery')}
             className="text-magazine-gray hover:text-magazine-primary transition-colors"
-            title="图片画廊"
+            title="Image Gallery"
           >
             🖼️
           </button>
           <button
-            onClick={() => router.push('/chat-new?prompt=' + encodeURIComponent(inputValue || '我明天面试穿什么'))}
+            onClick={() => router.push('/chat-new?prompt=' + encodeURIComponent(inputValue || 'What should I wear for tomorrow\'s interview?'))}
             className="text-magazine-gray hover:text-magazine-primary transition-colors"
             title="智能对话"
           >
@@ -217,17 +224,19 @@ export default function HomePage() {
       </header>
 
       {/* Main Content */}
-      <main className="p-4 pb-20 max-w-md mx-auto">
+      <main className="p-4 pb-40 max-w-md mx-auto">
 
         <div className="grid grid-cols-2 gap-4">
           {staticContentData.map((item) => (
-            <ContentCard key={item.id} data={item} />
+            <div key={item.id} className="h-64">
+              <ContentCard data={item} />
+            </div>
           ))}
         </div>
       </main>
 
       {/* Quick Generate Buttons - 无缝连接 */}
-      <div className="fixed bottom-20 left-0 right-0 p-3 bg-white max-w-md mx-auto">
+      <div className="fixed bottom-16 left-0 right-0 p-3 bg-white max-w-md mx-auto">
         <div className="mb-0">
           <div className="flex items-center justify-between mb-1">
             <h2 className="text-xs font-medium text-gray-500">快速生成</h2>
@@ -254,7 +263,7 @@ export default function HomePage() {
       </div>
 
       {/* Input Section - 无缝连接 */}
-      <div className="fixed bottom-0 left-0 right-0 p-3 bg-white border-t border-gray-100 max-w-md mx-auto">
+      <div className="fixed bottom-0 left-0 right-0 p-3 bg-white border-t border-gray-100 max-w-md mx-auto z-10">
         <InputSection 
           value={inputValue}
           onChange={setInputValue}

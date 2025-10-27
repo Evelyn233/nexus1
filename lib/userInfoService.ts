@@ -285,6 +285,9 @@ export async function generateUserReport(
   const userInfo = getUserInfo()
   const userInfoDescription = getUserInfoDescription()
   
+  // 如果没有用户信息，使用默认值
+  const safeUserInfoDescription = userInfoDescription || '用户信息待完善'
+  
   try {
     const response = await fetch('https://api.deepseek.com/chat/completions', {
       method: 'POST',
@@ -303,7 +306,7 @@ export async function generateUserReport(
             role: 'user',
             content: `请基于以下信息生成用户简介报告：
 
-用户基本信息：${userInfoDescription}
+用户基本信息：${safeUserInfoDescription}
 
 用户原始问题：${originalPrompt}
 用户回答：${userAnswers.join(' | ')}

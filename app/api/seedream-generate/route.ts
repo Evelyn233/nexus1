@@ -2,15 +2,32 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(request: NextRequest) {
   try {
-    const { prompt } = await request.json()
+    const { prompt, negativePrompt, width, height } = await request.json()
     
-    console.log('🚀 [API] 收到SeeDream生图请求')
+    console.log('🚀 [API] 收到SeeDream生图请求', { prompt, negativePrompt, width, height })
     
     // SeeDream API配置
     const config = {
       API_KEY: process.env.SEEDREAM_API_KEY || '17b4a6a5-1a2b-4c3d-827b-cef480fd1580',
       ENDPOINT: 'https://ark.cn-beijing.volces.com/api/v3/images/generations',
       MODEL: 'doubao-seedream-4-0-250828'
+    }
+
+    // 构建请求体
+    const requestBody = {
+      model: config.MODEL,
+      prompt: prompt,
+      ...(negativePrompt && { negative_prompt: negativePrompt }),
+      sequential_image_generation: "auto",
+      sequential_image_generation_options: {
+        max_images: 4
+      },
+      response_format: "url",
+      size: width && height ? `${width}x${height}` : "1024x1024",
+      quality: "hd",
+      stream: false,
+      watermark: false,
+      n: 4
     }
 
     // 带重试机制的请求函数
@@ -21,30 +38,15 @@ export async function POST(request: NextRequest) {
       const timeoutId = setTimeout(() => controller.abort(), 60000) // 60秒超时
       
       try {
-        const requestBody = {
-            model: config.MODEL,
-            prompt: prompt,
-            sequential_image_generation: "auto",
-            sequential_image_generation_options: {
-              max_images: 4
-            },
-            response_format: "url",
-            size: "1024x1024",
-            quality: "hd",
-            stream: false,
-            watermark: false,
-            n: 4
-          }
-          
-          console.log('📤 [API] 发送请求体:', JSON.stringify(requestBody, null, 2))
-          
-          const response = await fetch(config.ENDPOINT, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${config.API_KEY}`,
-            },
-            body: JSON.stringify(requestBody),
+        console.log('📤 [API] 发送请求体:', JSON.stringify(requestBody, null, 2))
+        
+        const response = await fetch(config.ENDPOINT, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${config.API_KEY}`,
+          },
+          body: JSON.stringify(requestBody),
           signal: controller.signal
         })
         
@@ -70,7 +72,8 @@ export async function POST(request: NextRequest) {
           console.error('❌ [API] 请求配置:', {
             endpoint: config.ENDPOINT,
             model: config.MODEL,
-            apiKey: config.API_KEY ? `${config.API_KEY.substring(0, 8)}...` : 'undefined'
+            apiKey: config.API_KEY ? `${config.API_KEY.substring(0, 8)}...` : 'undefined',
+            requestBody: requestBody
           })
           
           if (attempt < 2) {

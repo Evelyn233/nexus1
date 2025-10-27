@@ -14,6 +14,8 @@ interface ContentCardProps {
     source?: string
     type: 'article' | 'ai-suggestion'
     bgColor?: string
+    authorInitial?: string
+    authorName?: string
   }
 }
 
@@ -52,12 +54,6 @@ export default function ContentCard({ data }: ContentCardProps) {
             <p className="text-xs text-magazine-gray">
               {data.source}
             </p>
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 bg-magazine-primary rounded-full flex items-center justify-center">
-                <span className="text-white text-xs font-bold">E</span>
-              </div>
-              <span className="text-xs text-magazine-gray font-medium">Evelyn</span>
-            </div>
           </div>
         </div>
       </div>
@@ -65,9 +61,9 @@ export default function ContentCard({ data }: ContentCardProps) {
   }
 
   return (
-    <div className="magazine-card h-full">
+    <div className="magazine-card flex flex-col h-full">
       {data.image && (
-        <div className="relative h-40 w-full">
+        <div className="relative h-48 w-full">
           <Image
             src={data.image}
             alt={data.title}
@@ -78,27 +74,21 @@ export default function ContentCard({ data }: ContentCardProps) {
         </div>
       )}
       
-      <div className="p-4 flex flex-col h-full">
-        <div className="flex-1">
-          <h3 className="font-semibold text-base mb-2 text-magazine-dark leading-tight">
-            {data.title}
-          </h3>
-          <p className="text-sm text-magazine-gray mb-3 leading-relaxed">
-            {data.subtitle}
-          </p>
-          {data.quote && (
-            <blockquote className="text-sm text-magazine-dark italic border-l-2 border-magazine-primary pl-3">
-              {data.quote}
-            </blockquote>
-          )}
-        </div>
+      <div className="p-2 flex flex-col flex-grow">
+        <h3 className="font-semibold text-sm mb-1 text-magazine-dark leading-tight">
+          {data.title}
+        </h3>
         
-        {/* 用户头像和用户名 */}
-        <div className="flex items-center gap-2 pt-3 border-t border-magazine-primary mt-auto">
-          <div className="w-6 h-6 bg-magazine-primary rounded-full flex items-center justify-center">
-            <span className="text-white text-xs font-bold">E</span>
+        <p className="text-xs text-magazine-gray mb-1 leading-relaxed flex-grow">
+          {data.subtitle}
+        </p>
+        
+        {/* 用户头像和用户名 - 移到底部 */}
+        <div className="flex items-center gap-1 mt-auto">
+          <div className="w-4 h-4 bg-magazine-primary rounded-full flex items-center justify-center">
+            <span className="text-white text-xs font-bold">{data.authorInitial || 'E'}</span>
           </div>
-          <span className="text-xs text-magazine-gray font-medium">Evelyn</span>
+          <span className="text-xs text-magazine-gray font-medium">{data.authorName || 'Evelyn'}</span>
         </div>
       </div>
     </div>
