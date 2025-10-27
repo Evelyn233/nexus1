@@ -20,23 +20,49 @@ export default function SignInPage() {
     setError('')
     setIsLoading(true)
 
+    // 添加超时机制
+    const timeoutId = setTimeout(() => {
+      console.log('⏰ [SIGNIN] 登录超时')
+      setError('Login timeout, please try again')
+      setIsLoading(false)
+    }, 15000) // 15秒超时
+
     try {
+      console.log('🔍 [SIGNIN] 开始登录:', email)
+      
       const result = await signIn('credentials', {
         emailOrPhone: email,
         password,
         redirect: false,
       })
 
+      clearTimeout(timeoutId) // 清除超时
+      console.log('📊 [SIGNIN] 登录结果:', result)
+
       if (result?.error) {
+        console.log('❌ [SIGNIN] 登录失败:', result.error)
         setError('Email or password is incorrect')
         setIsLoading(false)
         return
       }
 
       if (result?.ok) {
-        router.push(callbackUrl)
+        console.log('✅ [SIGNIN] 登录成功，跳转到:', callbackUrl)
+        try {
+          await router.push(callbackUrl)
+        } catch (routerError) {
+          console.error('❌ [SIGNIN] 路由跳转失败:', routerError)
+          setError('Login successful but redirect failed')
+          setIsLoading(false)
+        }
+      } else {
+        console.log('⚠️ [SIGNIN] 登录结果异常:', result)
+        setError('Login response was unexpected')
+        setIsLoading(false)
       }
     } catch (error) {
+      clearTimeout(timeoutId) // 清除超时
+      console.error('❌ [SIGNIN] 登录异常:', error)
       setError('Sign in failed, please try again')
       setIsLoading(false)
     }
@@ -45,7 +71,14 @@ export default function SignInPage() {
   // OAuth 登录
   const handleOAuthSignIn = async (provider: string) => {
     setIsLoading(true)
-    await signIn(provider, { callbackUrl })
+    try {
+      console.log('🔍 [SIGNIN] OAuth 登录:', provider)
+      await signIn(provider, { callbackUrl })
+    } catch (error) {
+      console.error('❌ [SIGNIN] OAuth 登录失败:', error)
+      setError(`${provider} login failed, please try again`)
+      setIsLoading(false)
+    }
   }
 
   return (
