@@ -177,14 +177,24 @@ const CURRENT_USER_KEY = 'magazine_current_user'
 const USER_LIST_KEY = 'magazine_user_list'
 const USER_REPORT_KEY = 'magazine_user_report'
 
-// 获取当前用户名字
+// 获取当前用户名字（优先从NextAuth session获取）
 export function getCurrentUserName(): string {
   if (typeof window === 'undefined') {
     return ''
   }
   
   try {
-    return localStorage.getItem(CURRENT_USER_KEY) || ''
+    // 首先尝试从localStorage获取（向后兼容）
+    const localStorageName = localStorage.getItem(CURRENT_USER_KEY)
+    if (localStorageName) {
+      return localStorageName
+    }
+    
+    // 如果没有localStorage中的用户名，尝试从session获取
+    // 注意：这里我们不能直接访问session，因为这是客户端函数
+    // 所以我们需要通过API调用来获取当前用户信息
+    console.log('⚠️ [USER-INFO] 没有localStorage用户名，需要从API获取')
+    return ''
   } catch (error) {
     console.error('获取当前用户名字失败:', error)
     return ''
@@ -282,8 +292,8 @@ export async function generateUserReport(
   originalPrompt: string
 ): Promise<UserReport> {
   const currentUserName = getCurrentUserName()
-  const userInfo = getUserInfo()
-  const userInfoDescription = getUserInfoDescription()
+  const userInfo = await getUserInfo()
+  const userInfoDescription = await getUserInfoDescription()
   
   // 如果没有用户信息，使用默认值
   const safeUserInfoDescription = userInfoDescription || '用户信息待完善'
@@ -477,13 +487,28 @@ function calculateTotalConversationTime(): string {
   return `${totalMinutes}分钟`
 }
 
-// 获取用户信息（支持多用户）
-export function getUserInfo(): UserInfo {
+// 获取用户信息（支持多用户，优先从API获取）
+export async function getUserInfo(): Promise<UserInfo> {
   if (typeof window === 'undefined') {
     return defaultUserInfo
   }
   
   try {
+    // 首先尝试从API获取用户信息
+    try {
+      const response = await fetch('/api/user/info')
+      if (response.ok) {
+        const data = await response.json()
+        if (data.success && data.userInfo) {
+          console.log('✅ [USER-INFO] 从API获取用户信息成功')
+          return data.userInfo
+        }
+      }
+    } catch (apiError) {
+      console.log('⚠️ [USER-INFO] API获取失败，尝试localStorage:', apiError)
+    }
+    
+    // 如果API失败，尝试从localStorage获取（向后兼容）
     const currentUserName = getCurrentUserName()
     if (!currentUserName) {
       return defaultUserInfo
@@ -497,6 +522,7 @@ export function getUserInfo(): UserInfo {
       if (parsed.birthDate.year && parsed.birthDate.month && parsed.birthDate.day) {
         parsed.age = calculateAge(parsed.birthDate)
       }
+      console.log('✅ [USER-INFO] 从localStorage获取用户信息')
       return parsed
     }
   } catch (error) {
@@ -606,10 +632,10 @@ function getChineseZodiac(year: string): string {
   return zodiacs[yearNum % 12]
 }
 
-// 获取用户信息描述文本（用于LLM）
-export function getUserInfoDescription(): string {
-  const userInfo = getUserInfo()
-  const metadata = getUserMetadata()
+// 获取用户信息描述文本（用于LLM，优先从API获取）
+export async function getUserInfoDescription(): Promise<string> {
+  const userInfo = await getUserInfo()
+  const metadata = await getUserMetadata()
   
   if (!userInfo.gender && !userInfo.height && !userInfo.weight && !userInfo.age && !userInfo.location && !userInfo.personality) {
     return ''
@@ -848,12 +874,27 @@ export function resetUserInfo(): void {
 
 // 获取用户元数据
 // ⚠️ 注意：这个函数现在优先从Prisma获取，localStorage作为fallback
-export function getUserMetadata(): UserMetadata {
+export async function getUserMetadata(): Promise<UserMetadata> {
   if (typeof window === 'undefined') {
     return defaultUserMetadata
   }
   
   try {
+    // 首先尝试从API获取用户元数据
+    try {
+      const response = await fetch('/api/user/metadata')
+      if (response.ok) {
+        const data = await response.json()
+        if (data.success && data.userMetadata) {
+          console.log('✅ [USER-META] 从API获取用户元数据成功')
+          return data.userMetadata
+        }
+      }
+    } catch (apiError) {
+      console.log('⚠️ [USER-META] API获取失败，尝试localStorage:', apiError)
+    }
+    
+    // 如果API失败，尝试从localStorage获取（向后兼容）
     const currentUserName = getCurrentUserName()
     if (!currentUserName) {
       console.warn('⚠️ 没有设置当前用户名字，返回默认元数据')
@@ -864,7 +905,7 @@ export function getUserMetadata(): UserMetadata {
     const stored = localStorage.getItem(metadataKey)
     if (stored) {
       const metadata = JSON.parse(stored)
-      // ⚠️ 此函数已弃用，请使用 getUserMetadata from '@/lib/userDataApi'
+      console.log('✅ [USER-META] 从localStorage获取用户元数据')
       return metadata
     }
   } catch (error) {
@@ -1037,7 +1078,7 @@ export async function getEnhancedUserContext(): Promise<string> {
   try {
     const currentUserName = getCurrentUserName()
     if (!currentUserName) {
-      return getUserInfoDescription()
+      return await getUserInfoDescription()
     }
     
     // 动态导入Memobase服务
@@ -1047,7 +1088,7 @@ export async function getEnhancedUserContext(): Promise<string> {
     const isConnected = await memobaseService.checkConnection()
     if (!isConnected) {
       console.warn('Memobase连接失败，使用本地用户信息')
-      return getUserInfoDescription()
+      return await getUserInfoDescription()
     }
     
     // 获取Memobase上下文
@@ -1058,11 +1099,11 @@ export async function getEnhancedUserContext(): Promise<string> {
     }
     
     // 回退到本地用户信息
-    return getUserInfoDescription()
+    return await getUserInfoDescription()
     
   } catch (error) {
     console.error('获取增强用户上下文失败:', error)
-    return getUserInfoDescription()
+    return await getUserInfoDescription()
   }
 }
 
