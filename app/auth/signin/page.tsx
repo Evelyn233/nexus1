@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { signIn } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
@@ -9,11 +9,19 @@ export default function SignInPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const callbackUrl = searchParams.get('callbackUrl') || '/home'
+  const isMountedRef = useRef(true)
   
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+
+  // 清理函数
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false
+    }
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -22,9 +30,11 @@ export default function SignInPage() {
 
     // 添加超时机制
     const timeoutId = setTimeout(() => {
-      console.log('⏰ [SIGNIN] 登录超时')
-      setError('Login timeout, please try again')
-      setIsLoading(false)
+      if (isMountedRef.current) {
+        console.log('⏰ [SIGNIN] 登录超时')
+        setError('Login timeout, please try again')
+        setIsLoading(false)
+      }
     }, 15000) // 15秒超时
 
     try {
@@ -38,6 +48,8 @@ export default function SignInPage() {
 
       clearTimeout(timeoutId) // 清除超时
       console.log('📊 [SIGNIN] 登录结果:', result)
+
+      if (!isMountedRef.current) return // 组件已卸载，不执行后续操作
 
       if (result?.error) {
         console.log('❌ [SIGNIN] 登录失败:', result.error)
@@ -60,22 +72,28 @@ export default function SignInPage() {
       }
     } catch (error) {
       clearTimeout(timeoutId) // 清除超时
-      console.error('❌ [SIGNIN] 登录异常:', error)
-      setError('Sign in failed, please try again')
-      setIsLoading(false)
+      if (isMountedRef.current) {
+        console.error('❌ [SIGNIN] 登录异常:', error)
+        setError('Sign in failed, please try again')
+        setIsLoading(false)
+      }
     }
   }
 
   // OAuth 登录
   const handleOAuthSignIn = async (provider: string) => {
+    if (!isMountedRef.current) return
+    
     setIsLoading(true)
     try {
       console.log('🔍 [SIGNIN] OAuth 登录:', provider)
       await signIn(provider, { callbackUrl })
     } catch (error) {
-      console.error('❌ [SIGNIN] OAuth 登录失败:', error)
-      setError(`${provider} login failed, please try again`)
-      setIsLoading(false)
+      if (isMountedRef.current) {
+        console.error('❌ [SIGNIN] OAuth 登录失败:', error)
+        setError(`${provider} login failed, please try again`)
+        setIsLoading(false)
+      }
     }
   }
 
