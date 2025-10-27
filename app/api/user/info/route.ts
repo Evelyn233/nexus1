@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { getPrismaUserInfo } from '@/lib/prismaUserService'
+import { getPrismaUserInfo, savePrismaUserInfo } from '@/lib/prismaUserService'
 
 // 强制动态渲染
 export const dynamic = 'force-dynamic'
@@ -22,11 +22,36 @@ export async function GET() {
 
     const { userInfo, userMetadata } = await getPrismaUserInfo(session.user.email)
 
+    // 如果用户信息不存在，创建默认用户信息
     if (!userInfo) {
-      return NextResponse.json(
-        { error: '用户信息不存在' },
-        { status: 404 }
-      )
+      console.log('🔧 [USER-INFO] 用户信息不存在，创建默认用户信息')
+      
+      // 创建默认用户信息
+      const defaultUserInfo = {
+        name: session.user.name || '用户',
+        email: session.user.email,
+        gender: 'unknown',
+        birthDate: { year: '1990', month: '1', day: '1' },
+        height: '170',
+        weight: '60',
+        location: '未知',
+        personality: '待了解',
+        hairLength: '中等',
+        age: 25
+      }
+      
+      // 保存到数据库
+      await savePrismaUserInfo(session.user.email, defaultUserInfo)
+      
+      // 重新获取用户信息
+      const { userInfo: newUserInfo, userMetadata: newUserMetadata } = await getPrismaUserInfo(session.user.email)
+      
+      return NextResponse.json({
+        success: true,
+        userInfo: newUserInfo,
+        userMetadata: newUserMetadata,
+        userInfoDescription: generateUserDescription(newUserInfo, newUserMetadata)
+      })
     }
 
     return NextResponse.json({

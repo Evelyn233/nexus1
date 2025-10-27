@@ -233,18 +233,29 @@ export default function ChatNewPage() {
           console.log('📝 [CHAT-NEW] 准备调用generateFirstQuestion函数')
           console.log('📝 [CHAT-NEW] 开始生成第一个问题...', currentPrompt)
           
-          // 获取用户元数据
-          const userMetadata = getUserMetadata()
-          console.log('🔍 [CHAT-NEW] 用户元数据状态:', typeof userMetadata)
-          
-          // 获取用户深度分析数据
-          const userInfo = getUserInfo()
-          const userInfoDescription = getUserInfoDescription()
-          console.log('📊 [CHAT-NEW] 用户深度分析数据:', userInfoDescription)
-          
-          // 如果没有用户信息，使用默认值
-          if (!userInfo || !userInfoDescription) {
-            console.warn('⚠️ [CHAT-NEW] 没有用户信息，使用默认配置')
+          // 获取用户信息从Prisma数据库
+          let userInfoFromAPI = null
+          try {
+            const userResponse = await fetch('/api/user/info')
+            if (userResponse.ok) {
+              const userData = await userResponse.json()
+              userInfoFromAPI = userData
+              console.log('✅ [CHAT-NEW] 使用Prisma数据库的用户信息:', {
+                name: userData.userInfo?.name,
+                age: userData.userInfo?.age,
+                location: userData.userInfo?.location
+              })
+            }
+          } catch (error) {
+            console.log('⚠️ [CHAT-NEW] 获取Prisma用户信息失败，使用localStorage或默认配置')
+            // 如果没有数据库连接，使用localStorage作为fallback
+            const userInfo = getUserInfo()
+            const userInfoDescription = getUserInfoDescription()
+            console.log('📊 [CHAT-NEW] localStorage用户信息:', userInfoDescription)
+            
+            if (!userInfo || !userInfoDescription) {
+              console.warn('⚠️ [CHAT-NEW] 没有用户信息，使用默认配置')
+            }
           }
           
       const firstQuestionText = await generateFirstQuestion()

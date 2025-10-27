@@ -1,141 +1,11 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
 export default function LandingPage() {
-  const router = useRouter()
-  const [showPage, setShowPage] = useState(false)
-  const [password, setPassword] = useState('')
-  const [showPassword, setShowPassword] = useState(false)
-  const [error, setError] = useState('')
-
-  // 检查是否已通过密码验证
-  useEffect(() => {
-    const passwordVerified = localStorage.getItem('passwordVerified')
-    if (passwordVerified === 'true') {
-      setShowPage(true)
-    }
-  }, [])
-
-  // 直接显示页面，不依赖任何认证状态
-  useEffect(() => {
-    setShowPage(true)
-  }, [])
-
-  // 处理密码验证
-  const handlePasswordSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (password === '0316') {
-      localStorage.setItem('passwordVerified', 'true')
-      setPasswordVerified('true')
-      setShowPage(true)
-    } else {
-      setError('密码错误，请重试')
-    }
-  }
-
-  // 如果未通过密码验证，显示密码输入界面
-  const [passwordVerified, setPasswordVerified] = useState<string | null>(null)
-  
-  useEffect(() => {
-    const verified = localStorage.getItem('passwordVerified')
-    setPasswordVerified(verified)
-  }, [])
-  
-  // 简化逻辑：直接检查密码验证状态
-  if (passwordVerified === null) {
-    // 正在检查密码验证状态
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-teal-50 via-cyan-50 to-blue-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
-        </div>
-      </div>
-    )
-  }
-  
-  if (passwordVerified !== 'true') {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-teal-900 via-cyan-900 to-blue-900 flex items-center justify-center p-4">
-        <div className="max-w-md w-full">
-          {/* Logo */}
-          <div className="text-center mb-8">
-            <div className="w-20 h-20 bg-white/10 backdrop-blur-sm rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <span className="text-2xl">🔒</span>
-            </div>
-            <div className="w-16 h-16 bg-white/10 backdrop-blur-sm rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <img 
-                src="/inflow-logo.jpeg" 
-                alt="logo" 
-                className="w-24 h-16 rounded-lg"
-              />
-            </div>
-            <p className="text-white/70">Please enter access password</p>
-          </div>
-
-          {/* Password Form */}
-          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-8 border border-white/20">
-            <form onSubmit={handlePasswordSubmit} className="space-y-6">
-              <div>
-                <label htmlFor="password" className="block text-sm font-medium text-white/90 mb-2">
-                  Access Password
-                </label>
-                <div className="relative">
-                  <input
-                    id="password"
-                    type={showPassword ? 'text' : 'password'}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full px-4 py-3 pr-12 bg-white/20 border border-white/30 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-transparent transition-all"
-                    placeholder="Enter password"
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-white/70 hover:text-white transition-colors"
-                  >
-                    {showPassword ? '🙈' : '👁️'}
-                  </button>
-                </div>
-              </div>
-
-              {error && (
-                <div className="bg-red-500/20 border border-red-500/30 rounded-lg p-3">
-                  <p className="text-red-200 text-sm">{error}</p>
-                </div>
-              )}
-
-              <button
-                type="submit"
-                className="w-full bg-white text-teal-900 py-3 px-6 rounded-xl font-semibold hover:bg-white/90 focus:outline-none focus:ring-2 focus:ring-white/50 transition-all"
-              >
-                Enter App
-              </button>
-            </form>
-          </div>
-
-          {/* Footer */}
-          <div className="text-center mt-8">
-            <p className="text-white/50 text-sm">
-              © 2024 All rights reserved.
-            </p>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  // 简化逻辑：如果通过密码验证，直接显示落地页
-  // 移除复杂的showPage逻辑
-
-  // 显示落地页
   return (
     <div className="min-h-screen bg-gradient-to-br from-teal-50 via-cyan-50 to-blue-50">
-      {/* 导航栏 */}
+      {/* Navigation Bar */}
       <nav className="bg-white/80 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
@@ -164,14 +34,14 @@ export default function LandingPage() {
         </div>
       </nav>
 
-      {/* 主要内容 */}
+      {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
         {/* Hero Section */}
         <div className="text-center mb-20">
           <h2 className="text-5xl font-bold text-gray-900 mb-6">
             Turn your thoughts into
             <span className="bg-clip-text text-transparent bg-gradient-to-r from-teal-600 to-cyan-600">
-              flowing scenes
+              {" "}flowing scenes
             </span>
           </h2>
           <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
@@ -179,7 +49,7 @@ export default function LandingPage() {
             transforming your emotions and experiences into visual scenes and psychodrama.
           </p>
           
-          {/* 美观的图片展示 */}
+          {/* Beautiful Image Display */}
           <div className="mb-12">
             <div className="relative max-w-4xl mx-auto">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
@@ -246,7 +116,7 @@ export default function LandingPage() {
           </div>
         </div>
 
-        {/* 功能特点 */}
+        {/* Feature Highlights */}
         <div className="grid md:grid-cols-3 gap-8 mb-20">
           <div className="bg-white p-8 rounded-2xl shadow-lg">
             <div className="w-12 h-12 bg-teal-100 rounded-lg flex items-center justify-center mb-4">
@@ -285,7 +155,7 @@ export default function LandingPage() {
           </div>
         </div>
 
-        {/* 产品展示 */}
+        {/* Product Showcase */}
         <div className="mb-20">
           <h3 className="text-3xl font-bold text-center text-gray-900 mb-12">
             See other users' creations
