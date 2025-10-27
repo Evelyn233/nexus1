@@ -48,13 +48,10 @@ export default function SignInPage() {
 
       if (result?.ok) {
         console.log('✅ [SIGNIN] 登录成功，跳转到:', callbackUrl)
-        try {
-          await router.push(callbackUrl)
-        } catch (routerError) {
-          console.error('❌ [SIGNIN] 路由跳转失败:', routerError)
-          setError('Login successful but redirect failed')
-          setIsLoading(false)
-        }
+        
+        // 直接使用 window.location.href 进行跳转，更可靠
+        console.log('🔄 [SIGNIN] 使用 window.location.href 跳转')
+        window.location.href = callbackUrl
       } else {
         console.log('⚠️ [SIGNIN] 登录结果异常:', result)
         setError('Login response was unexpected')
