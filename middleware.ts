@@ -32,9 +32,23 @@ export default withAuth(
 
     // 如果未登录，重定向到登录页
     if (!isAuth) {
+      // 🔥 如果已经在登录页面，不重定向（避免循环）
+      if (req.nextUrl.pathname === '/auth/signin') {
+        console.log('✅ [MIDDLEWARE] 已在登录页面，允许访问')
+        return null
+      }
+      
       let from = req.nextUrl.pathname
       if (req.nextUrl.search) {
         from += req.nextUrl.search
+      }
+      
+      // 🔥 检查 callbackUrl 是否已经是登录页面，避免嵌套
+      const existingCallbackUrl = req.nextUrl.searchParams.get('callbackUrl')
+      if (existingCallbackUrl && existingCallbackUrl.includes('/auth/signin')) {
+        // callbackUrl 已经是登录页面，不添加新的 callbackUrl
+        console.log('🔄 [MIDDLEWARE] 检测到循环重定向，直接跳转到登录页（不添加callbackUrl）')
+        return NextResponse.redirect(new URL('/auth/signin', req.url))
       }
 
       console.log('🔄 [MIDDLEWARE] 未登录用户访问保护页面，重定向到登录页')
@@ -60,7 +74,8 @@ export default withAuth(
   }
 )
 
-// 保护以下路由（包括登录页，以便处理已登录用户访问登录页的情况）
+// 保护以下路由
+// 🔥 不包含 /auth/signin，避免middleware处理登录页面造成循环
 export const config = {
   matcher: [
     '/home/:path*',
@@ -69,7 +84,7 @@ export const config = {
     '/generate/:path*',
     '/gallery/:path*',
     '/user-info/:path*',
-    '/auth/signin/:path*', // 🔥 添加登录页，以便处理已登录用户
+    // 不包含 /auth/signin，让登录页面不受middleware保护
   ],
 }
 
