@@ -2,11 +2,12 @@
 
 import { useState, useEffect, useRef, Suspense } from 'react'
 import { signIn, useSession } from 'next-auth/react'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 
 function SignInForm() {
   const searchParams = useSearchParams()
+  const router = useRouter()
   const callbackUrl = searchParams.get('callbackUrl') || '/home'
   const isMountedRef = useRef(true)
   const { data: session, status, update } = useSession()
@@ -23,8 +24,28 @@ function SignInForm() {
     }
   }, [])
 
-  // 🔥 完全禁用自动跳转，让登录成功后的逻辑或middleware处理
-  // 不在这里做任何跳转操作，避免循环和干扰用户输入
+  // 🔥 监听 session 状态变化，如果已登录则跳转（作为备用保障）
+  useEffect(() => {
+    if (status === 'authenticated' && session && !hasRedirectedRef.current) {
+      console.log('🔄 [SIGNIN] 检测到 session 已认证，执行跳转')
+      hasRedirectedRef.current = true
+      
+      const targetUrl = callbackUrl || '/home'
+      const cleanTargetUrl = targetUrl.includes('/auth/signin') ? '/home' : targetUrl
+      const finalUrl = `${cleanTargetUrl}?t=${Date.now()}`
+      
+      // 延迟一点确保 session 完全设置
+      setTimeout(() => {
+        router.push(finalUrl)
+        // 如果 router.push 不工作，使用 window.location
+        setTimeout(() => {
+          if (window.location.pathname === '/auth/signin') {
+            window.location.href = finalUrl
+          }
+        }, 500)
+      }, 300)
+    }
+  }, [status, session, callbackUrl, router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -72,15 +93,14 @@ function SignInForm() {
         console.log('✅ [SIGNIN] 登录API返回成功，开始处理跳转')
         hasRedirectedRef.current = true // 标记已跳转，防止useEffect再次跳转
         
-        // 先设置loading为false，让用户看到成功状态
-        setIsLoading(false)
-        
         const targetUrl = callbackUrl || '/home'
         // 清理callbackUrl中的嵌套参数
         const cleanTargetUrl = targetUrl.includes('/auth/signin') ? '/home' : targetUrl
         const finalUrl = `${cleanTargetUrl}?t=${Date.now()}`
         
-        // 刷新 session，等待session完全设置
+        console.log('🚀 [SIGNIN] 目标URL:', finalUrl)
+        
+        // 刷新 session
         try {
           console.log('🔄 [SIGNIN] 开始更新session...')
           await update()
@@ -89,32 +109,40 @@ function SignInForm() {
           console.warn('⚠️ [SIGNIN] Session更新失败，继续跳转:', updateError)
         }
         
-        // 🔥 等待确保session cookie已完全设置
+        // 等待确保session cookie已完全设置
         console.log('⏳ [SIGNIN] 等待session完全同步...')
-        await new Promise(resolve => setTimeout(resolve, 1000))
-        console.log('✅ [SIGNIN] Session同步完成')
+        await new Promise(resolve => setTimeout(resolve, 500))
         
-        // 🔥 无论如何都要跳转
-        console.log('🚀 [SIGNIN] 准备跳转到:', finalUrl)
+        // 先设置loading为false
+        setIsLoading(false)
+        
+        // 🔥 使用多种方式确保跳转
+        console.log('🚀 [SIGNIN] 开始跳转...')
         console.log('📍 [SIGNIN] 当前URL:', window.location.href)
         
-        // 使用多种方式确保跳转
+        // 方式1: 先尝试使用 router.push（更平滑）
         try {
-          // 方式1: 使用 window.location.href
-          window.location.href = finalUrl
-          console.log('✅ [SIGNIN] 已执行 window.location.href')
-          
-          // 备用方案：如果1秒后还在登录页，强制跳转
-          setTimeout(() => {
-            if (window.location.pathname === '/auth/signin') {
-              console.log('⚠️ [SIGNIN] 1秒后仍在登录页，强制跳转')
-              window.location.replace(finalUrl)
-            }
-          }, 1000)
-        } catch (e) {
-          console.error('❌ [SIGNIN] 跳转失败，尝试备用方案:', e)
-          window.location.replace(finalUrl)
+          router.push(finalUrl)
+          console.log('✅ [SIGNIN] 已执行 router.push')
+        } catch (routerError) {
+          console.warn('⚠️ [SIGNIN] router.push 失败，使用 window.location:', routerError)
         }
+        
+        // 方式2: 同时使用 window.location.href（确保跳转）
+        setTimeout(() => {
+          if (window.location.pathname === '/auth/signin') {
+            console.log('⚠️ [SIGNIN] router.push 未生效，使用 window.location.href')
+            window.location.href = finalUrl
+          }
+        }, 300)
+        
+        // 方式3: 备用方案 - 如果2秒后还在登录页，强制跳转
+        setTimeout(() => {
+          if (window.location.pathname === '/auth/signin') {
+            console.log('⚠️ [SIGNIN] 2秒后仍在登录页，强制跳转')
+            window.location.replace(finalUrl)
+          }
+        }, 2000)
       } else {
         console.error('❌ [SIGNIN] 登录响应异常:', result)
         setError(result?.error || 'Login response was unexpected')
