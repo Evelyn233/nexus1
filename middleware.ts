@@ -54,6 +54,17 @@ export default withAuth(
 
     // 🔥 处理保护页面
     if (!isAuth) {
+      // 检查是否有时间戳参数（表示是登录后的跳转）
+      const hasTimestamp = req.nextUrl.searchParams.has('t')
+      
+      // 如果有时间戳，可能是刚登录，cookie 还没同步，给一次机会
+      if (hasTimestamp && pathname === '/home') {
+        console.log('⚠️ [MIDDLEWARE] 检测到带时间戳的 /home 访问，但无 token，可能是 cookie 同步延迟')
+        // 不立即重定向，让前端处理（前端会检测到未登录状态）
+        // 或者可以返回一个特殊的响应，让前端知道需要等待
+        return null
+      }
+      
       // 未登录用户访问保护页面，重定向到登录页
       let from = pathname
       if (req.nextUrl.search) {

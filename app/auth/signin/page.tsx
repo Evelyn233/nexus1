@@ -96,53 +96,54 @@ function SignInForm() {
         const targetUrl = callbackUrl || '/home'
         // 清理callbackUrl中的嵌套参数
         const cleanTargetUrl = targetUrl.includes('/auth/signin') ? '/home' : targetUrl
-        const finalUrl = `${cleanTargetUrl}?t=${Date.now()}`
         
-        console.log('🚀 [SIGNIN] 目标URL:', finalUrl)
+        console.log('🚀 [SIGNIN] 目标URL:', cleanTargetUrl)
         
-        // 刷新 session
+        // 刷新 session 多次，确保 cookie 完全设置
         try {
           console.log('🔄 [SIGNIN] 开始更新session...')
           await update()
           console.log('✅ [SIGNIN] Session更新成功')
+          
+          // 再次更新，确保 cookie 同步
+          await new Promise(resolve => setTimeout(resolve, 500))
+          await update()
+          console.log('✅ [SIGNIN] Session二次更新完成')
         } catch (updateError) {
           console.warn('⚠️ [SIGNIN] Session更新失败，继续跳转:', updateError)
         }
         
-        // 等待确保session cookie已完全设置
-        console.log('⏳ [SIGNIN] 等待session完全同步...')
-        await new Promise(resolve => setTimeout(resolve, 500))
+        // 🔥 等待更长时间确保session cookie已完全设置并同步到middleware
+        // 在Vercel上，cookie同步可能需要更长时间
+        console.log('⏳ [SIGNIN] 等待session完全同步（3秒）...')
+        await new Promise(resolve => setTimeout(resolve, 3000))
+        console.log('✅ [SIGNIN] Session同步完成')
         
         // 先设置loading为false
         setIsLoading(false)
         
-        // 🔥 使用多种方式确保跳转
-        console.log('🚀 [SIGNIN] 开始跳转...')
+        // 🔥 使用 window.location.replace 强制跳转（不会在历史记录中留下登录页）
+        const finalUrl = `${cleanTargetUrl}?t=${Date.now()}`
+        console.log('🚀 [SIGNIN] 开始强制跳转...')
         console.log('📍 [SIGNIN] 当前URL:', window.location.href)
+        console.log('📍 [SIGNIN] 目标URL:', finalUrl)
         
-        // 方式1: 先尝试使用 router.push（更平滑）
+        // 直接使用 window.location.replace，确保跳转
         try {
-          router.push(finalUrl)
-          console.log('✅ [SIGNIN] 已执行 router.push')
-        } catch (routerError) {
-          console.warn('⚠️ [SIGNIN] router.push 失败，使用 window.location:', routerError)
+          window.location.replace(finalUrl)
+          console.log('✅ [SIGNIN] 已执行 window.location.replace')
+        } catch (e) {
+          console.error('❌ [SIGNIN] window.location.replace 失败，尝试 window.location.href:', e)
+          window.location.href = finalUrl
         }
         
-        // 方式2: 同时使用 window.location.href（确保跳转）
+        // 备用方案：如果5秒后还在登录页，再次强制跳转
         setTimeout(() => {
           if (window.location.pathname === '/auth/signin') {
-            console.log('⚠️ [SIGNIN] router.push 未生效，使用 window.location.href')
-            window.location.href = finalUrl
-          }
-        }, 300)
-        
-        // 方式3: 备用方案 - 如果2秒后还在登录页，强制跳转
-        setTimeout(() => {
-          if (window.location.pathname === '/auth/signin') {
-            console.log('⚠️ [SIGNIN] 2秒后仍在登录页，强制跳转')
+            console.log('⚠️ [SIGNIN] 5秒后仍在登录页，再次强制跳转')
             window.location.replace(finalUrl)
           }
-        }, 2000)
+        }, 5000)
       } else {
         console.error('❌ [SIGNIN] 登录响应异常:', result)
         setError(result?.error || 'Login response was unexpected')
