@@ -66,14 +66,31 @@ function SignInForm() {
       const performRedirect = () => {
         console.log('🚀 [SIGNIN-EFFECT] 开始强制跳转...')
         console.log('📍 [SIGNIN-EFFECT] 跳转到:', absoluteUrl)
+        console.log('📍 [SIGNIN-EFFECT] 当前路径:', window.location.pathname)
+        console.log('📍 [SIGNIN-EFFECT] 当前完整URL:', window.location.href)
         
+        // 先尝试使用 window.location.href（更可靠）
         try {
-          // 使用 window.location.replace 强制跳转
-          window.location.replace(absoluteUrl)
-          console.log('✅ [SIGNIN-EFFECT] 已执行 window.location.replace')
-        } catch (e) {
-          console.error('❌ [SIGNIN-EFFECT] window.location.replace 失败，尝试 window.location.href:', e)
+          console.log('🔄 [SIGNIN-EFFECT] 尝试使用 window.location.href...')
           window.location.href = absoluteUrl
+          console.log('✅ [SIGNIN-EFFECT] 已执行 window.location.href')
+          
+          // 如果1秒后还在登录页，使用 replace
+          setTimeout(() => {
+            if (window.location.pathname === '/auth/signin') {
+              console.log('⚠️ [SIGNIN-EFFECT] href 未生效，尝试 window.location.replace')
+              window.location.replace(absoluteUrl)
+            }
+          }, 1000)
+        } catch (e) {
+          console.error('❌ [SIGNIN-EFFECT] window.location.href 失败，尝试 window.location.replace:', e)
+          try {
+            window.location.replace(absoluteUrl)
+          } catch (e2) {
+            console.error('❌ [SIGNIN-EFFECT] window.location.replace 也失败:', e2)
+            // 最后尝试直接赋值
+            window.location = absoluteUrl as any
+          }
         }
       }
       
