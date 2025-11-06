@@ -28,24 +28,56 @@ function SignInForm() {
   useEffect(() => {
     if (status === 'authenticated' && session && !hasRedirectedRef.current) {
       console.log('🔄 [SIGNIN] 检测到 session 已认证，执行跳转')
+      console.log('🔍 [SIGNIN-EFFECT] Session 详情:', { 
+        email: session.user?.email, 
+        name: session.user?.name 
+      })
+      
       hasRedirectedRef.current = true
       
       const targetUrl = callbackUrl || '/home'
       const cleanTargetUrl = targetUrl.includes('/auth/signin') ? '/home' : targetUrl
       const finalUrl = `${cleanTargetUrl}?t=${Date.now()}`
       
-      // 延迟一点确保 session 完全设置
-      setTimeout(() => {
-        router.push(finalUrl)
-        // 如果 router.push 不工作，使用 window.location
+      console.log('🚀 [SIGNIN-EFFECT] 准备跳转到:', finalUrl)
+      console.log('📍 [SIGNIN-EFFECT] 当前URL:', window.location.href)
+      
+      // 🔥 等待更长时间确保 session cookie 完全设置并同步到 middleware
+      // 在 Vercel 上，cookie 同步可能需要更长时间
+      setTimeout(async () => {
+        // 再次更新 session，确保 cookie 同步
+        try {
+          console.log('🔄 [SIGNIN-EFFECT] 更新 session 确保 cookie 同步...')
+          await update()
+          console.log('✅ [SIGNIN-EFFECT] Session 更新成功')
+        } catch (updateError) {
+          console.warn('⚠️ [SIGNIN-EFFECT] Session 更新失败，继续跳转:', updateError)
+        }
+        
+        // 再等待一下确保 cookie 完全同步
+        await new Promise(resolve => setTimeout(resolve, 1000))
+        
+        console.log('🚀 [SIGNIN-EFFECT] 开始强制跳转...')
+        
+        // 直接使用 window.location.replace 强制跳转
+        try {
+          window.location.replace(finalUrl)
+          console.log('✅ [SIGNIN-EFFECT] 已执行 window.location.replace')
+        } catch (e) {
+          console.error('❌ [SIGNIN-EFFECT] window.location.replace 失败，尝试 window.location.href:', e)
+          window.location.href = finalUrl
+        }
+        
+        // 备用方案：如果2秒后还在登录页，再次强制跳转
         setTimeout(() => {
           if (window.location.pathname === '/auth/signin') {
-            window.location.href = finalUrl
+            console.log('⚠️ [SIGNIN-EFFECT] 2秒后仍在登录页，再次强制跳转')
+            window.location.replace(finalUrl)
           }
-        }, 500)
-      }, 300)
+        }, 2000)
+      }, 1000)
     }
-  }, [status, session, callbackUrl, router])
+  }, [status, session, callbackUrl, update])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
