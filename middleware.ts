@@ -60,7 +60,7 @@ export default withAuth(
   }
 )
 
-// 保护以下路由
+// 保护以下路由（包括登录页，以便处理已登录用户访问登录页的情况）
 export const config = {
   matcher: [
     '/home/:path*',
@@ -69,6 +69,7 @@ export const config = {
     '/generate/:path*',
     '/gallery/:path*',
     '/user-info/:path*',
+    '/auth/signin/:path*', // 🔥 添加登录页，以便处理已登录用户
   ],
 }
 

@@ -55,9 +55,14 @@ export default function SignInPage() {
         return
       }
 
+      console.log('🔍 [SIGNIN] 登录结果:', { ok: result?.ok, error: result?.error, status: result?.status })
+      
       if (result?.ok) {
-        console.log('✅ [SIGNIN] 登录API返回成功')
+        console.log('✅ [SIGNIN] 登录API返回成功，开始处理跳转')
         hasRedirectedRef.current = true // 标记已跳转，防止useEffect再次跳转
+        
+        const targetUrl = callbackUrl || '/home'
+        const finalUrl = `${targetUrl}?t=${Date.now()}`
         
         // 刷新 session，等待session完全设置
         try {
@@ -65,35 +70,29 @@ export default function SignInPage() {
           await update()
           console.log('✅ [SIGNIN] Session更新成功')
           
-          // 等待更长时间，确保session cookie已完全设置并同步到middleware
-          await new Promise(resolve => setTimeout(resolve, 1000))
-          
-          const targetUrl = callbackUrl || '/home'
-          console.log('🚀 [SIGNIN] 准备跳转到:', targetUrl)
-          
-          // 使用 replace 避免历史记录问题，并添加时间戳确保刷新
-          const finalUrl = `${targetUrl}?t=${Date.now()}`
-          console.log('📍 [SIGNIN] 最终跳转URL:', finalUrl)
-          
-          // 强制跳转
-          window.location.href = finalUrl
+          // 🔥 等待更长时间，确保session cookie已完全设置并同步到middleware
+          // 在Vercel上，可能需要更长时间来同步cookie
+          console.log('⏳ [SIGNIN] 等待session完全同步...')
+          await new Promise(resolve => setTimeout(resolve, 1500))
+          console.log('✅ [SIGNIN] Session同步完成')
         } catch (updateError) {
-          console.warn('⚠️ [SIGNIN] Session更新失败，直接跳转:', updateError)
-          // 即使刷新失败，也尝试跳转（cookie 已设置）
-          const targetUrl = callbackUrl || '/home'
-          const finalUrl = `${targetUrl}?t=${Date.now()}`
-          console.log('🔄 [SIGNIN] 强制跳转到:', finalUrl)
-          
-          // 等待一下确保cookie已设置
-          setTimeout(() => {
-            window.location.href = finalUrl
-          }, 500)
+          console.warn('⚠️ [SIGNIN] Session更新失败，继续跳转:', updateError)
+          // 即使刷新失败，也等待一下再跳转
+          await new Promise(resolve => setTimeout(resolve, 1000))
         }
+        
+        // 🔥 无论如何都要跳转
+        console.log('🚀 [SIGNIN] 准备跳转到:', finalUrl)
+        console.log('📍 [SIGNIN] 当前URL:', window.location.href)
+        
+        // 强制跳转
+        window.location.href = finalUrl
+        console.log('✅ [SIGNIN] 已执行 window.location.href，等待页面跳转...')
         
         setIsLoading(false)
       } else {
         console.error('❌ [SIGNIN] 登录响应异常:', result)
-        setError('Login response was unexpected')
+        setError(result?.error || 'Login response was unexpected')
         setIsLoading(false)
       }
     } catch (error) {
