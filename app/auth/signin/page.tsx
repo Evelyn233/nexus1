@@ -35,12 +35,25 @@ function SignInForm() {
       
       hasRedirectedRef.current = true
       
-      const targetUrl = callbackUrl || '/home'
-      const cleanTargetUrl = targetUrl.includes('/auth/signin') ? '/home' : targetUrl
-      const finalUrl = `${cleanTargetUrl}?t=${Date.now()}`
+      // 🔥 清理 callbackUrl，移除所有查询参数，避免嵌套
+      let targetUrl = callbackUrl || '/home'
+      
+      // 移除查询参数
+      if (targetUrl.includes('?')) {
+        targetUrl = targetUrl.split('?')[0]
+      }
+      
+      // 确保不是登录页
+      if (targetUrl.includes('/auth/signin')) {
+        targetUrl = '/home'
+      }
+      
+      // 构建干净的 URL，只添加一个时间戳参数
+      const finalUrl = `${targetUrl}?t=${Date.now()}`
       
       console.log('🚀 [SIGNIN-EFFECT] 准备跳转到:', finalUrl)
       console.log('📍 [SIGNIN-EFFECT] 当前URL:', window.location.href)
+      console.log('🔍 [SIGNIN-EFFECT] 原始 callbackUrl:', callbackUrl)
       
       // 🔥 等待更长时间确保 session cookie 完全设置并同步到 middleware
       // 在 Vercel 上，cookie 同步可能需要更长时间
@@ -125,11 +138,21 @@ function SignInForm() {
         console.log('✅ [SIGNIN] 登录API返回成功，开始处理跳转')
         hasRedirectedRef.current = true // 标记已跳转，防止useEffect再次跳转
         
-        const targetUrl = callbackUrl || '/home'
-        // 清理callbackUrl中的嵌套参数
-        const cleanTargetUrl = targetUrl.includes('/auth/signin') ? '/home' : targetUrl
+        // 🔥 清理 callbackUrl，移除所有查询参数，避免嵌套
+        let targetUrl = callbackUrl || '/home'
         
-        console.log('🚀 [SIGNIN] 目标URL:', cleanTargetUrl)
+        // 移除查询参数
+        if (targetUrl.includes('?')) {
+          targetUrl = targetUrl.split('?')[0]
+        }
+        
+        // 确保不是登录页
+        if (targetUrl.includes('/auth/signin')) {
+          targetUrl = '/home'
+        }
+        
+        console.log('🚀 [SIGNIN] 目标URL:', targetUrl)
+        console.log('🔍 [SIGNIN] 原始 callbackUrl:', callbackUrl)
         
         // 刷新 session 多次，确保 cookie 完全设置
         try {
@@ -155,7 +178,8 @@ function SignInForm() {
         setIsLoading(false)
         
         // 🔥 使用 window.location.replace 强制跳转（不会在历史记录中留下登录页）
-        const finalUrl = `${cleanTargetUrl}?t=${Date.now()}`
+        // 构建干净的 URL，只添加一个时间戳参数
+        const finalUrl = `${targetUrl}?t=${Date.now()}`
         console.log('🚀 [SIGNIN] 开始强制跳转...')
         console.log('📍 [SIGNIN] 当前URL:', window.location.href)
         console.log('📍 [SIGNIN] 目标URL:', finalUrl)
