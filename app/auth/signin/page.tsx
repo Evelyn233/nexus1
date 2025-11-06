@@ -1,11 +1,11 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, Suspense } from 'react'
 import { signIn, useSession } from 'next-auth/react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 
-export default function SignInPage() {
+function SignInForm() {
   const searchParams = useSearchParams()
   const callbackUrl = searchParams.get('callbackUrl') || '/home'
   const isMountedRef = useRef(true)
@@ -39,6 +39,8 @@ export default function SignInPage() {
     }, 15000)
 
     try {
+      console.log('🔍 [SIGNIN] 开始登录请求...', { email: email.substring(0, 3) + '***' })
+      
       const result = await signIn('credentials', {
         emailOrPhone: email,
         password,
@@ -47,49 +49,72 @@ export default function SignInPage() {
 
       clearTimeout(timeoutId)
 
-      if (!isMountedRef.current) return
+      if (!isMountedRef.current) {
+        console.log('⚠️ [SIGNIN] 组件已卸载，取消后续操作')
+        return
+      }
+
+      console.log('🔍 [SIGNIN] 登录API响应:', { 
+        ok: result?.ok, 
+        error: result?.error, 
+        status: result?.status,
+        url: result?.url 
+      })
 
       if (result?.error) {
+        console.error('❌ [SIGNIN] 登录失败:', result.error)
         setError('Email or password is incorrect')
         setIsLoading(false)
         return
       }
 
-      console.log('🔍 [SIGNIN] 登录结果:', { ok: result?.ok, error: result?.error, status: result?.status })
-      
       if (result?.ok) {
         console.log('✅ [SIGNIN] 登录API返回成功，开始处理跳转')
         hasRedirectedRef.current = true // 标记已跳转，防止useEffect再次跳转
         
+        // 先设置loading为false，让用户看到成功状态
+        setIsLoading(false)
+        
         const targetUrl = callbackUrl || '/home'
-        const finalUrl = `${targetUrl}?t=${Date.now()}`
+        // 清理callbackUrl中的嵌套参数
+        const cleanTargetUrl = targetUrl.includes('/auth/signin') ? '/home' : targetUrl
+        const finalUrl = `${cleanTargetUrl}?t=${Date.now()}`
         
         // 刷新 session，等待session完全设置
         try {
           console.log('🔄 [SIGNIN] 开始更新session...')
           await update()
           console.log('✅ [SIGNIN] Session更新成功')
-          
-          // 🔥 等待更长时间，确保session cookie已完全设置并同步到middleware
-          // 在Vercel上，可能需要更长时间来同步cookie
-          console.log('⏳ [SIGNIN] 等待session完全同步...')
-          await new Promise(resolve => setTimeout(resolve, 1500))
-          console.log('✅ [SIGNIN] Session同步完成')
         } catch (updateError) {
           console.warn('⚠️ [SIGNIN] Session更新失败，继续跳转:', updateError)
-          // 即使刷新失败，也等待一下再跳转
-          await new Promise(resolve => setTimeout(resolve, 1000))
         }
+        
+        // 🔥 等待确保session cookie已完全设置
+        console.log('⏳ [SIGNIN] 等待session完全同步...')
+        await new Promise(resolve => setTimeout(resolve, 1000))
+        console.log('✅ [SIGNIN] Session同步完成')
         
         // 🔥 无论如何都要跳转
         console.log('🚀 [SIGNIN] 准备跳转到:', finalUrl)
         console.log('📍 [SIGNIN] 当前URL:', window.location.href)
         
-        // 强制跳转
-        window.location.href = finalUrl
-        console.log('✅ [SIGNIN] 已执行 window.location.href，等待页面跳转...')
-        
-        setIsLoading(false)
+        // 使用多种方式确保跳转
+        try {
+          // 方式1: 使用 window.location.href
+          window.location.href = finalUrl
+          console.log('✅ [SIGNIN] 已执行 window.location.href')
+          
+          // 备用方案：如果1秒后还在登录页，强制跳转
+          setTimeout(() => {
+            if (window.location.pathname === '/auth/signin') {
+              console.log('⚠️ [SIGNIN] 1秒后仍在登录页，强制跳转')
+              window.location.replace(finalUrl)
+            }
+          }, 1000)
+        } catch (e) {
+          console.error('❌ [SIGNIN] 跳转失败，尝试备用方案:', e)
+          window.location.replace(finalUrl)
+        }
       } else {
         console.error('❌ [SIGNIN] 登录响应异常:', result)
         setError(result?.error || 'Login response was unexpected')
@@ -248,5 +273,20 @@ export default function SignInPage() {
         </p>
       </div>
     </div>
+  )
+}
+
+export default function SignInPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-teal-50 to-cyan-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    }>
+      <SignInForm />
+    </Suspense>
   )
 }
