@@ -15,6 +15,7 @@ export default function SignInPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const hasRedirectedRef = useRef(false) // 🔥 防止重复跳转
 
   useEffect(() => {
     return () => {
@@ -22,25 +23,25 @@ export default function SignInPage() {
     }
   }, [])
 
-  // 如果用户已登录，直接跳转（避免循环跳转）
+  // 🔥 如果用户已登录，让 middleware 处理跳转（这里不自动跳转，避免循环）
+  // 只在页面首次加载时检查，如果是已登录状态，让middleware重定向
   useEffect(() => {
+    // 如果已经跳转过，不再处理
+    if (hasRedirectedRef.current) return
+    
+    // 如果正在加载中或正在登录，不处理
+    if (isLoading) return
+    
+    // 如果用户已登录，但还在登录页面，可能是刚登录成功
+    // 让登录成功后的逻辑处理跳转，这里不做任何操作
     if (status === 'authenticated' && session) {
       const currentPath = typeof window !== 'undefined' ? window.location.pathname : ''
-      const targetUrl = callbackUrl || '/home'
-      
-      // 避免在登录页面循环跳转
-      if (currentPath === '/auth/signin' || currentPath.startsWith('/auth/')) {
-        // 延迟跳转，确保session已完全设置
-        const timer = setTimeout(() => {
-          if (targetUrl && targetUrl !== currentPath) {
-            console.log('🔄 [SIGNIN] 已登录，跳转到:', targetUrl)
-            window.location.href = targetUrl
-          }
-        }, 100)
-        return () => clearTimeout(timer)
+      if (currentPath === '/auth/signin') {
+        // 只记录日志，不跳转（让登录成功后的逻辑或middleware处理）
+        console.log('ℹ️ [SIGNIN] 检测到已登录状态，等待登录成功逻辑或middleware处理跳转')
       }
     }
-  }, [status, session, callbackUrl])
+  }, [status, session, isLoading])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -72,24 +73,31 @@ export default function SignInPage() {
       }
 
       if (result?.ok) {
-        setIsLoading(false)
-        // 刷新 session，然后跳转
+        hasRedirectedRef.current = true // 标记已跳转，防止useEffect再次跳转
+        
+        // 刷新 session，等待session完全设置
         try {
           await update()
-          // 等待session更新后跳转
-          setTimeout(() => {
-            const targetUrl = callbackUrl || '/home'
-            console.log('✅ [SIGNIN] 登录成功，跳转到:', targetUrl)
-            window.location.href = targetUrl
-          }, 300)
+          // 等待更长时间，确保session cookie已完全设置并同步到middleware
+          await new Promise(resolve => setTimeout(resolve, 800))
+          
+          const targetUrl = callbackUrl || '/home'
+          console.log('✅ [SIGNIN] 登录成功，session已更新，跳转到:', targetUrl)
+          
+          // 使用 replace 避免历史记录问题，并添加时间戳确保刷新
+          window.location.replace(`${targetUrl}?t=${Date.now()}`)
         } catch (updateError) {
           console.warn('⚠️ [SIGNIN] Session更新失败，直接跳转:', updateError)
           // 即使刷新失败，也尝试跳转（cookie 已设置）
+          const targetUrl = callbackUrl || '/home'
+          // 等待一下确保cookie已设置
           setTimeout(() => {
-            const targetUrl = callbackUrl || '/home'
-            window.location.href = targetUrl
-          }, 500)
+            console.log('🔄 [SIGNIN] 强制跳转到:', targetUrl)
+            window.location.replace(`${targetUrl}?t=${Date.now()}`)
+          }, 1000)
         }
+        
+        setIsLoading(false)
       } else {
         setError('Login response was unexpected')
         setIsLoading(false)

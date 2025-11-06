@@ -21,7 +21,10 @@ export default withAuth(
       if (isAuth && req.nextUrl.pathname === '/auth/signin') {
         // 已登录用户访问登录页，重定向到首页
         console.log('🔄 [MIDDLEWARE] 已登录用户访问登录页，重定向到首页')
-        return NextResponse.redirect(new URL('/home', req.url))
+        const homeUrl = new URL('/home', req.url)
+        // 添加时间戳确保刷新
+        homeUrl.searchParams.set('t', Date.now().toString())
+        return NextResponse.redirect(homeUrl)
       }
       console.log('✅ [MIDDLEWARE] 认证页面，允许访问')
       return null
