@@ -25,6 +25,8 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json()
     const {
+      sessionId,
+      title, // 🔥 AI生成的标题
       initialPrompt,
       questions,
       answers,
@@ -36,6 +38,19 @@ export async function POST(request: NextRequest) {
       tags,
       category
     } = body
+    
+    console.log('📥 [CONTENT-API] 接收到的数据:', {
+      sessionId,
+      title,
+      initialPrompt: initialPrompt?.substring(0, 50) + '...',
+      imagesCount: Array.isArray(images) ? images.length : 0,
+      imagesType: typeof images,
+      imagesPreview: Array.isArray(images) ? images.slice(0, 2).map((img: any) => ({
+        sceneTitle: img.sceneTitle,
+        sceneIndex: img.sceneIndex,
+        hasImageUrl: !!img.imageUrl
+      })) : 'not array'
+    })
 
     // 查找用户
     const user = await prisma.user.findUnique({
@@ -56,16 +71,27 @@ export async function POST(request: NextRequest) {
     }
 
     // 创建生成内容记录
+    const imagesJson = JSON.stringify(images || [])
+    const imageCount = Array.isArray(images) ? images.length : 0
+    
+    console.log('💾 [CONTENT-API] 准备保存图片数据:', {
+      imagesJsonLength: imagesJson.length,
+      imageCount,
+      imagesJsonPreview: imagesJson.substring(0, 200) + '...'
+    })
+    
     const content = await prisma.userGeneratedContent.create({
       data: {
         userId: user.id,
+        sessionId: sessionId || null,  // 保存sessionId
+        title: title || null, // 🔥 保存AI生成的标题
         initialPrompt: initialPrompt || '',
         questions: JSON.stringify(questions || []),
         answers: JSON.stringify(answers || []),
         scenes: JSON.stringify(scenes || {}),
         storyNarrative: storyNarrative || null,
-        images: JSON.stringify(images || []),
-        imageCount: Array.isArray(images) ? images.length : 0,
+        images: imagesJson,
+        imageCount: imageCount,
         userSnapshot: userSnapshot ? JSON.stringify(userSnapshot) : null,
         metadataSnapshot: metadataSnapshot ? JSON.stringify(metadataSnapshot) : null,
         tags: tags ? JSON.stringify(tags) : null,
@@ -74,7 +100,11 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    console.log('✅ [CONTENT-API] 保存生成内容成功:', content.id)
+    console.log('✅ [CONTENT-API] 保存生成内容成功:', {
+      contentId: content.id,
+      imageCount: content.imageCount,
+      imagesFieldLength: content.images ? content.images.length : 0
+    })
 
     return NextResponse.json({
       success: true,

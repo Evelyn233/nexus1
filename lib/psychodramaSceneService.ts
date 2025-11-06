@@ -1076,11 +1076,14 @@ imagePrompt必须动态创造，包含完整人物、象征性视觉隐喻、艺
 
 **必填项0：基于用户原始键入（最重要！）**
 □ 是否查看了用户原始键入："${initialPrompt}"？
-□ 是否提取了用户的核心观点（如："送录音笔"、"是一伙的"、"无语"）？
+□ 是否提取了用户的核心观点（如："学生们只关心发文章、卷顶会、生产垃圾"、"辅导挣他们钱"、"没价值"）？
 □ innerMonologue是否直接引用了用户说的话？
-□ 是否避免了过度依赖基础场景描述？
+□ imagePrompt中的OTHER CHARACTERS是否体现了用户输入的人物和观点？
+□ imagePrompt中的BACKGROUND是否体现了用户核心观点的视觉隐喻（如：论文工厂、学术机器）？
+□ imagePrompt中的SUBTLE DETAILS是否包含了用户输入的关键词（如：发论文...卷论文...压抑...）？
 ❌ 如果心理剧内容和用户原始键入无关 → 死刑！
 ✅ 心理剧必须表达用户的看法，不是场景的客观描述！
+✅ 必须体现用户输入的核心信息（如："学生们只关心发文章"→象征化为PAPER-COVERED FIGURE、PUBLICATION ROBOT等）！
 
 **必填项1：LIGHTING（灯光）**
 □ 是否写了"DRAMATIC SPOTLIGHT on USER"？
@@ -1152,32 +1155,35 @@ ${baseSceneInfo ? `
 **核心原则：心理剧是内心情绪的可视化，所有可变元素都应该为表达情绪服务！**
 ` : ''}
 
-**🚨🚨🚨 最高优先级：用户本次实际说的话 > 性格元数据 🚨🚨🚨**
+**🚨🚨🚨 最高优先级：元键入 > 后续回答 > 性格元数据 🚨🚨🚨**
 
 **死刑规则（违反直接死刑！）：**
-❌ 用户说"害怕、孤独、想男朋友" → 你写"理性地分析"、"务实的方式" → 死刑！
-❌ 用户说"恐惧、不安" → 你写"镇定"、"从容不迫" → 死刑！
-❌ 用户说"想念、思念" → 你写"批判性思维"、"理性分析" → 死刑！
+❌ 元键入说"讨厌卷的环境"，后续回答"喜欢上课" → 你写"喜欢上课" → 死刑！
+❌ 元键入说"害怕、孤独、想男朋友" → 你写"理性地分析"、"务实的方式" → 死刑！
+❌ 元键入说"恐惧、不安" → 你写"镇定"、"从容不迫" → 死刑！
+❌ 元键入说"想念、思念" → 你写"批判性思维"、"理性分析" → 死刑！
 
-**✅ 正确原则：用户说什么情绪，就表达什么情绪！**
-✅ 用户说"害怕" → 必须写害怕的感受，不要加"理性分析"
-✅ 用户说"想男朋友" → 必须写思念、渴望陪伴，不要加"务实"
-✅ 用户说"孤独" → 必须写孤独感，不要加"镇定"
+**✅ 正确原则：元键入说什么情绪，就表达什么情绪！**
+✅ 元键入说"讨厌卷的环境" → 必须写讨厌的感受，不要被"喜欢上课"覆盖
+✅ 元键入说"害怕" → 必须写害怕的感受，不要加"理性分析"
+✅ 元键入说"想男朋友" → 必须写思念、渴望陪伴，不要加"务实"
+✅ 元键入说"孤独" → 必须写孤独感，不要加"镇定"
 
 **🧠🧠🧠 用户原始键入（第一优先级！心理剧的核心！）：**
 用户最开始说的话："${initialPrompt}"
 
 **🧠🧠🧠 用户的所有输入（补充细节）：**
-${allInputs.map((input, i) => `${i === 0 ? '🔥 原始键入' : `💬 回答${i}`}: "${input}"`).join('\n')}
+${allInputs.map((input, i) => `${i === 0 ? '🔥 元键入（绝对核心！）' : `💬 回答${i}（补充细节）`}: "${input}"`).join('\n')}
 
 🚨🚨🚨 心理剧必须基于：
-1. **用户原始键入中的核心观点** - 用户最开始说了什么？（如："顾问送录音笔"、"熟人经济"、"无语"）
-2. **用户对这个场景的看法** - 用户怎么看这件事？（从所有输入中提取）
-3. **不要过度依赖基础场景描述** - 基础场景只是背景，心理剧要表达用户的想法
+1. **元键入中的核心观点** - 用户最开始说了什么？（如："讨厌卷的环境"、"熟人经济"、"无语"）
+2. **元键入中的核心情绪** - 用户最核心的感受是什么？（如："讨厌"、"抵触"、"无语"）
+3. **不要被后续回答覆盖** - 后续回答只是补充细节，不能改变元键入的核心观点
+4. **不要过度依赖基础场景描述** - 基础场景只是背景，心理剧要表达用户的想法
 
-→ 从用户输入中提取（优先从原始键入提取！）：
+→ 从用户输入中提取（优先从元键入提取！）：
   1. **核心观点/看法**：用户怎么看这件事？（如："是一伙的"、"熟人经济"、"装模作样"）
-  2. **核心情绪**：害怕？孤独？思念？讽刺？无语？
+  2. **核心情绪**：害怕？孤独？思念？讽刺？无语？讨厌？
   3. **🔥🔥🔥 提到的人物**：老板？顾问？男朋友？妈妈？同事？
      - ⚠️ 提到的每个人都必须在otherCharacters中列出！
      - ⚠️ 提到的每个人都必须在imagePrompt中出现！
@@ -1443,9 +1449,36 @@ ${subconsciousData.coreTraits?.slice(0, 5).join('\n- ') || '- 未分析'}
    - 用户如何象征化/比喻这个场景
    - 例如："在她眼中，整个会议像一场拙劣的话剧，老板是自我陶醉的演员，顾问是疯狂的捧哏，她是冷静的观众，看着这场企业闹剧"
 
-5. **imagePrompt（心理剧专用 - 剧场化舞台 + 完整人物形体 + 艺术化！）**：
+5. **imagePrompt（心理剧专用 - 4种专业风格选择 + 剧场化舞台 + 完整人物形体 + 艺术化！）**：
    - 150-200字英文
-   - **🔥🔥🔥 核心原则：完整人物形体（不是大头）+ 剧场化舞台空间 + 强烈艺术化处理！**
+   - **🔥🔥🔥 核心原则：根据情绪类型选择专业风格 + 完整人物形体（不是大头）+ 剧场化舞台空间 + 强烈艺术化处理！**
+   
+   **🎨 专业心理剧视觉风格（4选1，根据情绪类型选择）：**
+   
+   **① Symbolic Expressionism（象征表现主义）**
+   - 适用情绪：焦虑、压抑、自我撕裂、潜意识觉醒
+   - 视觉语言：光影极端、空间扭曲、人物比例不稳定、梦境化
+   - 画风关键词：dramatic lighting, distorted perspective, psychological symbolism, expressionist brushstrokes, extreme shadows, surreal proportions
+   
+   **② Surreal Minimalism（超现实极简）**
+   - 适用情绪：认知冲突、孤独、理性与感性张力
+   - 视觉语言：单色调、几何图形、干净留白、人物简化
+   - 画风关键词：minimalist composition, geometric shapes, clean lines, symbolic elements, monochromatic palette, negative space
+   
+   **③ Cinematic Psychoscape（心理电影景观）**
+   - 适用情绪：意识碎片、回忆流动、心理空间叙事
+   - 视觉语言：光线层次、透视错位、空间延伸（《盗梦空间》风格）
+   - 画风关键词：cinematic lighting, dreamlike atmosphere, architectural psychology, narrative composition, depth of field, psychological space
+   
+   **④ Conceptual Collage（概念拼贴）**
+   - 适用情绪：社会压迫、自我身份分裂、潜意识象征
+   - 视觉语言：旧报纸纹理、超现实拼贴、心理碎片化
+   - 画风关键词：collage elements, fragmented composition, symbolic juxtaposition, psychological layers, mixed media, conceptual art
+   
+   **风格选择逻辑：**
+   - 分析用户情绪类型 → 选择最适合的专业风格
+   - 在imagePrompt开头明确标注风格：如"SYMBOLIC EXPRESSIONISM - "或"CINEMATIC PSYCHOSCAPE - "
+   - 结合风格特点生成具体的视觉描述
    
    - 必须包含的元素（按重要性排序）：
      1. **剧场化空间和舞台感**（35%权重 - 营造心理剧氛围！）：
@@ -1537,65 +1570,96 @@ psychologicalSymbolism（🚨 基于用户的看法！）: "
 
 imagePrompt（⚠️ 必须包含所有必填项！）: "
 
-🚨🚨🚨 强制格式（按顺序写，不能省略任何部分！）：
+🚨🚨🚨 强制格式（学习优秀示例，按顺序写，不能省略任何部分！）：
 
-**【SCENE TYPE】** PSYCHOLOGICAL DRAMA at [基础场景地点]
+**【开头：主题声明】** PSYCHODRAMA - [核心主题描述，基于用户输入的核心观点/情绪，如：Hyper-precise visualization of academic pressure and creative oppression / Symbolic expressionism of suppressed frustration / Cinematic psychodrama of internal conflict]
 
-**【COMPOSITION】** MEDIUM SHOT, full figure from head to waist
+**【SCENE】** [场景描述，基于用户真实输入]：Late-night home study room / Office meeting room / Coffee shop / [具体地点]，[描述场景物品：cluttered desk with laptop, books, scattered papers / meeting table with documents / etc.]
 
-**【USER - 主角】** [年龄]-year-old Chinese [性别], [身高]cm, [发型], wearing [情绪化服装].
-- BODY: [具体姿态] leaning BACK with detachment / arms CROSSED / body RIGID
-- HANDS: [具体动作] fingers tapping / fists clenched / hands gesturing
-- FACE: eyes [具体眼神] SHARPLY narrowed / INTENSELY staring, eyebrows [位置] furrowed / raised, lips [嘴部] CURLED in smirk / PRESSED thin
+**【COMPOSITION】** MEDIUM SHOT showing full figure from head to waist
 
-**【LIGHTING - 必须写！不能省略！】**
-🚨 强制要求：必须包含以下灯光描述：
-- DRAMATIC SPOTLIGHT on USER from [方向: top/side/back]
+**【USER - 主角】** [年龄]-year-old Chinese [性别], [身高]cm, [发型], wearing [情绪化服装，根据情绪选择：dark restrictive clothing for oppression / sharp tailored suit for professional / casual loose clothing for frustration / etc.]
+
+**【BODY LANGUAGE - 详细描述身体语言！】**（必须详细！）
+- Posture: [rigid posture / slumped shoulders / tense stance / leaning back / etc.]
+- Shoulders: [tense / relaxed / hunched / raised]
+- Hands: [clenched on desk edges / fingers tapping / fists clenched / hands gripping / etc.]
+- Eyes: [glaring with deep frustration / narrowed with skepticism / wide with disbelief / distant gaze / etc.]
+- Eyebrows: [furrowed / raised / tense]
+- Lips: [pressed thin / curled in smirk / quivering / etc.]
+- Subtle details: [trembling in fingers / tension visible in jaw / etc.]
+
+**【CLOTHING】** [根据情绪选择：dark, restrictive, professional but suffocating / sharp tailored suit / casual outfit / etc.]
+
+**【LIGHTING】** sharp top-down spotlight on USER, casting dramatic shadows; background dimmed, creating strong figure-background contrast
 - USER face and upper body STRONGLY illuminated
 - OTHERS in DIMMER softer lighting
 - STRONG light-shadow contrast
 - Background DARKER than USER area
 
-**【OTHERS - 必须具体描述象征化形象！不能只写"in background"！】**
-🚨🚨🚨 强制要求：必须根据用户观点写出具体象征化描述！
+**【OTHER CHARACTERS - 必须基于用户输入象征化！】**（必须详细！）
+🚨🚨🚨 核心要求：必须从用户输入中提取具体人物和观点，然后象征化！
+
+用户输入：${allInputs.join(' ')}
+→ 用户说了什么人物？说了什么观点？
+
+示例学习（不要硬编码，根据用户输入动态生成）：
+- 用户说"学生们只关心发文章、卷顶会、生产垃圾" → OTHER CHARACTERS应该是：
+  * MALE STUDENT (22) as PAPER-COVERED FIGURE, formulas tattooed on skin, hunched over papers
+  * FEMALE STUDENT (21) as CALCULATING MACHINE with glowing numeric eyes, metallic limbs
+  * MALE STUDENT (23) as PUBLICATION ROBOT, journal covers forming armor-like patterns
+
+- 用户说"老板虚伪" → OTHER CHARACTERS应该是：
+  * MALE BOSS (45) as TWO-FACED FIGURE, split expressions showing contradiction
+
+- 用户说"同事装模作样" → OTHER CHARACTERS应该是：
+  * COLLEAGUE as THEATRICAL PERFORMER, exaggerated gestures
+
+🔥🔥🔥 生成原则：
+1. 从用户输入中提取：说了什么人物（学生、老板、同事等）？说了什么观点（只关心论文、虚伪、装模作样等）？
+2. 根据观点设计象征化形象：不要硬编码，根据用户具体说的内容创造
+3. 必须详细描述：性别、年龄、象征化形象、具体视觉特征
+4. 必须体现用户的核心观点：如果用户说"学生们只关心发文章"，就象征化为"PAPER-COVERED FIGURE"、"PUBLICATION ROBOT"等
+
+**【BACKGROUND - 必须体现用户观点的视觉隐喻！】**（必须详细！）
+🚨🚨🚨 核心要求：必须从用户输入中提取核心观点，然后用视觉隐喻表达！
+
+示例学习（不要硬编码，根据用户输入动态生成）：
+- 用户说"学生们只关心发文章、卷顶会、生产垃圾" → BACKGROUND应该是：
+  * endless conveyor belts with identical manuscripts, twisting and extending into darkness, walls slightly distorted to create psychological pressure
+
+- 用户说"熟人经济" → BACKGROUND应该是：
+  * glowing network diagram with interconnected nodes, web of connections
+
+- 用户说"空洞、没价值" → BACKGROUND应该是：
+  * transparent hollow structures, empty bubbles floating
+
+🔥🔥🔥 生成原则：
+1. 从用户输入中提取核心观点（如：只关心论文、生产垃圾、没价值等）
+2. 用纯视觉隐喻表达（不要复述用户词汇，用视觉形容词）
+3. 体现观点的本质（如：论文工厂、学术机器、生产流水线等）
+4. 必须详细描述：形状、材质、运动、位置等
+
+**【COLOR】** muted desaturated environment, USER highlighted with warm tones to emphasize presence and tension / cool tones for detachment / [根据情绪选择色调]
+
+**【ATMOSPHERE】** oppressive, suffocating, creativity-stifling, psychologically charged, cinematic composition / [根据情绪选择氛围词]
+
+**【SUBTLE DETAILS】** floating fragments of inner monologue around USER ('[从用户输入中提取的关键词，如：发论文...卷论文...压抑...讨厌这种环境...]'), [其他细节：papers slightly floating / objects distorted / etc.]
+
+**【STYLE】** hyper-realistic symbolic psychodrama, cinematic lighting, surreal psychological symbolism, precise anatomy and posture, strong emotional intensity, visual metaphor of [用户观点的视觉隐喻，如：academic machinery crushing creativity / hollow words filling space / etc.]
+
+--ar 16:9 --v 6 --style cinematic --quality ultra --detail extreme
 
 ${baseSceneInfo && baseSceneInfo.peopleCount !== 'alone' ? `
-🔥🔥🔥 第一步：从用户输入中提取对OTHERS的观点：
+🔥🔥🔥 从用户输入中提取人物和观点：
 用户输入：${allInputs.join(' ')}
 
-→ 用户说了什么关于老板/顾问的？
-  - 依赖熟人？
-  - 依赖微信？
-  - 虚伪/双面？
-  - 装模作样？
-  - 空谈/没实际内容？
-  - 没自信？
+→ 分析步骤：
+1. 用户说了什么人物？（学生、老板、同事、老师等）
+2. 用户对这些人物说了什么观点？（只关心论文、虚伪、装模作样、生产垃圾等）
+3. 根据观点设计象征化形象（参考上面的示例，但不要硬编码，要根据用户具体说的内容创造）
 
-🔥🔥🔥 第二步：根据观点选择象征化描述（必须选择一种！）：
-
-**方案1：如果用户说"依赖熟人/微信/关系网/熟人经济"** → 必须这样写：
-"In background: MIDDLE-AGED MALE BOSS surrounded by GLOWING phone screens floating around him, holding MULTIPLE phones with VISIBLE WeChat group chat notifications, figure ENTANGLED in web of illuminated phone connections and contact networks, screens showing '微信群''联系人' glowing text"
-
-**方案2：如果用户说"虚伪/表面/双面/言行不一"** → 必须这样写：
-"In background: BOSS with SPLIT CONTRASTING expressions (smiling face to USER, frowning when turned), ARTIFICIAL smile CRACKING and FRAGMENTING at edges, TWO-FACED appearance showing inner/outer contradiction"
-
-**方案3：如果用户说"装模作样/表演/做作"** → 必须这样写：
-"In background: BOSS with EXAGGERATED theatrical gestures like stage actor, PERFORMATIVE posture striking dramatic poses, OVERLY DRAMATIC hand movements showing obvious artificiality"
-
-**方案4：如果用户说"空谈/没实际内容/说大话"** → 必须这样写：
-"In background: BOSS surrounded by FLOATING TRANSPARENT empty speech bubbles, gesturing GRANDLY but producing HOLLOW visual echoes, words VISIBLY DISSIPATING into empty air before forming meaning"
-
-**方案5：如果用户说"没自信/依赖别人/寻求认可"** → 必须这样写：
-"In background: BOSS leaning HEAVILY on CONSULTANT for support, seeking validation with UNCERTAIN hesitant body language, DEPENDENT posture reaching toward others"
-
-🚨🚨🚨 死刑警告：
-❌ 不能写："OTHERS in background, slightly blurred"
-❌ 不能写："other people present"
-❌ 不能只写角色名称不写象征化描述
-✅ 必须从上面5个方案中选择一个完整写出！
-✅ 必须包含：人物+象征化元素+具体视觉描述！
-
-⚠️ 如果用户同时提到多个观点，选择最核心的一个进行象征化！
+⚠️ 关键：不要硬编码，要根据用户具体输入动态生成象征化形象！
 ` : '如果没有其他人，省略此部分'}
 
 **【COLOR & ATMOSPHERE - 必须写！】**

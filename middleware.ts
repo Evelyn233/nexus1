@@ -54,13 +54,12 @@ export default withAuth(
 // 保护以下路由
 export const config = {
   matcher: [
-    // 暂时注释掉所有保护，用于调试
-    // '/home/:path*',
-    // '/chat/:path*',
-    // '/chat-new/:path*',
-    // '/generate/:path*',
-    // '/gallery/:path*',
-    // '/user-info/:path*',
+    '/home/:path*',
+    '/chat/:path*',
+    '/chat-new/:path*',
+    '/generate/:path*',
+    '/gallery/:path*',
+    '/user-info/:path*',
   ],
 }
 

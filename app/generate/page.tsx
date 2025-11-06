@@ -5,7 +5,6 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { ArrowLeft, Download, Share2, RotateCcw } from 'lucide-react'
 import Image from 'next/image'
 import { generateImage } from '@/lib/imageGeneration'
-import { getUserDescription, getUserMetadata } from '@/lib/userDataApi'
 import { SceneStoryMappingService, StoryMappingResult } from '../../lib/sceneStoryMappingService'
 import { saveUserGeneratedContent } from '@/lib/userContentStorageService'
 
@@ -806,85 +805,18 @@ export default function GeneratePage() {
   }
 
   // 用户信息组件
-  const UserProfileInfo = () => {
-    // 注意：这是一个同步组件，但API是异步的
-    // 需要改成 useEffect + useState 模式
-    const [userInfoDescription, setUserInfoDescription] = useState('')
-    const [userMetadata, setUserMetadata] = useState<any>(null)
-    
-    useEffect(() => {
-      (async () => {
-        const desc = await getUserDescription()
-        const meta = await getUserMetadata()
-        setUserInfoDescription(desc)
-        setUserMetadata(meta)
-      })()
-    }, [])
-    
-    // 检查是否有用户信息
-    const hasUserInfo = userInfoDescription && userInfoDescription.trim() !== ''
-    const hasMetadata = userMetadata && (
-      userMetadata.corePersonalityTraits?.length > 0 ||
-      userMetadata.communicationStyle?.length > 0 ||
-      userMetadata.emotionalPattern?.length > 0
-    )
-    
-    if (!hasUserInfo && !hasMetadata) {
-      return null
-    }
-    
-    return (
-      <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-        <h3 className="text-sm font-semibold text-blue-800 mb-2">📋 您的画像分析</h3>
-        <div className="text-sm text-blue-700 space-y-2">
-          {hasUserInfo && (
-            <div className="flex items-start space-x-2">
-              <span className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></span>
-              <span>{userInfoDescription}</span>
-            </div>
-          )}
-          
-          {hasMetadata && (
-            <div className="mt-3 space-y-1">
-              {userMetadata.corePersonalityTraits?.length > 0 && (
-                <div>
-                  <span className="font-medium text-blue-800">核心特质：</span>
-                  <span>{userMetadata.corePersonalityTraits.slice(0, 3).join('、')}</span>
-                  {userMetadata.corePersonalityTraits.length > 3 && <span>等</span>}
-                </div>
-              )}
-              
-              {userMetadata.communicationStyle?.length > 0 && userMetadata.communicationStyle[0] !== '待分析' && (
-                <div>
-                  <span className="font-medium text-blue-800">沟通风格：</span>
-                  <span>{userMetadata.communicationStyle.slice(0, 2).join('、')}</span>
-                </div>
-              )}
-              
-              {userMetadata.emotionalPattern?.length > 0 && userMetadata.emotionalPattern[0] !== '待分析' && (
-                <div>
-                  <span className="font-medium text-blue-800">情感模式：</span>
-                  <span>{userMetadata.emotionalPattern.slice(0, 2).join('、')}</span>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-        <div className="mt-2 text-xs text-blue-600">
-          基于您的性格特征，为您生成了专属的图片内容
-        </div>
-      </div>
-    )
-  }
+  // 🔒 用户深度画像数据不对外暴露，仅用于后台AI分析和内容优化
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="flex items-center justify-between p-4 bg-white border-b border-gray-100">
         <div className="flex items-center space-x-3">
-          <div className="font-handwriting text-xl text-magazine-primary">
-            logo
-          </div>
+          <img 
+            src="/inflow-logo.jpeg" 
+            alt="logo" 
+            className="w-20 h-14 rounded-lg"
+          />
           <button
             onClick={handleBack}
             className="flex items-center space-x-1 text-gray-600 hover:text-gray-900 transition-colors"
@@ -899,9 +831,6 @@ export default function GeneratePage() {
 
         {/* Main Content */}
         <main className="max-w-2xl mx-auto p-4">
-          {/* User Profile Info - 用户信息显示 */}
-          <UserProfileInfo />
-          
           {/* Magazine Title Display */}
           {(mainTitle || title) && (
             <div className="bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg p-6 mb-4 text-white shadow-lg">

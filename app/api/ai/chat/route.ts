@@ -48,9 +48,44 @@ export async function POST(request: NextRequest) {
     
       if (!response.ok) {
         const errorText = await response.text()
-        console.error('AI API调用失败:', response.status, errorText)
+        console.error('❌ [AI-API] DeepSeek API调用失败:', response.status, errorText)
+        
+        // 🔥 检测是否是余额不足错误
+        if (response.status === 401 || response.status === 402 || response.status === 403) {
+          let errorMessage = 'DeepSeek API 认证失败'
+          
+          try {
+            const errorData = JSON.parse(errorText)
+            if (errorData.error?.message?.includes('余额') || 
+                errorData.error?.message?.includes('balance') ||
+                errorData.error?.message?.includes('insufficient')) {
+              errorMessage = 'DeepSeek API 余额不足，请充值后再试'
+            } else if (errorData.error?.message) {
+              errorMessage = `DeepSeek API 错误: ${errorData.error.message}`
+            }
+          } catch (e) {
+            // 如果无法解析错误信息，使用默认提示
+            if (errorText.includes('余额') || errorText.includes('balance')) {
+              errorMessage = 'DeepSeek API 余额不足，请充值后再试'
+            }
+          }
+          
+          return NextResponse.json(
+            { 
+              error: errorMessage,
+              details: '可能是API密钥无效或余额不足',
+              suggestion: '请检查DeepSeek账户余额或联系管理员'
+            },
+            { status: response.status }
+          )
+        }
+        
+        // 其他错误
         return NextResponse.json(
-          { error: 'AI API调用失败: ' + response.status },
+          { 
+            error: 'AI API调用失败: ' + response.status,
+            details: errorText.substring(0, 200)
+          },
           { status: response.status }
         )
       }

@@ -3,6 +3,9 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { getUserImageUsage, getUserWalletBalance, getUserDailyQuota } from '@/lib/imageUsageService'
 
+// 强制动态渲染（因为使用了 getServerSession，需要 headers）
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
@@ -21,12 +24,15 @@ export async function GET(request: NextRequest) {
     const dailyQuota = await getUserDailyQuota(imageUsage.userId)
 
     return NextResponse.json({
-      balance: walletBalance,
+      success: true,
+      wallet: {
+        balance: walletBalance,
+        totalSpent: 0, // 这里可以从数据库获取
+        totalEarned: 0, // 这里可以从数据库获取
+      },
       dailyFreeUsed: dailyQuota.freeImagesUsed,
       dailyFreeLimit: dailyQuota.freeImagesLimit,
-      isNewUser: dailyQuota.isNewUser,
-      totalSpent: 0, // 这里可以从数据库获取
-      totalEarned: 0, // 这里可以从数据库获取
+      isNewUser: dailyQuota.isNewUser
     })
 
   } catch (error) {

@@ -22,6 +22,45 @@ export async function getPrismaUserInfo(userEmail: string): Promise<{
     if (!user) {
       return { userInfo: null, userMetadata: null }
     }
+  } catch (error: any) {
+    // 🔥 数据库连接失败时的降级处理
+    if (error.code === 'P1001' || 
+        error.message?.includes("Can't reach database server") ||
+        error.message?.includes('数据库连接失败')) {
+      console.warn('⚠️ [PRISMA-USER] 数据库连接失败，返回默认用户信息')
+      
+      // 返回默认用户信息（不阻塞应用）
+      const defaultUserInfo: UserInfo = {
+        name: userEmail.split('@')[0] || '用户',
+        gender: '',  // 空字符串表示未知
+        birthDate: { year: '1990', month: '1', day: '1', hour: '' },
+        height: '170',
+        weight: '60',
+        location: '未知',
+        personality: '待了解',
+        hairLength: '中等',
+        age: 25
+      }
+      
+      return {
+        userInfo: defaultUserInfo,
+        userMetadata: null
+      }
+    }
+    
+    // 其他错误继续抛出
+    throw error
+  }
+  
+  try {
+    const user = await prisma.user.findUnique({
+      where: { email: userEmail },
+      include: { metadata: true }
+    })
+
+    if (!user) {
+      return { userInfo: null, userMetadata: null }
+    }
 
     // 转换为UserInfo格式
     const userInfo: UserInfo = {

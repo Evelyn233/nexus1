@@ -47,7 +47,7 @@ export class OpinionVisualizationService {
   }
 
   /**
-   * 去重观点（合并相似观点）
+   * 去重观点（只去除文本相似的，保留语义不同的观点）
    */
   private static deduplicateOpinions(opinions: Array<{ type: string, text: string, trigger: string, priority: number, reason: string }>): Array<{ type: string, text: string, trigger: string, priority: number, reason: string }> {
     if (!opinions || opinions.length <= 1) {
@@ -55,22 +55,33 @@ export class OpinionVisualizationService {
     }
     
     const uniqueOpinions: Array<{ type: string, text: string, trigger: string, priority: number, reason: string }> = []
+    const seenTexts = new Set<string>() // 🔥 记录已见过的观点文本（精确去重）
     
     for (const opinion of opinions) {
-      // 检查是否与已有观点相似
+      // 🔥 第一层去重：精确文本匹配
+      const normalizedText = opinion.text.toLowerCase().trim()
+      if (seenTexts.has(normalizedText)) {
+        console.log(`🔄 [OPINION] 跳过完全相同的观点: "${opinion.text}"`)
+        continue
+      }
+      
+      // 🔥 第二层去重：相似度检测
       const isSimilar = uniqueOpinions.some(existing => {
         const similarity = this.calculateSimilarity(opinion.text, existing.text)
-        return similarity > 0.5 // 50%相似度阈值（更严格）
+        return similarity > 0.6 // 60%相似度阈值（更严格，从50%提升到60%）
       })
       
       if (!isSimilar) {
         uniqueOpinions.push(opinion)
+        seenTexts.add(normalizedText) // 记录该观点
+        console.log(`✅ [OPINION] 添加唯一观点: "${opinion.text}" (优先级: ${opinion.priority})`)
       } else {
         console.log(`🔄 [OPINION] 跳过相似观点: "${opinion.text}" (与已有观点相似)`)
       }
     }
     
     console.log(`✅ [OPINION] 观点去重完成: ${opinions.length} → ${uniqueOpinions.length}`)
+    console.log(`📋 [OPINION] 保留的观点:`, uniqueOpinions.map(o => o.text))
     return uniqueOpinions
   }
 
@@ -227,69 +238,79 @@ export class OpinionVisualizationService {
           messages: [
             {
               role: 'system',
-              content: `你是观点检测专家。任务：从用户输入中识别观点、价值判断、社会现象评论。
+              content: `你是观点检测专家。任务：从用户输入中识别**独立完整的观点**，每个观点必须能独立成图。
 
-**⚠️ 重要：区分情绪表达和观点表达！**
-- ❌ 情绪表达：如"很开心"、"很感动"、"觉得开心"、"感觉很好" → 这些是情绪，不是观点！
-- ✅ 观点表达：如"熟人经济"、"形式主义"、"本质是XX"、"就是XX" → 这些是观点！
+**🎯 核心原则：识别所有独立的观点，无论出现在第几轮！**
+
+**✅ 独立观点的判断标准（必须同时满足）：**
+1. **能独立成图** - 这个观点能否独立生成一张有意义的图？
+2. **有完整意义** - 单独看这句话，是否表达了完整的观点？
+3. **不是情绪词** - 不是简单的"很开心"、"有点难过"
+4. **不是补充细节** - 不是对已有观点的进一步说明
+
+**📊 示例分析：**
+
+**场景1：一个核心观点 + 补充说明**
+- 第1轮："亲密关系太难" → ✅ 独立观点
+- 追问："为什么觉得难？"
+- 第2轮："心智不成熟" → ❌ 补充说明（在解释"为什么难"）
+- 追问："还有什么原因？"
+- 第3轮："沟通有障碍" → ❌ 补充说明（还是在解释"为什么难"）
+
+**场景2：多个独立观点**
+- 第1轮："看了综艺《再见爱人》，觉得亲密关系太难" → ✅ 观点1："亲密关系难"
+- 追问："你从中有什么感受？"
+- 第2轮："看到他们的互动，我觉得中国的婚姻观念很传统" → ✅ 观点2："婚姻观念传统"（这是新观点！）
+- 追问："你怎么看待这种传统？"
+- 第3轮："觉得这种传统限制了个人自由" → ✅ 观点3："传统限制自由"（又是新观点！）
+
+**🚨 关键区别：**
+- 补充说明 = 对同一个话题的**原因/细节/例子**
+- 独立观点 = **不同的话题/不同的评价对象/不同的观点角度**
 
 **观点类型：**
 1. **社会现象评论**（如"熟人经济"、"形式主义"、"表面功夫"）
 2. **价值判断**（如"其实很虚伪"、"本质是XX"、"就是XX"）
 3. **文化批判**（如"传统vs现代"、"理想vs现实"）
-4. **讽刺/嘲讽**（如"呵呵"、"笑死"、"装模作样"）
+4. **情感核心观点**（如"我很孤独"、"感到被抛弃"）- 注意：不是简单情绪词！
 
-**🎯 观点检测标准（精准识别）：**
-- **只识别抽象的观点表达，不要描述具体行为**
-- 包括：社会现象评论（如"中国缺乏高端杂志市场"）
-- 包括：价值判断（如"Neoma杂志做得特别好"）
-- 包括：情感表达（如"很惋惜愤怒"）
-- **不包括**：具体行为（如"用chatgpt搜到的"、"上班的时候"）
-- **不包括**：场景描述（如"就是在公司"、"在书店"）
-- **不包括**：发现过程（如"第一次看到"、"发现了"）
-
-**🚨 重要：只识别抽象观点，不描述具体行为！**
-- ✅ "中国缺乏高端杂志市场" → 这是观点（社会现象评论）
-- ✅ "Neoma杂志做得特别好" → 这是观点（价值判断）
-- ✅ "我很惋惜愤怒" → 这是观点（情感表达）
-- ✅ "很惋惜愤怒" → 这是观点（情感表达）
-- ❌ "用chatgpt搜到的" → 这不是观点（具体行为）
-- ❌ "上班的时候" → 这不是观点（场景描述）
-- ❌ "第一次看到neoma" → 这不是观点（发现过程）
-
-**优先级分析标准：**
-1. **社会现象评论**：如"中国缺乏高端杂志市场"、"熟人经济"等
-2. **价值判断**：如"Neoma杂志做得特别好"、"本质是XX"等
-3. **情感表达**：如"很惋惜愤怒"、"开心"、"失望"等
-4. **文化批判**：如"传统vs现代"、"理想vs现实"等
-5. **讽刺/嘲讽**：如"呵呵"、"笑死"、"装模作样"等
+**⚠️ 不识别为观点的内容：**
+- 简单情绪词（"很开心"、"有点难过"）
+- 具体行为（"用chatgpt搜到的"、"上班的时候"）
+- 场景描述（"就是在公司"、"在书店"）
+- 发现过程（"第一次看到"、"发现了"）
+- **补充说明**（对已有观点的细节描述）
 
 **优先级评分（1-10分）：**
-- 10分：社会现象评论、深度商业分析、文化批判
-- 9分：价值判断、情感表达、讽刺嘲讽
+- 10分：社会现象评论、深度文化批判
+- 9分：价值判断、核心情感观点
 - 6-7分：个人偏好表达
 - 4-5分：简单评价
-- 1-3分：基础描述、场景描述
+- 1-3分：补充说明、细节描述
+
+**🔥 重要指令：**
+- 仔细分析每一轮输入，判断是独立观点还是补充说明
+- 如果是补充说明（解释原因/细节/例子） → 不返回
+- 如果是独立观点（新话题/新角度/新评价对象） → 返回
+- 每个观点必须能独立生成一张有意义的图
+- 优先级高的观点（8-10分）才返回，低优先级的跳过
 
 返回JSON：
 {
   "hasOpinion": boolean,
   "opinions": [
     {
-      "type": "社会现象评论/价值判断/情感表达/文化批判/讽刺嘲讽",
+      "type": "社会现象评论/价值判断/情感核心观点/文化批判",
       "text": "观点的简短概括（5-10字）",
       "trigger": "用户原文中触发观点的句子",
       "priority": 8,
-      "reason": "分析原因"
+      "reason": "分析原因",
+      "visualConcept": "这个观点应该用什么独特的视觉概念来表达（20字以内）"
     }
   ]
 }
 
-**重要要求：**
-- 最多只返回2个最重要的观点
-- 优先选择社会现象评论、价值判断、情感表达
-- 不要返回具体行为、场景描述、发现过程
-- 观点必须是抽象的，不是具体的`
+**⚠️ 每个观点必须包含visualConcept字段，用于指导图片生成的差异化！**`
             },
             {
               role: 'user',
@@ -531,35 +552,49 @@ ${allInputs.map((input, i) => `${i + 1}. ${input}`).join('\n')}
               content: `你是观点可视化专家。任务：将用户的抽象观点转化为高质量、有诗意的视觉场景。
 
 **🎯 核心原则（高质量Editorial illustration风格）：**
-1. **🎨 使用The New Yorker风格的Editorial illustration**：高质量、有诗意的杂志插图风格
+1. **🎨 使用高质量杂志Editorial illustration风格（不引用品牌）**：高质量、有诗意的杂志插图风格
 2. **象征性场景**：用象征性、概念性的场景来体现观点，而不是直接描述
 3. **诗意表达**：场景要有诗意、有深度、有思考性
-4. **高质量设计**：像The New Yorker、The Atlantic等高端杂志的插图质量
+4. **高质量设计**：一线杂志插图品质（不引用具体品牌）
 
 **🎨 高质量Editorial illustration风格要求：**
-- Editorial illustration in The New Yorker style
+- High-quality editorial illustration style
 - Conceptual, symbolic, and poetic
 - Minimalist composition with intelligent mood
 - Muted pastel tones, painterly texture
 - Sophisticated and thoughtful visual metaphors
 
+**🚨🚨🚨 强制要求：观点场景必须使用Editorial Illustration风格！🚨🚨🚨**
+- ✅ **必须使用**：High-quality editorial illustration style
+- ✅ **风格要求**：高质量杂志插图风格（不引用具体品牌）
+- ✅ **必须包含**：精准象征物、诗意表达、概念性视觉隐喻
+- ❌ **禁止使用**：realistic photo / photorealistic / documentary style
+- ❌ **禁止使用**：写实照片风格
+- ❌ **禁止使用**：general illustration / simple illustration（必须明确是editorial illustration）
+
+**🔥🔥🔥 Editorial Illustration风格要求（核心！）：**
+- **风格关键词**：High-quality editorial illustration style
+- **视觉特征**：conceptual, symbolic, poetic, minimalist composition, intelligent mood
+- **色彩特征**：muted pastel tones, painterly texture, sophisticated color palette
+- **象征物**：精准象征物（如：论文工厂用 conveyor belts, papers, academic journals 等）
+
 **观点类型与高质量可视化策略：**
 
 **1. 社会现象（如"中国缺乏高端杂志市场"）：**
 → 生成：象征性场景，用隐喻表达社会现象
-→ 示例："中国缺乏高端杂志市场" = Editorial illustration in The New Yorker style, conceptual scene of a small isolated island shaped like an open magazine, surrounded by a vast turbulent ocean made of data, social media icons, and message bubbles; the island glows softly under sunlight, symbolizing intellectual solitude and refinement in a chaotic digital age; minimalist composition, muted pastel tones, painterly texture, intelligent and poetic mood
+→ 示例："中国缺乏高端杂志市场" = High-quality editorial illustration, conceptual scene of a small isolated island shaped like an open magazine, surrounded by a vast turbulent ocean made of data, social media icons, and message bubbles; the island glows softly under sunlight, symbolizing intellectual solitude and refinement in a chaotic digital age; minimalist composition, muted pastel tones, painterly texture, intelligent and poetic mood
 
 **2. 价值判断（如"赞赏杂志的智性水平"）：**
 → 生成：象征性场景，用隐喻表达价值判断
-→ 示例："智性水平" = Editorial illustration in The New Yorker style, conceptual scene of a lighthouse made of stacked books, casting beams of light through fog of information overload, symbolizing intellectual guidance; minimalist composition, muted pastel tones, painterly texture, intelligent and poetic mood
+→ 示例："智性水平" = High-quality editorial illustration, conceptual scene of a lighthouse made of stacked books, casting beams of light through fog of information overload, symbolizing intellectual guidance; minimalist composition, muted pastel tones, painterly texture, intelligent and poetic mood
 
 **3. 文化批判（如"传统vs现代"）：**
 → 生成：象征性场景，用隐喻表达文化冲突
-→ 示例："传统vs现代" = Editorial illustration in The New Yorker style, conceptual scene of two trees - one ancient and gnarled, one sleek and digital - their branches intertwining in a dance of conflict and harmony; minimalist composition, muted pastel tones, painterly texture, intelligent and poetic mood
+→ 示例："传统vs现代" = High-quality editorial illustration, conceptual scene of two trees - one ancient and gnarled, one sleek and digital - their branches intertwining in a dance of conflict and harmony; minimalist composition, muted pastel tones, painterly texture, intelligent and poetic mood
 
 **4. 情感表达（如"很惋惜愤怒"）：**
 → 生成：象征性场景，用隐喻表达情感
-→ 示例："很惋惜愤怒" = Editorial illustration in The New Yorker style, conceptual scene of a beautiful flower wilting in a storm of digital noise and superficial content, symbolizing the loss of authentic beauty; minimalist composition, muted pastel tones, painterly texture, intelligent and poetic mood
+→ 示例："很惋惜愤怒" = High-quality editorial illustration, conceptual scene of a beautiful flower wilting in a storm of digital noise and superficial content, symbolizing the loss of authentic beauty; minimalist composition, muted pastel tones, painterly texture, intelligent and poetic mood
 
 **用户信息：**
 - 年龄：${userInfo.age || 26}岁
@@ -574,25 +609,88 @@ ${allInputs.map((input, i) => `${i + 1}. ${input}`).join('\n')}
 **观点内容：** ${opinion.text}
 **触发句子：** ${opinion.trigger}
 
-**生成要求（高质量Editorial illustration风格）：**
-1. 场景必须是The New Yorker风格的Editorial illustration
-2. 用象征性、概念性的场景来体现观点
-3. 场景要有诗意、有深度、有思考性
-4. 使用高质量的杂志插图风格，不是简单的插画
-5. imagePrompt必须详细描述高质量Editorial illustration风格、象征性元素、诗意表达
-6. 采用高端杂志插图的视角，像The New Yorker一样呈现
+**🎯🎯🎯 核心原则：观点场景的主角识别！🎯🎯🎯**
+
+**关键规则：观点场景的主角应该是观点涉及的对象，不是用户！**
+
+**示例分析：**
+- 用户观点："学生们都只关心论文" → **主角=学生们**（展现学生们只关心论文的现象）
+- 用户观点："老板虚伪" → **主角=老板**（展现老板的虚伪）
+- 用户观点："学术体系过于结构化" → **主角=学术环境中的学生/研究者**（展现体系化现象）
+
+**⚠️ 重要：观点场景中用户是观察者，不是主角！**
+- 观点场景应该展现观点涉及的社会现象或群体
+- 用户可能在画面中作为观察者（次要位置），但主角是观点涉及的群体/现象
+
+**生成要求（必须使用Editorial Illustration风格！）：**
+1. **🚨🚨🚨 强制要求：所有观点场景都必须使用Editorial Illustration风格！🚨🚨🚨**
+   - 无论是具体群体还是抽象概念，都必须用Editorial Illustration风格
+   - 不要用写实照片风格！
+   - 使用 高质量 editorial illustration 风格（不引用具体品牌）
+   
+2. **主角设置（Illustration风格中的象征化主角）**：
+   - 观点涉及的具体人物/群体 → 象征化主角（如：学生们 → PAPER-COVERED FIGURE, PUBLICATION ROBOT）
+   - 用象征性视觉元素表达观点（如：论文工厂 = conveyor belts, papers, academic journals）
+   - 用户 → 观察者（如果有出现，在次要位置或作为观察者）
+   
+3. **场景描述要求（Illustration风格）**：
+   - 描述象征性场景（如：论文工厂、学术机器、论文流水线）
+   - 展现观点的核心现象（如：只关心论文 = 象征化为论文工厂、学术机器）
+   - 用精准象征物表达观点（如：conveyor belts, papers, academic journals, PAPER-COVERED FIGURE, PUBLICATION ROBOT）
+   
+**4. **imagePrompt要求（必须使用Editorial Illustration风格！）**：
+   - 🚨🚨🚨 **强制要求：观点场景必须使用Editorial Illustration风格！**
+   - ✅ **必须使用**：High-quality editorial illustration style
+   - ✅ **必须包含**：精准象征物、诗意表达、概念性视觉隐喻
+   - ❌ **禁止使用**：realistic photo / photorealistic / documentary style
+   - ❌ **禁止使用**：写实照片风格
+   - ❌ **禁止使用**：general illustration / simple illustration（必须明确是editorial illustration）
+
+**🔥🔥🔥 Editorial Illustration风格要求（核心！）：**
+- **风格关键词**：High-quality editorial illustration style
+- **视觉特征**：conceptual, symbolic, poetic, minimalist composition, intelligent mood
+- **色彩特征**：muted pastel tones, painterly texture, sophisticated color palette
+- **象征物**：精准象征物（如：论文工厂用 conveyor belts, papers, academic journals 等）
+
+**🎨 隐喻风格要求（极其重要！必须紧密结合用户观点）：**
+
+**核心原则：隐喻必须服务于用户的具体观点，灵活选择最合适的表现方式！**
+
+- ✅ **根据观点内容选择隐喻方式**：
+  * 涉及"道德/纯粹/坚守" → 用诗意象征（如：水晶灯塔、金色光芒、透明的孤独）
+  * 涉及"异化/机械/系统" → 可以用科幻/工业隐喻（如：人变机器、论文工厂、数字化）
+  * 涉及"压抑/束缚/窒息" → 用象征物隐喻（如：被束缚的火花、破碎的天平）
+  * 涉及"批判/愤怒/反抗" → 用戏剧化隐喻（如：风暴、撕裂、对峙）
+
+- ❌ **禁止模板化/硬编码**：
+  * 不要每次都用相同的描述（如：总是"皮肤覆盖公式、眼睛闪光、手臂金属"）
+  * 不要照搬示例，要根据具体观点创新
+  * 每个观点都应该有独特的隐喻方式
+
+- ✅ **风格灵活性**：
+  * 科幻风、诗意风、抽象风、具象风都可以
+  * 关键是：必须紧密结合用户观点的核心含义
+  * 隐喻要精准、有力、独特
+
+**隐喻选择指南（灵活运用，不要照搬）：**
+- 观点核心="道德坚守" → 诗意象征：水晶灯塔、金色光芒、透明的纯粹
+- 观点核心="学术异化" → 科幻隐喻：人变论文机器、机械化生产、数字化存在
+- 观点核心="创造力压抑" → 象征物：被束缚的火花、灰色的空间、窒息的氛围
+- 观点核心="道德沦丧" → 戏剧化：破碎的天平、崩塌的柱石、黑暗吞噬光明
+
+**记住：每个观点都要有独特的隐喻，不要重复！分析观点核心含义后再选择最贴切的表现方式！**
 
 返回JSON：
 {
   "opinion": "${opinion.text}",
   "opinionType": "${opinion.type}",
   "visualizationApproach": "可视化策略（1-2句话）",
-  "sceneDescription_CN": "中文场景描述（详细）",
-  "sceneDescription_EN": "English scene description (detailed)",
-  "imagePrompt": "Editorial illustration in The New Yorker style, conceptual scene of [具体的象征性场景描述], symbolizing [观点含义]; minimalist composition, muted pastel tones, painterly texture, intelligent and poetic mood. --ar 16:9",
-  "location": "象征性场景（如：Conceptual Social Scene, Symbolic Cultural Space）",
-  "peopleInvolved": ["象征元素1", "象征元素2", "概念元素1"],
-  "storyFragment": "高质量Editorial illustration描述（100-150字，描述象征性场景中的元素、隐喻和诗意表达，体现观点）"
+  "sceneDescription_CN": "中文场景描述（详细描述主角群体的行为，展现观点现象）",
+  "sceneDescription_EN": "English scene description (detailed description of main characters' behaviors, showing the opinion phenomenon)",
+  "imagePrompt": "🚨🚨🚨 MANDATORY EDITORIAL ILLUSTRATION STYLE! High-quality editorial illustration style. Conceptual scene of [具体的象征性场景描述，体现观点核心], symbolizing [观点含义]; symbolic elements: [精准象征物列表]; minimalist composition, muted pastel tones, painterly texture, intelligent and poetic mood, sophisticated visual metaphors. 🚨 IF user is included as observer: must describe as '${userInfo.age || 26}-year-old Chinese ${userInfo.gender}, ${userInfo.height || 165}cm, ${userInfo.hairLength || 'long hair'}'. NOT realistic photo, NOT photorealistic, NOT documentary style, NOT general illustration. --ar 16:9",
+  "location": "场景地点（如：Academic Environment, Library, Classroom）",
+  "peopleInvolved": ["主角群体1", "主角群体2", "如果有用户则作为观察者"],
+  "storyFragment": "观点叙事（100-150字，描述观点涉及的社会现象、群体行为、深层思考，体现观点的社会意义和人文价值）"
 }
 
 只返回JSON，不要其他文字！`
@@ -633,6 +731,16 @@ ${allInputs.map((input, i) => `${i + 1}. ${input}`).join('\n')}
       
       console.log('✅ [OPINION] 观点可视化场景生成完成')
       console.log('🎨 [OPINION] 观点:', scene.opinion)
+      console.log('🔍 [OPINION] 完整场景对象:', scene)
+      
+      // 🔥 验证关键字段
+      if (!scene.opinion) {
+        console.error('❌ [OPINION] 场景缺少opinion字段')
+        console.error('🔍 [OPINION] 可用字段:', Object.keys(scene))
+      }
+      if (!scene.imagePrompt) {
+        console.error('❌ [OPINION] 场景缺少imagePrompt字段')
+      }
       
       return scene
       
@@ -773,6 +881,18 @@ ${allInputs.map((input, i) => `${i + 1}. ${input}`).join('\n')}
     const realityScene = null
     
     if (opinionScene) {
+      // 🔥 验证观点场景的关键字段
+      console.log('🔍 [OPINION] 观点场景字段验证:')
+      console.log('📝 opinion:', opinionScene.opinion)
+      console.log('🎨 imagePrompt:', opinionScene.imagePrompt ? '存在' : '缺失')
+      console.log('📍 location:', opinionScene.location)
+      console.log('📖 storyFragment:', opinionScene.storyFragment ? '存在' : '缺失')
+      
+      if (!opinionScene.opinion) {
+        console.error('❌ [OPINION] 观点场景缺少opinion字段，使用默认值')
+        opinionScene.opinion = '未知观点'
+      }
+      
       const opinionSceneData = {
         title: `观点：${opinionScene.opinion}`,
         mainCharacter: 'phenomenon', // 观点场景是现象呈现，没有主角
@@ -782,7 +902,7 @@ ${allInputs.map((input, i) => `${i + 1}. ${input}`).join('\n')}
         age: null, // 观点场景没有用户，不需要年龄
         height: null,
         hairLength: null,
-        peopleCount: `${opinionScene.peopleInvolved.length} people demonstrating the phenomenon`,
+        peopleCount: `${opinionScene.peopleInvolved?.length || 0} people demonstrating the phenomenon`,
         keywords: ['opinion', 'social phenomenon', opinionScene.opinion],
         visualDetails: {
           lighting: 'natural realistic lighting',
@@ -832,6 +952,86 @@ ${allInputs.map((input, i) => `${i + 1}. ${input}`).join('\n')}
       hasOpinionScene: true,
       opinionScenesCount: opinionScenesAdded,
       realityScenesCount: 0 // 不生成现实场景
+    }
+  }
+  
+  /**
+   * 公共方法：生成观点场景
+   */
+  static async generateOpinionScenes(
+    initialPrompt: string,
+    answers: string[],
+    userInfo: any,
+    userMetadata: any
+  ): Promise<any[]> {
+    console.log('🎯 [OPINION] 开始生成观点场景')
+    console.log('🔍 [OPINION] initialPrompt:', initialPrompt)
+    console.log('🔍 [OPINION] answers:', answers)
+    
+    try {
+      // 检测观点
+      const opinionResult = await this.detectOpinions(initialPrompt, answers)
+      console.log('🔍 [OPINION] 检测到的观点数量:', opinionResult.opinions?.length || 0)
+      console.log('🔍 [OPINION] 检测到的观点:', opinionResult.opinions)
+      
+      if (!opinionResult.hasOpinion || opinionResult.opinions.length === 0) {
+        console.log('ℹ️ [OPINION] 未检测到观点，跳过观点场景生成')
+        return []
+      }
+      
+      // 🔥 去重观点（避免重复生成）
+      const uniqueOpinions = this.deduplicateOpinions(opinionResult.opinions)
+      console.log(`✅ [OPINION] 去重后的观点数量: ${opinionResult.opinions.length} → ${uniqueOpinions.length}`)
+      
+      // 🔥 生成所有不重复的观点场景（不限制数量，但已经过去重）
+      const selectedOpinions = uniqueOpinions // 使用所有去重后的观点
+      console.log(`✅ [OPINION] 将为 ${selectedOpinions.length} 个不重复的观点生成场景`)
+      console.log(`📌 [OPINION] 观点列表:`, selectedOpinions.map(o => `"${o.text}" (优先级: ${o.priority})`))
+      
+      // 生成观点场景
+      const opinionScenes = []
+      for (const opinion of selectedOpinions) {
+        const scene = await this.generateOpinionScene(opinion, initialPrompt, answers, userInfo, userMetadata)
+        if (scene) {
+          // 🔥 将原始场景转换为前端需要的格式
+          const opinionSceneData = {
+            title: `观点：${scene.opinion}`,
+            mainCharacter: 'phenomenon',
+            description: scene.sceneDescription_EN,
+            description_zh: scene.sceneDescription_CN,
+            location: scene.location,
+            age: null,
+            height: null,
+            hairLength: null,
+            peopleCount: `${scene.peopleInvolved?.length || 0} people demonstrating the phenomenon`,
+            keywords: ['opinion', 'social phenomenon', scene.opinion],
+            visualDetails: {
+              lighting: 'natural realistic lighting',
+              colorTone: 'realistic documentary style',
+              atmosphere: `objective observation of ${scene.opinionType}`,
+              objects: ['realistic setting objects'],
+              sounds: ['conversation', 'ambient sounds'],
+              clothing: 'various realistic clothing',
+              mood: 'documentary-style objective presentation'
+            },
+            storyFragment: scene.storyFragment,
+            detailedPrompt: scene.imagePrompt,
+            imagePrompt: scene.imagePrompt,
+            isOpinionScene: true,
+            opinionType: scene.opinionType,
+            opinionText: scene.opinion,
+            visualizationApproach: scene.visualizationApproach
+          }
+          opinionScenes.push(opinionSceneData)
+        }
+      }
+      
+      console.log(`✅ [OPINION] 生成了 ${opinionScenes.length} 个观点场景`)
+      return opinionScenes
+      
+    } catch (error) {
+      console.error('❌ [OPINION] 观点场景生成失败:', error)
+      return []
     }
   }
 }

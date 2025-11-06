@@ -29,7 +29,7 @@ export default function ContentCard({ data }: ContentCardProps) {
               src={data.generatedImage}
               alt={data.title}
               fill
-              className="object-cover"
+              className="object-cover object-top"
               sizes="(max-width: 768px) 50vw, 25vw"
             />
           </div>
@@ -68,7 +68,7 @@ export default function ContentCard({ data }: ContentCardProps) {
             src={data.image}
             alt={data.title}
             fill
-            className="object-cover"
+            className="object-cover object-top"
             sizes="(max-width: 768px) 50vw, 25vw"
           />
         </div>

@@ -3,16 +3,15 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Download, Trash2, Eye } from 'lucide-react'
-import Image from 'next/image'
-import { getUserInfoDescription, getUserMetadata } from '@/lib/userInfoService'
 
 interface SavedImage {
-  filename: string
+  id: string
+  imageUrl: string
   prompt: string
-  originalUrl: string
+  story: string
+  sceneTitle: string
+  contentId: string
   savedAt: string
-  size: number
-  localPath: string
 }
 
 export default function GalleryPage() {
@@ -29,143 +28,123 @@ export default function GalleryPage() {
 
   const loadSavedImages = async () => {
     try {
-      // 从本地存储加载图片信息
-      const response = await fetch('/api/saved-images')
-      if (response.ok) {
-        const data = await response.json()
-        setSavedImages(data.images || [])
+      // 从数据库加载所有用户生成的内容
+      console.log('🖼️ [GALLERY] 开始加载图片...')
+      const response = await fetch('/api/user/generated-content?limit=1000&offset=0')
+      
+      if (!response.ok) {
+        console.error('🖼️ [GALLERY] API请求失败:', response.status, response.statusText)
+        setLoading(false)
+        return
       }
+      
+      const data = await response.json()
+      console.log('🖼️ [GALLERY] API返回:', {
+        success: data.success,
+        contentsLength: data.contents?.length || 0,
+        total: data.total || 0
+      })
+      
+      if (!data.success) {
+        console.error('🖼️ [GALLERY] API返回失败:', data.error)
+        setLoading(false)
+        return
+      }
+      
+      if (!data.contents || data.contents.length === 0) {
+        console.log('🖼️ [GALLERY] 没有生成内容记录')
+        setSavedImages([])
+        setLoading(false)
+        return
+      }
+      
+      // 提取所有内容中的图片
+      const allImages: SavedImage[] = []
+      data.contents.forEach((content: any, contentIndex: number) => {
+        console.log(`🖼️ [GALLERY] 处理内容 ${contentIndex + 1}/${data.contents.length}:`, {
+          id: content.id,
+          hasImages: !!content.images,
+          imagesType: typeof content.images,
+          imageCount: content.imageCount
+        })
+        
+        if (content.images) {
+          try {
+            const images = typeof content.images === 'string' 
+              ? JSON.parse(content.images) 
+              : content.images
+            
+            console.log(`🖼️ [GALLERY] 解析图片成功，数量: ${images.length}`)
+            
+            if (Array.isArray(images) && images.length > 0) {
+              images.forEach((img: any, imgIndex: number) => {
+                if (img.imageUrl) {
+                  allImages.push({
+                    id: `${content.id}-${img.sceneIndex || imgIndex}`,
+                    imageUrl: img.imageUrl,
+                    prompt: img.prompt || img.story || content.initialPrompt || '',
+                    story: img.story || '',
+                    sceneTitle: img.sceneTitle || `场景 ${(img.sceneIndex ?? imgIndex) + 1}`,
+                    contentId: content.id,
+                    savedAt: content.createdAt
+                  })
+                } else {
+                  console.warn(`🖼️ [GALLERY] 图片 ${imgIndex} 缺少 imageUrl`)
+                }
+              })
+            } else {
+              console.warn(`🖼️ [GALLERY] images 不是有效数组或为空`)
+            }
+          } catch (error) {
+            console.error('🖼️ [GALLERY] 解析图片失败:', error, content.images)
+          }
+        } else {
+          console.log(`🖼️ [GALLERY] 内容 ${content.id} 没有图片数据`)
+        }
+      })
+      
+      console.log('🖼️ [GALLERY] 提取的图片数量:', allImages.length)
+      console.log('🖼️ [GALLERY] 图片列表预览:', allImages.slice(0, 3).map(img => ({
+        id: img.id,
+        sceneTitle: img.sceneTitle,
+        hasUrl: !!img.imageUrl
+      })))
+      
+      setSavedImages(allImages)
     } catch (error) {
-      console.error('加载图片失败:', error)
+      console.error('❌ [GALLERY] 加载图片失败:', error)
     } finally {
       setLoading(false)
     }
   }
 
-  const handleDelete = async (filename: string) => {
+  const handleDelete = async (imageId: string) => {
     if (!confirm('确定要删除这张图片吗？')) return
     
-    try {
-      const response = await fetch('/api/delete-image', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ filename })
-      })
-      
-      if (response.ok) {
-        setSavedImages(prev => prev.filter(img => img.filename !== filename))
-        if (selectedImage?.filename === filename) {
-          setSelectedImage(null)
-        }
-      }
-    } catch (error) {
-      console.error('删除图片失败:', error)
-    }
+    // 从数据库删除整个内容（暂不支持单独删除单张图片）
+    alert('删除功能即将上线！您可以在历史记录中删除整个创作内容。')
   }
 
   const handleDownload = (image: SavedImage) => {
+    // 下载图片
     const link = document.createElement('a')
-    link.href = image.localPath
-    link.download = image.filename
+    link.href = image.imageUrl
+    link.download = `${image.sceneTitle}.jpg`
+    link.target = '_blank'
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
   }
 
-  const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes'
-    const k = 1024
-    const sizes = ['Bytes', 'KB', 'MB', 'GB']
-    const i = Math.floor(Math.log(bytes) / Math.log(k))
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+  const handleViewContent = (contentId: string) => {
+    router.push(`/history/${contentId}`)
   }
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleString('zh-CN')
   }
 
-  // 用户信息组件
-  const UserProfileInfo = () => {
-    const [userInfo, setUserInfo] = useState<{description: string, metadata: any} | null>(null)
-    
-    useEffect(() => {
-      const loadUserInfo = async () => {
-        if (!mounted) return
-        
-        try {
-          const userInfoDescription = await getUserInfoDescription()
-          const userMetadata = await getUserMetadata()
-          setUserInfo({ description: userInfoDescription, metadata: userMetadata })
-        } catch (error) {
-          console.error('加载用户信息失败:', error)
-        }
-      }
-      
-      loadUserInfo()
-    }, [mounted])
-    
-    if (!mounted || !userInfo) {
-      return null
-    }
-    
-    const { description: userInfoDescription, metadata: userMetadata } = userInfo
-    
-    // 检查是否有用户信息
-    const hasUserInfo = userInfoDescription && userInfoDescription.trim() !== ''
-    const hasMetadata = userMetadata && (
-      userMetadata.corePersonalityTraits?.length > 0 ||
-      userMetadata.communicationStyle?.length > 0 ||
-      userMetadata.emotionalPattern?.length > 0
-    )
-    
-    if (!hasUserInfo && !hasMetadata) {
-      return null
-    }
-    
-    return (
-      <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-        <h3 className="text-sm font-semibold text-blue-800 mb-2">📋 您的画像分析</h3>
-        <div className="text-sm text-blue-700 space-y-2">
-          {/* 深度分析 - 隐藏，只作为后台数据存储 */}
-          {/* {hasUserInfo && (
-            <div className="flex items-start space-x-2">
-              <span className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></span>
-              <span>{userInfoDescription}</span>
-            </div>
-          )} */}
-          
-          {hasMetadata && (
-            <div className="mt-3 space-y-1">
-              {userMetadata.corePersonalityTraits?.length > 0 && (
-                <div>
-                  <span className="font-medium text-blue-800">核心特质：</span>
-                  <span>{userMetadata.corePersonalityTraits.slice(0, 3).join('、')}</span>
-                  {userMetadata.corePersonalityTraits.length > 3 && <span>等</span>}
-                </div>
-              )}
-              
-              {userMetadata.communicationStyle?.length > 0 && userMetadata.communicationStyle[0] !== '待分析' && (
-                <div>
-                  <span className="font-medium text-blue-800">沟通风格：</span>
-                  <span>{userMetadata.communicationStyle.slice(0, 2).join('、')}</span>
-                </div>
-              )}
-              
-              {userMetadata.emotionalPattern?.length > 0 && userMetadata.emotionalPattern[0] !== '待分析' && (
-                <div>
-                  <span className="font-medium text-blue-800">情感模式：</span>
-                  <span>{userMetadata.emotionalPattern.slice(0, 2).join('、')}</span>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-        <div className="mt-2 text-xs text-blue-600">
-          您的个性化图片画廊，展现您的独特风格
-        </div>
-      </div>
-    )
-  }
+  // 🔒 用户画像数据不对外暴露，仅用于后台分析和优化生成内容
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -173,9 +152,11 @@ export default function GalleryPage() {
       <header className="bg-white border-b border-gray-200 p-4 sticky top-0 z-10">
         <div className="max-w-md mx-auto flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className="font-handwriting text-xl text-magazine-primary">
-              logo
-            </div>
+            <img 
+              src="/inflow-logo.jpeg" 
+              alt="logo" 
+              className="w-20 h-14 rounded-lg"
+            />
             <button
               onClick={() => router.back()}
               className="flex items-center space-x-1 text-gray-600 hover:text-gray-900"
@@ -191,24 +172,28 @@ export default function GalleryPage() {
 
       {/* Main Content */}
       <main className="max-w-md mx-auto p-4">
-        {/* User Profile Info - 用户信息显示 */}
-        <UserProfileInfo />
-        
         {loading ? (
           <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-magazine-primary"></div>
           </div>
         ) : savedImages.length === 0 ? (
           <div className="text-center py-12">
             <div className="text-gray-400 text-6xl mb-4">🖼️</div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">暂无保存的图片</h3>
-            <p className="text-gray-500 mb-4">生成一些图片后，它们会显示在这里</p>
-            <button
-              onClick={() => router.push('/')}
-              className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors"
-            >
-              开始生成
-            </button>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">暂无图片</h3>
+            <p className="text-gray-500 mb-4">
+              {loading ? '正在加载图片...' : '开始创作后，你的所有图片都会显示在这里'}
+            </p>
+            <div className="space-y-2">
+              <button
+                onClick={() => router.push('/home')}
+                className="bg-magazine-primary text-white px-6 py-2 rounded-lg hover:bg-magazine-secondary transition-colors"
+              >
+                开始创作
+              </button>
+              <p className="text-xs text-gray-400">
+                💡 提示：在主页输入你的想法，生成专属图片
+              </p>
+            </div>
           </div>
         ) : (
           <>
@@ -223,36 +208,36 @@ export default function GalleryPage() {
             {/* Image Grid */}
             <div className="grid grid-cols-2 gap-4">
               {savedImages.map((image, index) => (
-                <div key={image.filename} className="bg-white rounded-lg shadow-sm overflow-hidden">
+                <div key={image.id} className="bg-white rounded-lg shadow-sm overflow-hidden group">
                   <div className="aspect-square relative">
-                    <Image
-                      src={image.localPath}
-                      alt={image.prompt}
-                      fill
-                      className="object-cover cursor-pointer"
+                    <img
+                      src={image.imageUrl}
+                      alt={image.sceneTitle}
+                      className="w-full h-full object-cover cursor-pointer transition-transform group-hover:scale-105"
                       onClick={() => setSelectedImage(image)}
-                      quality={100}
-                      unoptimized={true}
+                      loading="lazy"
                     />
                     <div className="absolute top-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded">
                       #{index + 1}
                     </div>
+                    <div className="absolute bottom-2 left-2 bg-black/50 text-white text-xs px-2 py-1 rounded">
+                      {image.sceneTitle}
+                    </div>
                   </div>
                   <div className="p-3">
                     <p className="text-sm text-gray-900 line-clamp-2 mb-2">
-                      {image.prompt}
+                      {image.prompt.length > 50 ? image.prompt.substring(0, 50) + '...' : image.prompt}
                     </p>
-                    <div className="flex items-center justify-between text-xs text-gray-500">
+                    <div className="flex items-center justify-between text-xs text-gray-500 mb-2">
                       <span>{formatDate(image.savedAt)}</span>
-                      <span>{formatFileSize(image.size)}</span>
                     </div>
-                    <div className="flex space-x-2 mt-2">
+                    <div className="flex space-x-2">
                       <button
-                        onClick={() => setSelectedImage(image)}
-                        className="flex-1 flex items-center justify-center space-x-1 py-1 px-2 bg-blue-50 text-blue-600 rounded text-xs hover:bg-blue-100 transition-colors"
+                        onClick={() => handleViewContent(image.contentId)}
+                        className="flex-1 flex items-center justify-center space-x-1 py-1 px-2 bg-purple-50 text-purple-600 rounded text-xs hover:bg-purple-100 transition-colors"
                       >
                         <Eye className="w-3 h-3" />
-                        <span>查看</span>
+                        <span>详情</span>
                       </button>
                       <button
                         onClick={() => handleDownload(image)}
@@ -260,13 +245,6 @@ export default function GalleryPage() {
                       >
                         <Download className="w-3 h-3" />
                         <span>下载</span>
-                      </button>
-                      <button
-                        onClick={() => handleDelete(image.filename)}
-                        className="flex-1 flex items-center justify-center space-x-1 py-1 px-2 bg-red-50 text-red-600 rounded text-xs hover:bg-red-100 transition-colors"
-                      >
-                        <Trash2 className="w-3 h-3" />
-                        <span>删除</span>
                       </button>
                     </div>
                   </div>
@@ -280,9 +258,9 @@ export default function GalleryPage() {
       {/* Image Modal */}
       {selectedImage && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-lg w-full max-h-[90vh] overflow-hidden">
+          <div className="bg-white rounded-lg max-w-lg w-full max-h-[90vh] overflow-y-auto">
             <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-gray-900">图片详情</h3>
+              <h3 className="text-lg font-semibold text-gray-900">{selectedImage.sceneTitle}</h3>
               <button
                 onClick={() => setSelectedImage(null)}
                 className="text-gray-400 hover:text-gray-600"
@@ -292,54 +270,47 @@ export default function GalleryPage() {
             </div>
             
             <div className="p-4">
-              <div className="aspect-square relative mb-4">
-                <Image
-                  src={selectedImage.localPath}
-                  alt={selectedImage.prompt}
-                  fill
-                  className="object-cover rounded-lg"
-                  quality={100}
-                  unoptimized={true}
+              <div className="aspect-square relative mb-4 rounded-lg overflow-hidden">
+                <img
+                  src={selectedImage.imageUrl}
+                  alt={selectedImage.sceneTitle}
+                  className="w-full h-full object-cover"
                 />
               </div>
               
               <div className="space-y-3">
                 <div>
-                  <label className="text-sm font-medium text-gray-500">提示词</label>
+                  <label className="text-sm font-medium text-gray-500">场景描述</label>
                   <p className="text-sm text-gray-900 mt-1">{selectedImage.prompt}</p>
                 </div>
                 
-                <div className="grid grid-cols-2 gap-4">
+                {selectedImage.story && selectedImage.story !== selectedImage.prompt && (
                   <div>
-                    <label className="text-sm font-medium text-gray-500">文件名</label>
-                    <p className="text-sm text-gray-900 mt-1">{selectedImage.filename}</p>
+                    <label className="text-sm font-medium text-gray-500">故事内容</label>
+                    <p className="text-sm text-gray-700 mt-1">{selectedImage.story}</p>
                   </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">文件大小</label>
-                    <p className="text-sm text-gray-900 mt-1">{formatFileSize(selectedImage.size)}</p>
-                  </div>
-                </div>
+                )}
                 
                 <div>
-                  <label className="text-sm font-medium text-gray-500">保存时间</label>
+                  <label className="text-sm font-medium text-gray-500">创作时间</label>
                   <p className="text-sm text-gray-900 mt-1">{formatDate(selectedImage.savedAt)}</p>
                 </div>
               </div>
               
               <div className="flex space-x-3 mt-6">
                 <button
-                  onClick={() => handleDownload(selectedImage)}
+                  onClick={() => handleViewContent(selectedImage.contentId)}
                   className="flex-1 flex items-center justify-center space-x-2 py-2 px-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                >
+                  <Eye className="w-4 h-4" />
+                  <span>查看完整创作</span>
+                </button>
+                <button
+                  onClick={() => handleDownload(selectedImage)}
+                  className="flex-1 flex items-center justify-center space-x-2 py-2 px-4 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
                 >
                   <Download className="w-4 h-4" />
                   <span>下载</span>
-                </button>
-                <button
-                  onClick={() => handleDelete(selectedImage.filename)}
-                  className="flex-1 flex items-center justify-center space-x-2 py-2 px-4 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  <span>删除</span>
                 </button>
               </div>
             </div>

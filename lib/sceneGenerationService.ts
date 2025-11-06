@@ -53,7 +53,9 @@ export class SceneGenerationService {
   ): Promise<SceneGenerationResult> {
     console.log('🎬 [SCENE-GEN] 开始生成场景')
     
-    // 生成场景的输入 = 当前键入 + 本轮回答（不包含历史背景）
+    // 🔥 场景生成的核心输入 = 当前键入 + 本轮回答
+    // contextHistory 仅用于理解上下文背景，不用于生成场景内容
+    // questions 仅用于理解问答配对，不影响场景生成
     const currentInputs = [initialPrompt, ...answers].filter(input => input && input.trim())
 
     try {
@@ -61,12 +63,93 @@ export class SceneGenerationService {
       let userInfo = await getUserInfo()
       let userMetadata = await getUserMetadata()
       
-      console.log('🔍 [SCENE-GEN] 用户元数据原始数据:', {
-        hasSubconscious: !!userMetadata.subconscious,
-        frequentLocations: userMetadata.subconscious?.frequentLocations || [],
-        fashionStyle: userMetadata.subconscious?.fashionStyle || [],
-        aestheticPreferences: userMetadata.subconscious?.aestheticPreferences || []
+      // 🔍 详细打印用户信息和元数据
+      console.log('🔍 [SCENE-GEN] ========== 用户数据加载 ==========')
+      console.log('👤 [SCENE-GEN] 用户基本信息:', {
+        name: userInfo?.name,
+        age: userInfo?.age,
+        location: userInfo?.location,
+        gender: userInfo?.gender,
+        personality: userInfo?.personality
       })
+      
+      if (!userMetadata) {
+        console.warn('⚠️ [SCENE-GEN] 用户元数据为空')
+        userMetadata = {} // 防止后续访问出错
+      } else {
+        console.log('📊 [SCENE-GEN] 用户元数据详情:')
+        const metaSummary: any = {
+          核心性格特质: userMetadata.corePersonalityTraits || [],
+          沟通风格: userMetadata.communicationStyle || [],
+          情感模式: userMetadata.emotionalPattern || [],
+          决策风格: userMetadata.decisionMakingStyle || [],
+          压力反应: userMetadata.stressResponse || [],
+          职业天赋: userMetadata.careerAptitude || [],
+          人际关系优势: userMetadata.interpersonalStrengths || [],
+          人际关系挑战: userMetadata.interpersonalChallenges || [],
+          社交能量模式: userMetadata.socialEnergyPattern || [],
+          美学偏好: userMetadata.aestheticPreferences || [],
+          生活方式爱好: userMetadata.lifestyleHobbies || [],
+          活动偏好: userMetadata.activityPreferences || [],
+          时尚风格: userMetadata.fashionStyle || [],
+          常去地点: (userMetadata.frequentLocations || userMetadata.subconscious?.frequentLocations || []),
+          喜欢场所: (userMetadata.favoriteVenues || []),
+          对话洞察: userMetadata.conversationInsights || [],
+          行为模式: userMetadata.behaviorPatterns || [],
+          风格洞察: userMetadata.styleInsights || []
+        }
+        
+        // 🔥 使用console.log显示具体内容
+        Object.entries(metaSummary).forEach(([key, value]) => {
+          if (Array.isArray(value) && value.length > 0) {
+            console.log(`  ✅ ${key}:`, value)
+          } else if (Array.isArray(value) && value.length === 0) {
+            console.log(`  ⚪ ${key}: [] (空)`)
+          } else {
+            console.log(`  📝 ${key}:`, value)
+          }
+        })
+      }
+      console.log('🔍 [SCENE-GEN] ====================================')
+      
+      // 显示关键字段的前几项内容（避免过多）
+      const frequentLocations = userMetadata.frequentLocations || userMetadata.subconscious?.frequentLocations || []
+      if (frequentLocations.length > 0) {
+        console.log('  📍 常去地点示例:', frequentLocations.slice(0, 5).join(', '), frequentLocations.length > 5 ? `...共${frequentLocations.length}项` : '')
+      }
+      const favoriteVenues = userMetadata.favoriteVenues || []
+      if (favoriteVenues.length > 0) {
+        console.log('  🏛️ 喜欢场所示例:', favoriteVenues.slice(0, 5).join(', '), favoriteVenues.length > 5 ? `...共${favoriteVenues.length}项` : '')
+      }
+      
+      // 如果有关键字段为空，给出警告
+      if (!frequentLocations.length) {
+        console.warn('⚠️ [SCENE-GEN] 用户常去地点为空，可能影响场景生成质量')
+      }
+      const fashionStyle = userMetadata.fashionStyle || userMetadata.subconscious?.fashionStyle || []
+      if (!fashionStyle.length) {
+        console.warn('⚠️ [SCENE-GEN] 用户时尚风格为空')
+      }
+      const aestheticPrefs = userMetadata.aestheticPreferences || userMetadata.subconscious?.aestheticPreferences || []
+      if (!aestheticPrefs.length) {
+        console.warn('⚠️ [SCENE-GEN] 用户美学偏好为空')
+      }
+      
+      // 🔥 调试：打印用户输入的核心内容
+      console.log('🎯 [SCENE-GEN] 用户输入核心分析:')
+      console.log('📝 元键入（场景生成核心）:', initialPrompt)
+      console.log('💬 后续回答（补充细节）:', answers)
+      console.log('🔄 历史背景（仅用于理解上下文，不生成场景）:', contextHistory || '无')
+      console.log('❓ 问题列表（仅用于提取上下文，不影响场景内容）:', questions)
+      
+      // 🔥 场景生成的核心输入 = 当前键入 + 本轮回答（不包含历史背景，但历史背景用于理解上下文）
+      const sceneGenerationInputs = [initialPrompt, ...answers].filter(input => input && input.trim())
+      console.log('🎯 [SCENE-GEN] 场景生成核心输入（只基于这些生成场景）:', sceneGenerationInputs)
+      
+      // 🔥 重要：场景生成必须100%基于 currentInputs（initialPrompt + answers）
+      // questions 只用于理解上下文，不用于生成场景内容
+      // contextHistory 只用于理解上下文背景，不用于生成场景
+      
       
       // 🔥 确保用户信息完整性，添加默认值
       if (!userInfo) {
@@ -94,20 +177,9 @@ export class SceneGenerationService {
         console.warn('⚠️ [SCENE-GEN] 头发信息缺失，设置为默认值：长发')
       }
       
-      // 🔥 增强metadata：确保有足够的用户信息
-      const sceneMetadata = {
-        frequentLocations: (userMetadata.subconscious?.frequentLocations || []).slice(0, 5).length > 0 
-          ? (userMetadata.subconscious?.frequentLocations || []).slice(0, 5)
-          : ['办公室', '咖啡厅', '地铁', '家', '商场'], // 默认地点
-        fashionStyle: (userMetadata.subconscious?.fashionStyle || []).slice(0, 3).length > 0
-          ? (userMetadata.subconscious?.fashionStyle || []).slice(0, 3)
-          : ['简约', '现代', '舒适'], // 默认风格
-        aestheticPreferences: (userMetadata.subconscious?.aestheticPreferences || []).slice(0, 3).length > 0
-          ? (userMetadata.subconscious?.aestheticPreferences || []).slice(0, 3)
-          : ['极简', '自然', '艺术'] // 默认审美
-      }
-      
-      console.log('🎬 [SCENE-GEN] 增强metadata（确保有内容）:', sceneMetadata)
+      // 🔥 元数据只用于 narrative 生成，不用于场景生成
+      // 场景生成必须100%基于用户输入，不能受元数据影响
+      console.log('🎬 [SCENE-GEN] 元数据已加载，但仅用于narrative生成，不干扰场景生成')
       
       // 检查用户信息是否完整
       if (!userInfo?.name || !userInfo?.gender || !userInfo?.location) {
@@ -160,15 +232,21 @@ export class SceneGenerationService {
 
 **🚨🚨🚨 【最高优先级】本次对话主题 🚨🚨🚨**
 
-**📌 用户本次对话的完整输入（按时间顺序）：**
+**📌 用户本次对话的完整输入（按时间顺序 - 这是场景生成的唯一依据！）：**
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ${currentInputs.map((input, i) => `
 **输入 ${i + 1}**: "${input}"
-${i === 0 ? '→ 对话起点（核心主题）' : '→ 补充细节（同等重要）'}
+${i === 0 ? '→ 元键入（绝对核心！场景生成的主要依据）' : '→ 补充细节（不能覆盖核心！）'}
 `).join('')}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-**🔥🔥🔥 死刑规则：必须只基于上述输入生成场景！**
+${contextHistory ? `**📖 历史背景（仅用于理解上下文，不生成场景）：**
+${contextHistory}
+
+⚠️ **重要：** 历史背景只用于理解整体上下文，不能用于生成场景！场景必须100%基于上面的"用户本次对话的完整输入"！
+` : ''}
+
+**🔥🔥🔥 死刑规则：场景生成必须100%基于"用户本次对话的完整输入"，不能使用历史背景或问题列表！** 🔥🔥🔥
 
 **❌ 绝对禁止生成以下metadata话题（违反死刑）：**
 - ❌ "AI创业"、"AI创业愿景"、"产品设计"（这是metadata，不是本次对话！）
@@ -384,11 +462,13 @@ ${i === 0 ? '→ 对话起点（核心主题）' : '→ 补充细节（同等重
 **从用户实际输入中提取：**
 用户键入："${initialPrompt}"
 
-用户问答记录（带上下文）：
-${questions.map((q, i) => `
+**问答配对（仅用于理解上下文，不影响场景生成）：**
+${questions.length > 0 && answers.length > 0 ? questions.slice(0, answers.length).map((q, i) => `
 Q${i + 1}: ${q}
 A${i + 1}: ${answers[i] || '无'}
-`).join('')}
+`).join('') : '（无问答记录）'}
+
+⚠️ **重要：** 上面的问答配对只用于理解用户回答对应的问题，不能用于生成场景！场景必须100%基于"用户本次对话的完整输入"（上面的元键入和后续回答）！
 
 用户自我认知：${userInfo?.personality || '暂无'}
 
@@ -490,7 +570,7 @@ A${i + 1}: ${answers[i] || '无'}
 ❌ 时间点事件重复出现在多个场景
 ❌ 擅自改变用户说的场景细节（线上→线下、在家→咖啡厅）
 
-**⚠️⚠️⚠️ 场景数量要求：精简！只生成用户明确提到的事件！最多2-3个！ ⚠️⚠️⚠️**
+**⚠️⚠️⚠️ 场景数量要求：基于用户具体回答！根据用户提到的具体事件生成场景！最多4个！ ⚠️⚠️⚠️**
 
 **场景生成原则（严格遵守！）：**
 - **每个关键事件/moment = 一个独立场景**
@@ -737,26 +817,77 @@ Scene 2: **Reality [用户实际说的场景]**
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-**🔥🔥🔥 用户物理外观信息（必须在每个场景description中包含！）🔥🔥🔥**
-- **性别（死刑线！绝对不能错！）**：${userGender}（${userInfo?.gender}）
-- 年龄：${userAge}岁（注意：不同事件时年龄不同，如高考18岁、出国19岁）
-- 身高：${userHeight}cm
-- 体重：${userWeight}kg
-- 头发：${userInfo?.hairLength || '短发'}  ⚠️ 这个必须在description中写出来！
-- 所在地：${userLocation}
+**🚨🚨🚨 用户物理外观信息（死刑线！每个场景description必须包含！）🚨🚨🚨**
+
+**当前用户信息（必须严格遵守！）：**
+- **性别**：${userInfo?.gender === 'female' ? 'female（女性）' : 'male（男性）'} ⚠️ 这是${userInfo?.gender}，绝对不能写错！
+- **年龄**：${userAge}岁（注意：不同事件时年龄不同，如高考18岁、出国19岁）
+- **身高**：${userHeight}cm
+- **体重**：${userWeight}kg
+- **头发**：${userInfo?.hairLength || '长发'}
 
 **⚠️⚠️⚠️ 死刑规则：每个场景的description必须包含完整且正确的人物描述！⚠️⚠️⚠️**
 
-**正确格式（必须严格遵守）：**
+**强制格式（必须严格遵守，不能改变任何数值！）：**
 - 用户是女性 → description开头："${userAge}-year-old Chinese female, ${userHeight}cm, ${userInfo?.hairLength || 'long hair'}, wearing..."
 - 用户是男性 → description开头："${userAge}-year-old Chinese male, ${userHeight}cm, ${userInfo?.hairLength || 'short hair'}, wearing..."
 
-**当前用户性别：${userInfo?.gender === 'female' ? 'female（女性）' : 'male（男性）'}**
-**所以description必须写："${userAge}-year-old Chinese ${userInfo?.gender === 'female' ? 'female' : 'male'}, ..."**
+**⚠️⚠️⚠️ 检查清单（生成前必须确认）：**
+□ description中是否写的是"${userAge}-year-old Chinese ${userInfo?.gender === 'female' ? 'female' : 'male'}"？
+□ 是否包含了"${userHeight}cm"？
+□ 是否包含了"${userInfo?.hairLength || 'long hair'}"？
+□ 性别是否正确？（当前是${userInfo?.gender}）
 
-❌ 绝对禁止：写错性别！如果用户是female，不能写male！如果用户是male，不能写female！
+❌ 绝对禁止：写错性别！如果用户是${userInfo?.gender}，description必须写"${userInfo?.gender === 'female' ? 'female' : 'male'}"！
+❌ 绝对禁止：写错年龄！description必须写"${userAge}-year-old"！
+❌ 绝对禁止：写错身高！description必须写"${userHeight}cm"！
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🚨🚨🚨 【超级死刑规则】身份幻想/假想输入的基础场景生成要求 🚨🚨🚨
 
 用户核心输入：${initialPrompt}
+
+**第一步：判断输入类型**
+
+**类型A：纯现实事件**（如"我今天被老板批评了"、"我在开会时同事说了××"）
+→ 基础场景 = 现实场景（描述实际发生的事）
+
+**类型B：身份幻想/假想**（如"我觉得自己是反社会女反派"、"我要是19岁辍学创业"）
+→ 基础场景 = **用户思考/想象这些幻想时的现实状态**
+→ ⚠️ 不要在基础场景中直接生成戏剧化的假想画面！
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+**【类型B：身份幻想/假想输入】的基础场景生成规则（死刑线！）：**
+
+**核心原则：基础场景 = 现实中思考/想象的状态，不是幻想本身！**
+
+**✅ 正确做法（基础场景）：**
+- 描述用户在**现实中**思考、想象这些幻想的状态
+- 地点：书房、咖啡馆、卧室、办公室等现实地点
+- 动作：坐着、站着、走路、躺着等日常动作
+- 状态：思考、沉思、想象、脑海中浮现等
+
+**示例（正确）：**
+- 标题："思考女反派身份" / "想象反社会特质"
+- Description: "26-year-old Chinese female sitting in her study room at night, 165cm, long hair, 
+  thoughtful expression while imagining herself as an antisocial villain like Hannibal, 
+  hands resting on desk, dim lighting from laptop screen, realistic home setting"
+- Story: "她坐在书房里，脑海中想象着自己作为反社会女反派的画面。就像汉尼拔那样，冷静、精致、危险..."
+
+**❌ 错误做法（基础场景中不要生成这些！）：**
+- ❌ 戏剧化场景："她站在天台边缘，俯视城市..." ← 这是假想场景，不是基础场景！
+- ❌ 角色扮演场景："冷血女反派站在阴影中..." ← 这是假想场景，不是基础场景！
+- ❌ 电影感场景："dramatic noir lighting, cinematic villain pose" ← 这是假想场景！
+
+**记住：**
+- **基础场景** = 用户在现实中思考/想象的状态（普通、日常、写实）
+- **假想场景** = 用户想象中的戏剧化画面（会由 hypotheticalSceneService 生成）
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 聊天记录：
 ${questions.map((q, i) => `问题${i+1}: ${q}`).join('\n')}
@@ -801,18 +932,14 @@ ${answers.map((a, i) => `回答${i+1}: ${a}`).join('\n')}
 用户自我认知（重要：这是用户对自己的整体描述，请深度理解并体现）：
 ${userInfo?.personality || '暂无自我描述'}
 
-用户元数据深度分析（辅助参考，帮助理解用户的行为模式，不要直接使用这些标签）：
-- 核心性格特征：${JSON.stringify(userMetadata.corePersonalityTraits || [])}
-- 沟通风格：${JSON.stringify(userMetadata.communicationStyle || [])}
-- 情感模式：${JSON.stringify(userMetadata.emotionalPattern || [])}
-- 决策风格：${JSON.stringify(userMetadata.decisionMakingStyle || [])}
-- 压力应对：${JSON.stringify(userMetadata.stressResponse || [])}
-- 常去地点：${(userMetadata as any).frequentLocations || '[]'}
-- 喜欢的场所：${(userMetadata as any).favoriteVenues || '[]'}
+**🚨🚨🚨 重要：元数据已被完全禁用，场景生成必须100%基于用户输入！🚨🚨🚨**
 
-**🔥🔥🔥 最高优先级：当前键入 vs 历史背景（死刑线！）🔥🔥🔥**
-
-**⚠️⚠️⚠️ 核心规则：只基于当前键入生成场景！历史背景只是上下文！**
+**⚠️⚠️⚠️ 场景生成规则（绝对遵守）：**
+- ❌ **绝对禁止**：使用任何元数据（包括性格特征、美学偏好、常去地点等）生成场景
+- ❌ **死刑案例**：用户说"讨厌卷的环境" → 元数据不能让它变成"喜欢学术"
+- ❌ **死刑案例**：用户说"创造力被压抑" → 场景必须体现"压抑"，不能变成"自由创造"
+- ✅ **场景生成**：必须100%基于用户元键入和回答，不允许任何推测或元数据影响
+- ✅ **元数据用途**：仅用于后续narrative生成，帮助理解用户可能的想法（但不改变场景本身）
 
 **🔥🔥🔥 场景标题语言规则（死刑线！）：**
 - **title字段必须与用户输入语言一致！**
@@ -820,39 +947,216 @@ ${userInfo?.personality || '暂无自我描述'}
 - 用户用英文输入 → title用英文
 - ❌ 死刑案例：用户中文输入，你生成英文title → 死刑！
 
-**当前键入（生成场景的唯一来源）：**
+**元键入（生成场景的绝对核心）：**
 "${initialPrompt}"
-→ 只生成这个键入的场景
+→ 这是用户最核心的观点和情绪
+→ 场景必须围绕这个核心展开
 → 场景数量：灵活（1-3个，根据内容丰富度）
 → title语言：与"${initialPrompt}"的语言一致！
 
-**历史背景（只用于理解上下文，绝对不生成场景）：**
-${contextHistory ? `"${contextHistory}"` : '无'}
-→ 帮助理解"当时"、"那时候"是什么场景
-→ ❌ 绝对不要为历史背景生成场景！
+**🚨🚨🚨 身份幻想/自我宣言判断（最高优先级！由你AI自行判断）🚨🚨🚨**
 
-**用户回答（补充细节）：**
+**第一步：判断元键入类型**
+请分析元键入"${initialPrompt}"是否属于以下任一类型：
+- 身份宣言（如"我觉得自己是××"、"我就是××"、"我像个××"）
+- 自我标签（如"我本质上是××"、"我天生××"）
+- **假设性人生**（如"如果我××"、"要是我××"、"假如我××"、"我要是没××"）← 🎬 特殊处理！
+- 角色幻想（如"我是女版××"、"我像汉尼拔"）
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎬 **【假设性人生/身份幻想】检测到时的基础场景处理规则**
+
+**如果元键入属于"假设性人生"或"身份幻想"（如"我要是没出国留学"、"我觉得自己是女反派"），基础场景应该生成：**
+
+**现实场景 - 用户在现实中思考/想象的画面：**
+
+🚨🚨🚨 **强制要求：基础场景必须是纯现实、纯写实，不要电影感！** 🚨🚨🚨
+
+1. **年龄/时间：**
+   - ✅ 26岁（用户现在的年龄）
+   - ❌ 不要写"19岁"、"20岁"等假想年龄
+
+2. **环境：**
+   - ✅ 现实环境：书房、书桌、卧室、办公室、咖啡厅等
+   - ❌ 不要写假想环境：硅谷办公室、天台、投资人会议室等
+
+3. **状态：**
+   - ✅ 正在思考、想象、回忆、内心独白
+   - ✅ "她坐在书桌前"、"她独自在卧室"、"她躺在床上"
+   - ❌ 不要写行动场景："她在创业"、"她见投资人"、"她俯视城市"
+
+4. **视觉风格：**
+   - ✅ **纯写实，无电影感元素**
+   - ❌ 不要加"CINEMATIC"、"letterbox black bars"、"film grain"等
+   - ❌ 不要加电影比例、胶片质感等
+   - ✅ 只用自然光、真实场景描述
+
+**示例（正确的现实场景）：**
+"26-year-old Chinese female, 165cm, long hair, sitting at desk in her bedroom, late at night, 
+laptop screen showing Silicon Valley startup articles, natural desk lamp lighting, thoughtful 
+expression while imagining alternate life path, fingers resting on keyboard, realistic photography"
+
+**示例（错误 - 太像假想场景）：**
+❌ "19-year-old Chinese female in Silicon Valley startup office..." ← 这是假想场景！
+❌ "with cinematic letterbox black bars..." ← 现实场景不要电影感！
+❌ "standing on rooftop overlooking city..." ← 这是假想/身份幻想场景！
+
+**❌ 不要生成假想场景本身！**
+- ❌ 不要生成"19岁的她在硅谷创业"（这个由 hypotheticalSceneService 生成）
+- ❌ 不要生成"她作为女反派俯视城市"（这个由 hypotheticalSceneService 生成）
+- ✅ 基础场景只生成"26岁的她在书桌前，想象着19岁辍学创业..."
+
+**假想场景本身由 hypotheticalSceneService.ts 专门处理，会体现：**
+- 时间反差（19岁 vs 26岁）
+- 穿着反差（hoodie vs 现在的穿着）
+- 地点反差（硅谷 vs 现在的地方）
+- 电影黑边和"ALTERNATE TIMELINE"标识
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+**⚠️⚠️⚠️ 基础场景不再生成身份幻想场景本身！**
+
+**原有的身份幻想规则（如"女反派俯视城市"）已移至 hypotheticalSceneService.ts**
+
+**基础场景只生成现实中思考/体验的画面：**
+- ✅ "26岁的她在书房里，思考着自己的反社会倾向..."
+- ✅ "她独自坐在办公室，感受到内心的冷漠和疏离..."
+- ❌ 不要生成"她作为女反派站在天台俯视城市"（这个由 hypotheticalSceneService 生成）
+
+**假想场景服务会生成身份幻想的象征性画面，带有：**
+- 强烈的角色感（女反派、女版汉尼拔）
+- 戏剧化姿态和表情
+- 电影黑边标识
+
+**🚨🚨🚨 核心情绪检测（必须体现）：**
+${initialPrompt.match(/讨厌|压抑|批判|反对|不满|愤怒|失望|沮丧/g) ? 
+  `检测到负面情绪：${initialPrompt.match(/讨厌|压抑|批判|反对|不满|愤怒|失望|沮丧/g)?.join(', ') || ''}` : 
+  '未检测到明显负面情绪'}
+
+**🚨🚨🚨 场景描述必须体现用户核心观点（死刑线！）🚨🚨🚨**
+
+**用户核心观点提取：**
+${(() => {
+  const allInputs = [initialPrompt, ...answers].join(' ')
+  const corePoints = []
+  if (allInputs.includes('只关心发文章') || allInputs.includes('只关心论文') || allInputs.includes('卷顶会')) {
+    corePoints.push('学生们只关心发文章、卷顶会、生产垃圾')
+  }
+  if (allInputs.includes('生产垃圾') || allInputs.includes('没用的垃圾')) {
+    corePoints.push('论文生产垃圾、没用的垃圾')
+  }
+  if (allInputs.includes('辅导学生')) {
+    corePoints.push('用户辅导学生')
+  }
+  if (allInputs.includes('挣他们钱')) {
+    corePoints.push('辅导挣学生钱')
+  }
+  return corePoints.length > 0 
+    ? `检测到核心观点：\n${corePoints.map(p => `- ${p}`).join('\n')}\n\n⚠️⚠️⚠️ 每个场景的description必须体现这些核心观点！⚠️⚠️⚠️` 
+    : '未检测到明显核心观点'
+})()}
+
+**场景描述要求（必须体现用户核心观点）：**
+- 如果用户说"学生们只关心发文章" → description必须写："students frantically typing papers, discussing publication metrics, papers scattered everywhere, academic journals piled high, NO discussion of academic truth, ONLY focus on publishing"
+- 如果用户说"生产垃圾" → description必须写："scattered papers that appear meaningless, mechanical paper production, no genuine academic pursuit visible"
+- 如果用户说"卷顶会" → description必须写："students obsessed with top-tier conferences, calculating impact factors, discussing submission strategies"
+
+**⚠️⚠️⚠️ 死刑规则：description必须体现用户的核心观点，不能只是客观描述！⚠️⚠️⚠️**
+- ❌ 错误："Students working on papers" → 太客观，没有体现"只关心发文章"！
+- ✅ 正确："Students frantically typing papers, discussing publication metrics, NO discussion of academic truth, ONLY focus on publishing" → 体现了"只关心发文章"！
+
+**🔥🔥🔥 Narrative生成要求（结合用户元数据性格 + 用户实际输入）🔥🔥🔥**
+
+**Narrative生成策略（双重结合）：**
+
+**第一步：提取用户实际输入的核心内容**
+- 用户实际说的具体内容（如："学生们只关心发文章"、"卷顶会"、"生产垃圾"、"辅导学生"、"挣他们钱"）
+- 用户实际观察到的现象（如："辅导学生时看到他们只关心论文"）
+- 用户的实际感受（如："厌恶"、"反感"、"没救"）
+
+**第二步：结合用户元数据的性格特征来理解和表达**
+
+**用户核心性格特质（从元数据获取）：**
+${(() => {
+  if (userMetadata?.corePersonalityTraits && Array.isArray(userMetadata.corePersonalityTraits) && userMetadata.corePersonalityTraits.length > 0) {
+    return `- ${userMetadata.corePersonalityTraits.slice(0, 3).join('、')}（用户的核心性格特质）`
+  }
+  if (userMetadata?.subconscious?.coreTraits && Array.isArray(userMetadata.subconscious.coreTraits) && userMetadata.subconscious.coreTraits.length > 0) {
+    return `- ${userMetadata.subconscious.coreTraits.slice(0, 3).join('、')}（用户的核心性格特质）`
+  }
+  if (userInfo?.personality) {
+    return `- ${userInfo.personality}（用户的自我认知）`
+  }
+  return '- 未获取到性格特质，使用用户自我认知：' + (userInfo?.personality || '暂无')
+})()}
+
+**性格特征应用指南：**
+- 如果用户性格是"批判性思维、讽刺、务实" → narrative可以用批判性、讽刺性的语调来表达（如："这种机械化的论文生产让她感到讽刺——真正的学术追求在哪里？"）
+- 如果用户性格是"理性分析、深度思考" → narrative可以包含理性分析和深度思考（如："她很理性地认识到...她理解这种学术体系的运作方式"）
+- 如果用户性格是"艺术敏感、诗意表达" → narrative可以更加诗意和有艺术感（如："知识变成了可量化的产品，真理被简化为发表数量。这种机械化的生产，让本应充满智慧光芒的学术殿堂，变成了冰冷的数字工厂"）
+- 如果用户性格是"务实主义、直接表达" → narrative可以更加直接和务实（如："她很清楚这些论文的价值，也知道自己辅导他们也只是挣他们的钱而已"）
+
+**⚠️⚠️⚠️ 重要：性格特征只用于理解方式和表达语调，不能改变用户实际说的内容！⚠️⚠️⚠️**
+
+**✅ 正确生成的narrative（结合性格 + 基于输入）：**
+- ✅ 用户说"学生们只关心发文章"，性格是"批判性思维、讽刺" → narrative写："看到学生们只关心发文章，讨论的都是如何发表论文、如何提高影响因子，却很少有人真正讨论学术真理。这种机械化的论文生产让她感到讽刺——真正的学术追求在哪里？知识变成了可量化的产品，真理被简化为发表数量。"
+- ✅ 用户说"生产垃圾"，性格是"务实主义、直接表达" → narrative写："看到学生们生产出很多没用的垃圾论文，只是为了发表而发表。她很清楚这些论文的价值，也知道自己辅导他们也只是挣他们的钱而已。"
+- ✅ 用户说"辅导挣他们钱"，性格是"理性分析、深度思考" → narrative写："虽然辅导学生，但她很理性地认识到：学生们只关心发文章，自己也只是挣他们的钱。这种关系很直接，没有多余的期望。她理解这种学术体系的运作方式，也明白自己的角色。"
+
+**⚠️⚠️⚠️ Narrative检查清单（生成前必须确认）：**
+□ 是否引用了用户实际说的话？
+□ 是否结合了用户元数据的性格特征来理解和表达？
+□ 是否体现了用户的具体观察（如"辅导学生时看到"）？
+□ 是否体现了用户的具体感受（如"厌恶"、"反感"）？
+□ 是否用符合用户性格的语调来表达（批判性/理性/诗意/务实等）？
+
+**⚠️ 场景生成要求（死刑线！）：**
+- 如果检测到"压抑" → 场景必须体现"压抑"的氛围，不能变成"自由创造"
+- 如果检测到"批判" → 场景必须体现"批判"的态度，不能变成"客观描述"
+- 如果检测到"讨厌" → 场景必须体现"讨厌"的情绪，不能变成"中性观察"
+- 🚨 **死刑案例**：用户说"讨厌学术环境" → 生成"学术环境批判"（客观描述）→ 死刑！
+- ✅ **正确做法**：用户说"讨厌学术环境" → 生成"讨厌学术环境"（体现讨厌情绪）
+- 绝对不能因为元数据而改变这些核心情绪和观点！
+
+**🎨 抽象概念的象征性表达（死刑线！）：**
+- 如果检测到"创造力被压抑"、"学术环境压抑创造力"等抽象概念
+- 使用象征性illustration风格：人物 + 隐喻性视觉元素
+- 示例：人物戴脚链、被束缚、在象征性压抑环境中
+- 风格：Illustration风格（不是Editorial illustration），有艺术感和诗意
+- 🚨 **死刑案例**：抽象概念用写实描述 → 死刑！
+- ✅ **正确做法**：抽象概念用象征性、隐喻性表达
+
+**后续回答（补充细节，不能覆盖核心）：**
 ${answers.filter(a => a !== contextHistory).map((a, i) => `回答${i+1}: "${a}"`).join('\n')}
+→ 这些只是补充细节，不能改变元键入的核心观点
+→ 如果后续回答与元键入冲突，以元键入为准！
 
 **🚨🚨🚨 死刑案例（绝对禁止）：**
-- 当前键入："我当时很想我男朋友"
+- 元键入："我讨厌卷的环境"
+- 后续回答："我喜欢上课"
+- ❌ 错误：生成"喜欢上课"的场景 → 死刑！
+- ✅ 正确：生成"讨厌卷的环境"的场景，上课只是背景细节
+
+- 元键入："我当时很想我男朋友"
 - 历史背景："半夜打雷把我吵醒了"
 - ❌ 错误：生成3个场景（打雷 + 检查窗户 + 想男朋友） → 死刑！
 - ✅ 正确：只生成1个场景（想男朋友的情感场景）
 
 **场景数量规则：**
-- 只基于**当前键入**生成场景
-- 如果当前键入只有1个主题 → 生成1个场景
-- 如果当前键入有多个层次 → 最多2个场景
+- 只基于**元键入**生成场景
+- 如果元键入只有1个主题 → 生成1个场景
+- 如果元键入有多个层次 → 最多2个场景
 - 历史背景的内容 → 0个场景（不生成！）
+- 后续回答 → 只用于补充细节，不生成新场景！
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🚨🚨🚨 **【再次强调】用户本次输入（生成场景的唯一依据）** 🚨🚨🚨
+🚨🚨🚨 **【再次强调】元键入是绝对核心（生成场景的唯一依据）** 🚨🚨🚨
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 ${currentInputs.map((input, i) => `
 **输入 ${i + 1}**: "${input}"
-${i === 0 ? '→ 对话起点（核心主题）' : '→ 补充细节（同等重要）'}
+${i === 0 ? '→ 元键入（绝对核心！）' : '→ 补充细节（不能覆盖核心！）'}
 `).join('')}
 
 **🔥 生成检查（必须确认）：**
@@ -862,17 +1166,21 @@ ${i === 0 ? '→ 对话起点（核心主题）' : '→ 补充细节（同等重
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-**📋 用户历史偏好（仅用于补充细节，绝对不能作为场景主题）：**
-- 常去地点：${JSON.stringify(sceneMetadata.frequentLocations || [])}
-- 时尚风格：${JSON.stringify(sceneMetadata.fashionStyle || [])}
-- 美学偏好：${JSON.stringify(sceneMetadata.aestheticPreferences || [])}
+**🚨🚨🚨 重要：元数据已被禁用，场景生成完全基于用户输入！🚨🚨🚨**
 
-**⚠️ metadata使用原则：**
-1. 用户明确说的内容（地点、衣服、时间） → 100%使用用户说的
-2. 用户没说的细节 → 可以参考metadata补充
-3. **metadata绝对不能作为场景主题！场景主题只能来自用户本次输入！**
+**⚠️⚠️⚠️ 场景生成原则（绝对遵守）：**
+1. **场景主题** → 100%来自用户元键入和回答，不允许任何其他来源！
+2. **场景内容** → 必须100%还原用户说的内容，不允许推测或添加
+3. **🚨 死刑规则** → 场景生成不允许使用任何元数据，元数据只用于后续narrative生成！
+4. **🎯 核心情绪必须体现** → 用户说"讨厌"就必须体现"讨厌"，不能变成客观描述！
 
 **🎯🎯🎯 场景生成策略（根据输入内容灵活选择）：**
+
+**🚨🚨🚨 情绪体现规则（死刑线！）：**
+- 用户说"讨厌" → 场景标题必须包含"讨厌"，场景内容必须体现"讨厌"的情绪
+- 用户说"压抑" → 场景标题必须包含"压抑"，场景内容必须体现"压抑"的氛围  
+- 用户说"批判" → 场景标题必须包含"批判"，场景内容必须体现"批判"的态度
+- ❌ **绝对禁止**：把"讨厌"变成"观察"、"批判"变成"描述"、"压抑"变成"自由"
 
 **分析用户输入的性质，选择合适的场景类型：**
 
@@ -896,11 +1204,13 @@ ${i === 0 ? '→ 对话起点（核心主题）' : '→ 补充细节（同等重
 3. **灵活选择场景类型**：根据输入内容选择写实场景、情绪可视化或现象可视化
 4. **不要僵硬套用"用户在XXX地点观察"**：如果输入是情绪或观点，用更抽象的可视化
 
-**问答配对（理解上下文）：**
-${questions.map((q, i) => `
+**问答配对（仅用于理解上下文，不影响场景生成）：**
+${questions.length > 0 && answers.length > 0 ? questions.slice(0, answers.length).map((q, i) => `
 问题${i + 1}: ${q}
 回答${i + 1}: ${answers[i] || '无'}
-`).join('\n')}
+`).join('\n') : '（无问答记录）'}
+
+⚠️ **重要：** 问答配对只用于理解"用户回答对应什么问题"，场景生成必须100%基于用户的**实际输入内容**（元键入 + 后续回答），不能基于问题本身！
 
 **⚠️⚠️⚠️ 关键：不要混淆不同回答对应的场景！⚠️⚠️⚠️**
 
@@ -1707,7 +2017,7 @@ description格式（双主角）："26-year-old Chinese female [user's actual ac
     }
   ],
   "storyDescription": "基于场景的完整故事叙述（中文）",
-  "narrative": "⚠️⚠️⚠️ 必须生成！详细的故事叙述文本（中文），包含用户的想法、情绪、动作细节，字数200-300字，体现用户性格特质",
+  "narrative": "⚠️⚠️⚠️ 必须生成！详细的故事叙述文本（中文），字数200-300字。要求：1) 必须引用用户实际说的具体内容（如'学生们只关心发文章'、'生产垃圾'等）；2) 必须结合用户元数据的性格特征来理解和表达（如批判性思维→批判性语调，理性分析→理性思考，艺术敏感→诗意表达）；3) 体现用户的具体观察和感受；4) 用符合用户性格的语调来表达",
   "aiPrompt": "用于后续生成的AI提示词"
 }
 
@@ -1733,9 +2043,11 @@ description格式（双主角）："26-year-old Chinese female [user's actual ac
 ❌ 不要包含分析性语言：体现了、反映了、象征着
 
 **故事描述（storyDescription/narrative）：**
+✅ 必须引用用户实际说的具体内容（不能凭空创造）
+✅ 必须结合用户元数据的性格特征来理解和表达（如批判性思维→批判性语调，理性分析→理性思考，艺术敏感→诗意表达）
 ✅ 可以包含主观情感：解脱、希望、成长、感受、迷茫
-✅ 可以包含分析性语言：体现了、反映了、代表着
-✅ 讲述用户的经历和内心感受
+✅ 可以包含分析性语言：体现了、反映了、代表着（但要基于用户实际输入，不能太抽象）
+✅ 讲述用户的经历和内心感受，用符合用户性格的语调
 
 **关键要求（基于用户实际输入）：**
 1. **时间线逻辑**：食物只在吃饭场景出现，不要在所有场景都重复
@@ -1814,15 +2126,100 @@ ${questions.map((q, i) => `
           jsonContent = jsonContent.replace(/```\s*/, '').replace(/```\s*$/, '').trim()
         }
         
+        // 🔥 增强的JSON清理逻辑
+        // 1. 先处理字符串中的换行符和特殊字符（在引号内）
+        // 2. 然后处理中文标点符号
+        // 3. 最后修复未闭合的引号
+        
         // 清理可能的中文逗号和格式问题
         jsonContent = jsonContent.replace(/，/g, ',')  // 中文逗号→英文逗号
         jsonContent = jsonContent.replace(/：/g, ':')  // 中文冒号→英文冒号
         jsonContent = jsonContent.replace(/"/g, '"').replace(/"/g, '"')  // 中文引号→英文引号
         
-        console.log('🧹 [SCENE-GEN] 清理后的JSON:', jsonContent.substring(0, 200))
+        // 🔥 修复字符串中的未转义换行符和特殊字符
+        // 使用更简单可靠的方法：逐字符处理，转义字符串内的换行符
+        let fixedContent = ''
+        let inString = false
+        let escapeNext = false
         
-        const parsedData = JSON.parse(jsonContent)
-        console.log('🎬 [SCENE-GEN] 解析后的数据:', parsedData)
+        for (let i = 0; i < jsonContent.length; i++) {
+          const char = jsonContent[i]
+          
+          if (escapeNext) {
+            // 处理转义字符
+            fixedContent += char
+            escapeNext = false
+            continue
+          }
+          
+          if (char === '\\') {
+            // 转义字符，下一个字符会被转义
+            escapeNext = true
+            fixedContent += char
+            continue
+          }
+          
+          if (char === '"') {
+            // 引号，切换字符串状态
+            inString = !inString
+            fixedContent += char
+            continue
+          }
+          
+          if (inString) {
+            // 在字符串内，需要转义换行符和制表符
+            if (char === '\n') {
+              fixedContent += '\\n'
+            } else if (char === '\r') {
+              fixedContent += '\\r'
+            } else if (char === '\t') {
+              fixedContent += '\\t'
+            } else {
+              fixedContent += char
+            }
+          } else {
+            // 不在字符串内，直接添加
+            fixedContent += char
+          }
+        }
+        
+        jsonContent = fixedContent
+        
+        console.log('🧹 [SCENE-GEN] 清理后的JSON（前200字符）:', jsonContent.substring(0, 200))
+        console.log('📏 [SCENE-GEN] JSON总长度:', jsonContent.length)
+        
+        let parsedData
+        try {
+          parsedData = JSON.parse(jsonContent)
+          console.log('🎬 [SCENE-GEN] 解析后的数据:', parsedData)
+        } catch (parseError: any) {
+          console.error('❌ [SCENE-GEN] JSON解析失败:', parseError.message)
+          const errorPosition = parseError.message.match(/position (\d+)/)?.[1]
+          if (errorPosition) {
+            const pos = parseInt(errorPosition)
+            console.error('🔍 [SCENE-GEN] 错误位置附近的内容:', jsonContent.substring(Math.max(0, pos - 100), pos + 100))
+            console.error('📍 [SCENE-GEN] 错误位置:', pos, '总长度:', jsonContent.length)
+          }
+          console.error('📄 [SCENE-GEN] 完整JSON内容（前1000字符）:', jsonContent.substring(0, 1000))
+          console.error('📄 [SCENE-GEN] 完整JSON内容（后1000字符）:', jsonContent.substring(Math.max(0, jsonContent.length - 1000)))
+          
+          // 🔥 尝试更激进的修复：提取第一个完整的JSON对象
+          try {
+            const firstBrace = jsonContent.indexOf('{')
+            const lastBrace = jsonContent.lastIndexOf('}')
+            if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+              const extractedJson = jsonContent.substring(firstBrace, lastBrace + 1)
+              console.log('🔧 [SCENE-GEN] 尝试提取JSON对象:', extractedJson.substring(0, 200))
+              parsedData = JSON.parse(extractedJson)
+              console.log('✅ [SCENE-GEN] 使用提取的JSON对象解析成功')
+            } else {
+              throw parseError
+            }
+          } catch (extractError) {
+            console.error('❌ [SCENE-GEN] 提取JSON对象也失败:', extractError)
+            throw parseError
+          }
+        }
         
         // ✅ 将visualDetails转换为detailedPrompt（不需要二次DeepSeek调用）
         if (parsedData.logicalScenes && Array.isArray(parsedData.logicalScenes)) {

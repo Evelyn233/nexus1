@@ -1,9 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
-import { Search, Bell, X, History } from 'lucide-react'
+import { History, X } from 'lucide-react'
 import ContentCard from '@/components/ContentCard'
 import InputSection from '@/components/InputSection'
 import UserInfoBar from '@/components/UserInfoBar'
@@ -15,12 +15,36 @@ import { getUserGeneratedContents } from '@/lib/userContentStorageService'
 
 export default function HomePage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { isAuthenticated, session, isLoading } = useAuth()
   const [inputValue, setInputValue] = useState('')
   const [showUserProfile, setShowUserProfile] = useState(false)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [userContent, setUserContent] = useState<any[]>([])
   const [contentLoading, setContentLoading] = useState(true)
+  const [publishedContent, setPublishedContent] = useState<any[]>([])
+  const [publishedLoading, setPublishedLoading] = useState(true)
+
+  // 检查 URL 参数，如果有 openHistory=true，自动打开历史记录侧边栏
+  useEffect(() => {
+    const openHistory = searchParams.get('openHistory')
+    const refresh = searchParams.get('refresh')
+    
+    if (openHistory === 'true') {
+      setIsSidebarOpen(true)
+    }
+    
+    // 如果有refresh参数，刷新已发布内容
+    if (refresh === 'true') {
+      console.log('🔄 [HOME] 检测到刷新参数，重新加载已发布内容...')
+      loadPublishedContent()
+    }
+    
+    // 清除 URL 参数，避免刷新时重复执行
+    if (openHistory === 'true' || refresh === 'true') {
+      window.history.replaceState({}, '', '/home')
+    }
+  }, [searchParams])
 
   // 加载用户生成的内容
   useEffect(() => {
@@ -28,6 +52,11 @@ export default function HomePage() {
       loadUserContent()
     }
   }, [isAuthenticated])
+
+  // 加载已发布内容
+  useEffect(() => {
+    loadPublishedContent()
+  }, [])
 
   const loadUserContent = async () => {
     try {
@@ -49,6 +78,23 @@ export default function HomePage() {
       setContentLoading(false)
     }
   }
+
+  const loadPublishedContent = async () => {
+    try {
+      setPublishedLoading(true)
+      console.log('🔍 [HOME] 加载已发布内容...')
+      const response = await fetch('/api/published-content?limit=8')
+      if (response.ok) {
+        const data = await response.json()
+        console.log('✅ [HOME] 加载已发布内容成功:', data.contents.length)
+        setPublishedContent(data.contents)
+      }
+    } catch (error) {
+      console.error('❌ [HOME] 加载已发布内容失败:', error)
+    } finally {
+      setPublishedLoading(false)
+    }
+  }
   
   // 显示加载状态
   if (isLoading) {
@@ -67,7 +113,7 @@ export default function HomePage() {
       id: 1,
       image: '/loneliness.jpeg',
       title: 'Emotional Style Guide',
-      subtitle: 'When you don\'t want to socialize, let your clothes speak for you',
+      subtitle: '',
       type: 'article' as const,
       authorInitial: 'E',
       authorName: 'Evelyn'
@@ -76,34 +122,34 @@ export default function HomePage() {
       id: 2,
       image: '/images/night.jpeg',
       title: '☕ Moon Milk Foam & 2AM Documents',
-      subtitle: 'A creator\'s nightlife sample',
+      subtitle: '',
       type: 'article' as const,
       authorInitial: 'A',
       authorName: 'Alex'
     },
     {
       id: 3,
-      image: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=400&h=300&fit=crop',
+      image: '/images/subway.jpeg',
       title: 'Everyone on the subway stares at their phones, but no one is really communicating',
-      subtitle: 'Rediscovering authentic human connection in the digital age',
+      subtitle: '',
       type: 'article' as const,
       authorInitial: 'S',
       authorName: 'Sophie'
     },
     {
       id: 4,
-      image: 'https://images.unsplash.com/photo-1518709268805-4e9042af2176?w=400&h=300&fit=crop',
-      title: '🖋️ A Letter to Your Future Self',
-      subtitle: 'AI helps you organize those words you never got to say',
+      image: '/images/hannibal.jpeg?v=2',
+      title: 'I Want to Be a Female Villain Like Hannibal',
+      subtitle: '',
       type: 'article' as const,
-      authorInitial: 'M',
-      authorName: 'Mike'
+      authorInitial: 'H',
+      authorName: 'Hannibal'
     },
     {
       id: 5,
       image: 'https://images.unsplash.com/photo-1518709268805-4e9042af2176?w=400&h=300&fit=crop',
       title: '🌒 Finding Romance in Algorithms',
-      subtitle: 'A digital native\'s emotional experiment',
+      subtitle: '',
       type: 'article' as const,
       authorInitial: 'L',
       authorName: 'Luna'
@@ -158,74 +204,78 @@ export default function HomePage() {
           <button
             onClick={() => setIsSidebarOpen(true)}
             className="text-magazine-gray hover:text-magazine-primary transition-colors"
-            title="History"
+            title="历史记录"
           >
             <History className="w-6 h-6" />
           </button>
           <button
-            onClick={() => setShowUserProfile(true)}
+            onClick={() => router.push('/profile')}
             className="text-magazine-gray hover:text-magazine-primary transition-colors"
-            title="View Profile"
+            title="我的主页"
           >
             👤
           </button>
           <button
             onClick={() => router.push('/gallery')}
             className="text-magazine-gray hover:text-magazine-primary transition-colors"
-            title="Image Gallery"
+            title="图片画廊"
           >
             🖼️
           </button>
-          <button
-            onClick={() => router.push('/chat-new?prompt=' + encodeURIComponent(inputValue || 'What should I wear for tomorrow\'s interview?'))}
-            className="text-magazine-gray hover:text-magazine-primary transition-colors"
-            title="智能对话"
-          >
-            💬
-          </button>
-          <button
-            onClick={() => router.push('/test-real-api')}
-            className="text-magazine-gray hover:text-magazine-primary transition-colors"
-            title="真实API测试"
-          >
-            🧪
-          </button>
-          <button
-            onClick={() => router.push('/test-chat')}
-            className="text-magazine-gray hover:text-magazine-primary transition-colors"
-            title="Chat功能测试"
-          >
-            🔧
-          </button>
-          <button
-            onClick={() => router.push('/chat-debug?prompt=' + encodeURIComponent('我明天面试穿什么'))}
-            className="text-magazine-gray hover:text-magazine-primary transition-colors"
-            title="Chat调试页面"
-          >
-            🐛
-          </button>
-          <button
-            onClick={() => router.push('/chat-new?prompt=' + encodeURIComponent('我明天面试穿什么'))}
-            className="text-magazine-gray hover:text-magazine-primary transition-colors"
-            title="新版Chat"
-          >
-            💬
-          </button>
-          <button
-            onClick={() => router.push('/test-seedream')}
-            className="text-magazine-gray hover:text-magazine-primary transition-colors"
-            title="SeeDream生图测试"
-          >
-            🎨
-          </button>
-          <Search className="w-6 h-6 text-magazine-gray" />
-          <Bell className="w-6 h-6 text-magazine-gray" />
         </div>
       </header>
 
       {/* Main Content */}
       <main className="p-4 pb-40 max-w-md mx-auto">
+        {/* 社区作品区域 */}
+        {!publishedLoading && publishedContent.length > 0 && (
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-lg font-bold text-gray-800">🌟 社区作品</h2>
+              <span className="text-xs text-gray-500">{publishedContent.length} 个作品</span>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              {publishedContent.slice(0, 4).map((content) => {
+                const firstImage = content.images?.[0]
+                return (
+                  <div 
+                    key={content.id} 
+                    className="h-64 cursor-pointer"
+                    onClick={() => router.push(`/history/${content.id}`)}
+                  >
+                    <div className="relative h-full bg-gradient-to-br from-teal-50 to-cyan-50 rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition-all group">
+                      {firstImage?.imageUrl && (
+                        <img
+                          src={firstImage.imageUrl}
+                          alt={content.title}
+                          className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
+                      <div className="absolute bottom-0 left-0 right-0 p-3">
+                        <p className="text-white text-sm font-medium line-clamp-2 mb-1">
+                          {content.title}
+                        </p>
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-white/80">{content.author?.name}</span>
+                          <span className="text-white/60">{content.imageCount} 张</span>
+                        </div>
+                      </div>
+                      <div className="absolute top-2 right-2 bg-teal-500 text-white text-xs px-2 py-1 rounded-full">
+                        已发布
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
 
+        {/* 精选内容 */}
+        <div className="mb-3">
+          <h2 className="text-lg font-bold text-gray-800">📖 精选内容</h2>
+        </div>
         <div className="grid grid-cols-2 gap-4">
           {staticContentData.map((item) => (
             <div key={item.id} className="h-64">
@@ -235,29 +285,32 @@ export default function HomePage() {
         </div>
       </main>
 
-      {/* Quick Generate Buttons - 无缝连接 */}
+      {/* Quick Generate Buttons - 横向滚动 */}
       <div className="fixed bottom-16 left-0 right-0 p-3 bg-white max-w-md mx-auto">
         <div className="mb-0">
           <div className="flex items-center justify-between mb-1">
             <h2 className="text-xs font-medium text-gray-500">快速生成</h2>
             <button
-              onClick={() => setShowUserProfile(true)}
+              onClick={() => router.push('/profile')}
               className="text-xs text-magazine-primary hover:text-magazine-secondary flex items-center space-x-1"
             >
               <span>👤</span>
               <span>我的信息</span>
             </button>
           </div>
-          <div className="flex flex-wrap gap-1.5">
-            {QUICK_GENERATE_OPTIONS.map((prompt) => (
-              <button
-                key={prompt}
-                onClick={() => setInputValue(prompt)}
-                className="px-2 py-1 text-xs bg-magazine-light-gray text-magazine-primary rounded-full hover:bg-magazine-accent transition-colors"
-              >
-                {prompt}
-              </button>
-            ))}
+          {/* 🔥 横向滚动容器 */}
+          <div className="overflow-x-auto scrollbar-hide -mx-3 px-3">
+            <div className="flex gap-2 pb-2" style={{ minWidth: 'max-content' }}>
+              {QUICK_GENERATE_OPTIONS.map((prompt) => (
+                <button
+                  key={prompt}
+                  onClick={() => setInputValue(prompt)}
+                  className="px-3 py-1.5 text-xs bg-magazine-light-gray text-magazine-primary rounded-full hover:bg-magazine-accent transition-colors whitespace-nowrap flex-shrink-0"
+                >
+                  {prompt}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </div>

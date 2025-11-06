@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, MessageSquare, Image as ImageIcon, Trash2, Clock } from 'lucide-react'
+import { X, MessageSquare, Image as ImageIcon, Trash2, Clock, Search } from 'lucide-react'
 import { UserGeneratedContentRecord } from '@/lib/userContentStorageService'
 
 interface ChatMessage {
@@ -32,22 +32,15 @@ export default function ChatHistorySidebar({ isOpen, onClose, onSessionSelect }:
   const [sessions, setSessions] = useState<ChatSession[]>([])
   const [images, setImages] = useState<UserGeneratedContentRecord[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [searchQuery, setSearchQuery] = useState('')
 
-  // 加载历史记录
+  // 加载历史记录（只保留一个 useEffect，避免重复加载）
   useEffect(() => {
     if (isOpen) {
       console.log('🔍 [SIDEBAR] 侧边栏打开，开始加载数据，当前标签:', activeTab)
       loadHistory()
     }
   }, [isOpen, activeTab])
-
-  // 当侧边栏打开时，确保默认加载故事记录
-  useEffect(() => {
-    if (isOpen && activeTab === 'images') {
-      console.log('🔍 [SIDEBAR] 确保加载故事记录数据')
-      loadHistory()
-    }
-  }, [isOpen])
 
   // 监听images状态变化
   useEffect(() => {
@@ -87,11 +80,13 @@ export default function ChatHistorySidebar({ isOpen, onClose, onSessionSelect }:
               initialPrompt: content.initialPrompt,
               hasPrompt: !!content.initialPrompt,
               promptLength: content.initialPrompt?.length || 0,
-              imageCount: content.imageCount
+              imageCount: content.imageCount,
+              status: content.status
             })
             return {
               id: content.id,
               filename: `content-${content.id}`,
+              title: content.title || '', // 🔥 AI生成的标题
               prompt: content.initialPrompt || '',
               initialPrompt: content.initialPrompt || '',
               storyNarrative: content.storyNarrative || '',
@@ -101,7 +96,8 @@ export default function ChatHistorySidebar({ isOpen, onClose, onSessionSelect }:
               imageCount: content.imageCount || 0,
               category: content.category,
               questions: content.questions || [],
-              answers: content.answers || []
+              answers: content.answers || [],
+              status: content.status || 'completed' // 添加状态字段
             }
           })
           console.log('✅ [SIDEBAR] 格式化后的数据:', formattedImages.length, '条')
@@ -182,6 +178,16 @@ export default function ChatHistorySidebar({ isOpen, onClose, onSessionSelect }:
     }
   }
 
+  // 搜索过滤函数
+  const filteredImages = images.filter(content => {
+    if (!searchQuery.trim()) return true
+    const query = searchQuery.toLowerCase()
+    return (
+      content.initialPrompt?.toLowerCase().includes(query) ||
+      content.storyNarrative?.toLowerCase().includes(query)
+    )
+  })
+
   return (
     <>
       {/* 遮罩层 */}
@@ -215,10 +221,29 @@ export default function ChatHistorySidebar({ isOpen, onClose, onSessionSelect }:
                 window.location.href = '/'
                 onClose()
               }}
-              className="w-full px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors text-sm font-medium"
+              className="w-full px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors text-sm font-medium mb-3"
             >
               + 新对话
             </button>
+            {/* 搜索框 */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="搜索创作内容..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
           </div>
 
           {/* 标签 - 只显示故事记录 */}
@@ -290,16 +315,21 @@ export default function ChatHistorySidebar({ isOpen, onClose, onSessionSelect }:
                       })
                       return null
                     })()}
-                    {images.length === 0 ? (
+                    {filteredImages.length === 0 ? (
                       <div className="text-center py-12 text-gray-500">
                         <ImageIcon className="w-12 h-12 mx-auto mb-3 opacity-30" />
-                        <p>暂无图片记录</p>
-                        <p className="text-xs text-gray-400 mt-2">
-                          调试: images.length = {images.length}
-                        </p>
+                        <p>{searchQuery ? '未找到匹配的记录' : '暂无图片记录'}</p>
+                        {searchQuery && (
+                          <button
+                            onClick={() => setSearchQuery('')}
+                            className="mt-3 px-4 py-2 text-sm text-teal-600 hover:text-teal-700"
+                          >
+                            清除搜索
+                          </button>
+                        )}
                       </div>
                     ) : (
-                      images.map((content) => (
+                      filteredImages.map((content: any) => (
                         <div
                           key={content.id}
                           className="group relative rounded-lg overflow-hidden bg-gray-50 cursor-pointer border border-gray-200 hover:border-teal-300 transition-colors"
@@ -314,6 +344,21 @@ export default function ChatHistorySidebar({ isOpen, onClose, onSessionSelect }:
                               <span className="text-xs text-teal-600 font-medium">
                                 {content.imageCount} 张图片
                               </span>
+                              {content.status === 'published' && (
+                                <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-medium">
+                                  ✓ 已发布
+                                </span>
+                              )}
+                              {content.status === 'draft' && (
+                                <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
+                                  草稿
+                                </span>
+                              )}
+                              {content.status === 'private' && (
+                                <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+                                  🔒 私密
+                                </span>
+                              )}
                               {content.category && content.category !== 'daily' && (
                                 <span className="text-xs bg-teal-100 text-teal-700 px-2 py-1 rounded-full">
                                   {content.category}
@@ -322,7 +367,12 @@ export default function ChatHistorySidebar({ isOpen, onClose, onSessionSelect }:
                             </div>
                             <p className="text-sm text-gray-800 line-clamp-2 mb-2">
                               {(() => {
-                                // ✅ 优先使用用户的原始输入（最清晰直观）
+                                // 🔥 优先使用AI生成的标题（简洁明了）
+                                if (content.title) {
+                                  return content.title
+                                }
+                                
+                                // 如果没有标题，使用用户的原始输入
                                 if (content.initialPrompt) {
                                   const cleanText = content.initialPrompt.replace(/\s+/g, ' ').trim()
                                   return cleanText.length > 60 ? cleanText.substring(0, 60) + '...' : cleanText

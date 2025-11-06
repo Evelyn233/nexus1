@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { ArrowLeft, Download, Share2, Calendar, Image as ImageIcon, Play } from 'lucide-react'
+import { ArrowLeft, Download, Share2, Calendar, Image as ImageIcon, Play, Trash2 } from 'lucide-react'
 import Image from 'next/image'
 
 interface ContentDetail {
@@ -15,6 +15,7 @@ interface ContentDetail {
     sceneIndex: number
     prompt: string
     imageUrl: string
+    story?: string
   }>
   imageCount: number
   category: string
@@ -22,6 +23,8 @@ interface ContentDetail {
   storyNarrative?: string
   createdAt: string
   updatedAt: string
+  status?: string // 内容状态：completed, published
+  title?: string // AI生成的标题
 }
 
 export default function HistoryDetailPage() {
@@ -32,6 +35,7 @@ export default function HistoryDetailPage() {
   const [content, setContent] = useState<ContentDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   useEffect(() => {
     if (contentId) {
@@ -55,11 +59,39 @@ export default function HistoryDetailPage() {
 
       const result = await response.json()
       console.log('✅ [HISTORY-DETAIL] 加载成功:', result)
-      console.log('🔍 [HISTORY-DETAIL] 图片数据:', result.content?.images)
+      console.log('🔍 [HISTORY-DETAIL] 完整内容数据:', result.content)
+      console.log('🔍 [HISTORY-DETAIL] 图片数据原始值:', result.content?.images)
+      console.log('🔍 [HISTORY-DETAIL] 图片数据类型:', typeof result.content?.images)
       console.log('🔍 [HISTORY-DETAIL] 图片数量:', result.content?.images?.length)
+      console.log('🔍 [HISTORY-DETAIL] imageCount:', result.content?.imageCount)
+      console.log('🔍 [HISTORY-DETAIL] status:', result.content?.status)
+      console.log('🔍 [HISTORY-DETAIL] title:', result.content?.title)
       
       if (result.success && result.content) {
-        setContent(result.content)
+        // 🔥 确保images是数组格式
+        let images = result.content.images
+        if (typeof images === 'string') {
+          try {
+            images = JSON.parse(images)
+            console.log('✅ [HISTORY-DETAIL] 成功解析JSON字符串')
+          } catch (e) {
+            console.error('❌ [HISTORY-DETAIL] 解析images失败:', e)
+            images = []
+          }
+        }
+        if (!Array.isArray(images)) {
+          console.warn('⚠️ [HISTORY-DETAIL] images不是数组，转换为数组')
+          console.warn('⚠️ [HISTORY-DETAIL] images实际类型:', typeof images, images)
+          images = []
+        }
+        
+        console.log('✅ [HISTORY-DETAIL] 最终图片数据:', images)
+        console.log('✅ [HISTORY-DETAIL] 最终图片数量:', images.length)
+        
+        setContent({
+          ...result.content,
+          images: images
+        })
       } else {
         setError(result.error || '内容不存在')
       }
@@ -76,6 +108,37 @@ export default function HistoryDetailPage() {
     link.href = imageUrl
     link.download = `${title}.jpg`
     link.click()
+  }
+
+  // 删除作品
+  const handleDelete = async () => {
+    if (!content) return
+    
+    // 确认删除
+    const confirmed = window.confirm('确定要删除这个作品吗？删除后无法恢复。')
+    if (!confirmed) return
+    
+    setIsDeleting(true)
+    try {
+      const response = await fetch(`/api/user/generated-content/${contentId}`, {
+        method: 'DELETE'
+      })
+      
+      if (response.ok) {
+        console.log('✅ [HISTORY-DETAIL] 作品删除成功')
+        // 跳转到首页或个人主页
+        router.push('/home')
+      } else {
+        const errorData = await response.json()
+        console.error('❌ [HISTORY-DETAIL] 删除失败:', errorData)
+        alert('删除失败，请稍后重试')
+      }
+    } catch (error) {
+      console.error('❌ [HISTORY-DETAIL] 删除异常:', error)
+      alert('删除失败，请稍后重试')
+    } finally {
+      setIsDeleting(false)
+    }
   }
 
   if (loading) {
@@ -118,9 +181,23 @@ export default function HistoryDetailPage() {
         </button>
 
         <div className="bg-white rounded-xl shadow-sm p-6">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">
-            故事详情
-          </h1>
+          <div className="flex items-center justify-between mb-4">
+            <h1 className="text-2xl font-bold text-gray-900">
+              {content.title || '故事详情'}
+            </h1>
+            {/* 已发布的作品显示删除按钮 */}
+            {content.status === 'published' && (
+              <button
+                onClick={handleDelete}
+                disabled={isDeleting}
+                className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                title="删除作品"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>{isDeleting ? '删除中...' : '删除'}</span>
+              </button>
+            )}
+          </div>
 
           <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
             <div className="flex items-center gap-2">
@@ -129,7 +206,7 @@ export default function HistoryDetailPage() {
             </div>
             <div className="flex items-center gap-2">
               <ImageIcon className="w-4 h-4" />
-              <span>{content.imageCount} 张图片</span>
+              <span>{content.images?.length || content.imageCount || 0} 张图片</span>
             </div>
             {content.category && content.category !== 'daily' && (
               <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full">
@@ -145,49 +222,67 @@ export default function HistoryDetailPage() {
         <div className="bg-white rounded-xl shadow-sm p-6">
           <div className="space-y-6">
             
-            {/* 用户初始输入 */}
-            <div className="flex justify-end">
-              <div className="max-w-[80%] bg-purple-500 text-white rounded-2xl px-4 py-3">
-                <p className="text-sm leading-relaxed">{content.initialPrompt}</p>
-              </div>
-            </div>
-            
-            {/* 问答对话 */}
-            {content.questions && content.questions.map((question, index) => (
-              <div key={index} className="space-y-4">
-                {/* AI问题 */}
-                <div className="flex justify-start">
-                  <div className="max-w-[80%] bg-white text-gray-800 rounded-2xl px-4 py-3 shadow-sm border">
-                    <p className="text-sm leading-relaxed">{question}</p>
-                  </div>
-                </div>
-                
-                {/* 用户回答 */}
-                {content.answers[index] && (
-                  <div className="flex justify-end">
-                    <div className="max-w-[80%] bg-purple-500 text-white rounded-2xl px-4 py-3">
-                      <p className="text-sm leading-relaxed">{content.answers[index]}</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))}
-            
-            {/* AI生成的故事叙述 */}
-            {content.storyNarrative && (
-              <div className="flex justify-start">
-                <div className="max-w-[80%] bg-gradient-to-r from-blue-50 to-indigo-50 text-gray-800 rounded-2xl px-4 py-3 shadow-sm border">
-                  <div className="text-xs text-gray-500 mb-2">📖 故事叙述</div>
-                  <p className="text-sm leading-relaxed whitespace-pre-wrap">{content.storyNarrative}</p>
-                </div>
+            {/* 🔥 已发布的作品：只显示标题，不显示聊天记录 */}
+            {content.status === 'published' && content.title && (
+              <div className="mb-6">
+                <h2 className="text-2xl font-bold text-gray-900">{content.title}</h2>
               </div>
             )}
             
-            {/* 生成的图片 - 每个图片作为一个AI消息 */}
-            {content.images && content.images.map((image, index) => (
+            {/* 🔥 未发布的作品：显示完整的聊天记录 */}
+            {content.status !== 'published' && (
+              <>
+                {/* 用户初始输入 */}
+                <div className="flex justify-end">
+                  <div className="max-w-[80%] bg-purple-500 text-white rounded-2xl px-4 py-3">
+                    <p className="text-sm leading-relaxed">{content.initialPrompt}</p>
+                  </div>
+                </div>
+                
+                {/* 问答对话 */}
+                {content.questions && content.questions.map((question, index) => (
+                  <div key={index} className="space-y-4">
+                    {/* AI问题 */}
+                    <div className="flex justify-start">
+                      <div className="max-w-[80%] bg-white text-gray-800 rounded-2xl px-4 py-3 shadow-sm border">
+                        <p className="text-sm leading-relaxed">{question}</p>
+                      </div>
+                    </div>
+                    
+                    {/* 用户回答 */}
+                    {content.answers[index] && (
+                      <div className="flex justify-end">
+                        <div className="max-w-[80%] bg-purple-500 text-white rounded-2xl px-4 py-3">
+                          <p className="text-sm leading-relaxed">{content.answers[index]}</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+                
+                {/* AI生成的故事叙述 */}
+                {content.storyNarrative && (
+                  <div className="flex justify-start">
+                    <div className="max-w-[80%] bg-gradient-to-r from-blue-50 to-indigo-50 text-gray-800 rounded-2xl px-4 py-3 shadow-sm border">
+                      <div className="text-xs text-gray-500 mb-2">📖 故事叙述</div>
+                      <p className="text-sm leading-relaxed whitespace-pre-wrap">{content.storyNarrative}</p>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+            
+            {/* 生成的图片 - 按逻辑顺序（sceneIndex）排序显示 */}
+            {content.images && Array.isArray(content.images) && content.images.length > 0 ? (
+              [...content.images]
+                .sort((a: any, b: any) => (a.sceneIndex || 0) - (b.sceneIndex || 0))
+                .map((image, index) => (
               <div key={index} className="flex justify-start">
                 <div className="max-w-[80%] bg-gradient-to-r from-green-50 to-emerald-50 text-gray-800 rounded-2xl px-4 py-3 shadow-sm border">
-                  <div className="text-xs text-gray-500 mb-2">🎬 {image.sceneTitle || `场景 ${index + 1}`}</div>
+                  <div className="text-xs text-gray-500 mb-2">
+                    🎬 {image.sceneTitle || `场景 ${index + 1}`}
+                    <span className="ml-2 text-gray-400">#{image.sceneIndex !== undefined ? image.sceneIndex + 1 : index + 1}</span>
+                  </div>
                   
                   {/* 图片 */}
                   <div className="my-3">
@@ -208,15 +303,22 @@ export default function HistoryDetailPage() {
                     </div>
                   </div>
                   
-                  {/* 图片描述 */}
-                  {image.prompt && (
-                    <div className="text-xs text-gray-600 bg-gray-50 rounded-lg px-3 py-2 mt-2">
-                      <p className="leading-relaxed">{image.prompt}</p>
+                  {/* 文字内容 */}
+                  {image.story && (
+                    <div className="mt-3 text-sm text-gray-700 leading-relaxed">
+                      {image.story}
                     </div>
                   )}
                 </div>
               </div>
-            ))}
+            ))
+            ) : (
+              <div className="flex justify-start">
+                <div className="max-w-[80%] bg-gray-50 text-gray-600 rounded-2xl px-4 py-3 shadow-sm border">
+                  <p className="text-sm">📷 图片正在生成中，请稍后刷新查看...</p>
+                </div>
+              </div>
+            )}
             
           </div>
         </div>

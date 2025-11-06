@@ -1,114 +1,83 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { signIn } from 'next-auth/react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { signIn, useSession } from 'next-auth/react'
+import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 
 export default function SignInPage() {
-  const router = useRouter()
   const searchParams = useSearchParams()
   const callbackUrl = searchParams.get('callbackUrl') || '/home'
   const isMountedRef = useRef(true)
+  const { data: session, status, update } = useSession()
   
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
 
-  // 清理函数
   useEffect(() => {
     return () => {
       isMountedRef.current = false
     }
   }, [])
 
+  // 如果用户已登录，直接跳转
+  useEffect(() => {
+    if (status === 'authenticated' && session) {
+      const currentPath = typeof window !== 'undefined' ? window.location.pathname : ''
+      if (currentPath !== callbackUrl && !currentPath.includes('/home')) {
+        window.location.href = callbackUrl
+      }
+    }
+  }, [status, session, callbackUrl])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
     setIsLoading(true)
 
-    // 添加超时机制
     const timeoutId = setTimeout(() => {
       if (isMountedRef.current) {
-        console.log('⏰ [SIGNIN] 登录超时')
         setError('Login timeout, please try again')
         setIsLoading(false)
       }
-    }, 15000) // 15秒超时
+    }, 15000)
 
     try {
-      console.log('🔍 [SIGNIN] 开始登录:', email)
-      
       const result = await signIn('credentials', {
         emailOrPhone: email,
         password,
         redirect: false,
       })
 
-      clearTimeout(timeoutId) // 清除超时
-      console.log('📊 [SIGNIN] 登录结果:', result)
+      clearTimeout(timeoutId)
 
-      if (!isMountedRef.current) return // 组件已卸载，不执行后续操作
+      if (!isMountedRef.current) return
 
       if (result?.error) {
-        console.log('❌ [SIGNIN] 登录失败:', result.error)
         setError('Email or password is incorrect')
         setIsLoading(false)
         return
       }
 
       if (result?.ok) {
-        console.log('✅ [SIGNIN] 登录成功，跳转到:', callbackUrl)
-        
-        // 使用最简单的方式：直接设置 window.location
-        console.log('🔄 [SIGNIN] 直接跳转到:', callbackUrl)
-        
-        // 尝试多种跳转方式
+        setIsLoading(false)
+        // 刷新 session，useEffect 会自动处理跳转
         try {
-          console.log('🔄 [SIGNIN] 尝试 window.location.href')
-          window.location.href = callbackUrl
-        } catch (e) {
-          console.error('❌ [SIGNIN] window.location.href 失败:', e)
-          try {
-            console.log('🔄 [SIGNIN] 尝试 window.location.assign')
-            window.location.assign(callbackUrl)
-          } catch (e2) {
-            console.error('❌ [SIGNIN] window.location.assign 失败:', e2)
-            try {
-              console.log('🔄 [SIGNIN] 尝试 window.location.replace')
-              window.location.replace(callbackUrl)
-            } catch (e3) {
-              console.error('❌ [SIGNIN] window.location.replace 失败:', e3)
-              try {
-                console.log('🔄 [SIGNIN] 尝试 document.location')
-                document.location = callbackUrl
-              } catch (e4) {
-                console.error('❌ [SIGNIN] document.location 失败:', e4)
-                // 最后的备用方案：刷新页面
-                console.log('🔄 [SIGNIN] 最后备用方案：刷新页面')
-                window.location.reload()
-              }
-            }
-          }
+          await update()
+        } catch (updateError) {
+          // 即使刷新失败，也尝试跳转（cookie 已设置）
+          setTimeout(() => {
+            window.location.href = callbackUrl
+          }, 500)
         }
-        
-        // 添加延迟检查，如果跳转失败，显示错误信息
-        setTimeout(() => {
-          if (window.location.pathname === '/auth/signin') {
-            console.log('⚠️ [SIGNIN] 跳转失败，仍在登录页面')
-            setError('Login successful but redirect failed. Please click here to go to home page.')
-            setIsLoading(false)
-          }
-        }, 3000)
-        
       } else {
-        console.log('⚠️ [SIGNIN] 登录结果异常:', result)
         setError('Login response was unexpected')
         setIsLoading(false)
       }
     } catch (error) {
-      clearTimeout(timeoutId) // 清除超时
+      clearTimeout(timeoutId)
       if (isMountedRef.current) {
         console.error('❌ [SIGNIN] 登录异常:', error)
         setError('Sign in failed, please try again')
@@ -117,13 +86,11 @@ export default function SignInPage() {
     }
   }
 
-  // OAuth 登录
   const handleOAuthSignIn = async (provider: string) => {
     if (!isMountedRef.current) return
     
     setIsLoading(true)
     try {
-      console.log('🔍 [SIGNIN] OAuth 登录:', provider)
       await signIn(provider, { callbackUrl })
     } catch (error) {
       if (isMountedRef.current) {
@@ -137,7 +104,6 @@ export default function SignInPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-teal-50 to-cyan-50 flex items-center justify-center px-4">
       <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-2xl shadow-xl">
-        {/* Logo */}
         <div className="text-center">
           <div className="flex items-center justify-center mb-4">
             <img 
@@ -154,24 +120,12 @@ export default function SignInPage() {
           </p>
         </div>
 
-        {/* 错误提示 */}
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm">
             {error}
-            {error.includes('Login successful but redirect failed') && (
-              <div className="mt-2">
-                <button
-                  onClick={() => window.location.href = '/home'}
-                  className="px-4 py-2 bg-teal-600 text-white rounded hover:bg-teal-700 text-sm"
-                >
-                  Go to Home Page
-                </button>
-              </div>
-            )}
           </div>
         )}
 
-        {/* 登录表单 */}
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="space-y-4">
             <div>
@@ -238,7 +192,6 @@ export default function SignInPage() {
           </button>
         </form>
 
-        {/* OAuth 登录 */}
         <div className="mt-6">
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
@@ -268,7 +221,6 @@ export default function SignInPage() {
           </div>
         </div>
 
-        {/* 注册链接 */}
         <p className="mt-6 text-center text-sm text-gray-600">
           Don't have an account?{' '}
           <Link href="/auth/signup" className="font-medium text-teal-600 hover:text-teal-500">
@@ -279,4 +231,3 @@ export default function SignInPage() {
     </div>
   )
 }
-

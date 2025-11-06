@@ -20,15 +20,23 @@ export async function POST(request: NextRequest) {
       ...(negativePrompt && { negative_prompt: negativePrompt }),
       sequential_image_generation: "auto",
       sequential_image_generation_options: {
-        max_images: 4
+        max_images: 1 // 🔥 改为1，避免生成重复图片
       },
       response_format: "url",
       size: width && height ? `${width}x${height}` : "1024x1024",
       quality: "hd",
       stream: false,
       watermark: false,
-      n: 4
+      n: 1 // 🔥 改为1，每个场景只生成1张图，避免重复
     }
+    
+    console.log('📋 [API] 请求参数:', {
+      model: requestBody.model,
+      promptLength: prompt.length,
+      size: requestBody.size,
+      n: requestBody.n,
+      max_images: requestBody.sequential_image_generation_options.max_images
+    })
 
     // 带重试机制的请求函数
     const makeRequest = async (attempt: number) => {
@@ -93,36 +101,61 @@ export async function POST(request: NextRequest) {
 
         const data = await response.json()
         console.log('✅ [API] SeeDream API响应成功')
+        console.log('📦 [API] 完整响应数据:', JSON.stringify(data, null, 2))
         
-        // 处理响应数据
+        // 🔥 处理响应数据 - 支持多种返回格式
+        let imageUrls: string[] = []
+        
+        // 格式1: data.data 数组格式（标准格式）
         if (data.data && Array.isArray(data.data)) {
-          const imageUrls = data.data.map((item: any) => item.url).filter(Boolean)
-          
-          return NextResponse.json({
-            success: true,
-            imageUrls: imageUrls,
-            imageUrl: imageUrls[0],
-            prompt: prompt,
-            generatedAt: new Date().toISOString()
-          })
-        } else if (data.url) {
-          return NextResponse.json({
-            success: true,
-            imageUrls: [data.url],
-            imageUrl: data.url,
-            prompt: prompt,
-            generatedAt: new Date().toISOString()
-          })
-        } else {
-          console.error('❌ [API] API响应格式不正确:', data)
+          imageUrls = data.data.map((item: any) => item.url).filter(Boolean)
+          console.log(`📸 [API] 从data.data提取到 ${imageUrls.length} 个图片URL`)
+        } 
+        // 格式2: 直接包含 url 字段
+        else if (data.url) {
+          imageUrls = [data.url]
+          console.log('📸 [API] 从data.url提取到 1 个图片URL')
+        }
+        // 格式3: choices 格式（某些API返回）
+        else if (data.choices && Array.isArray(data.choices)) {
+          imageUrls = data.choices
+            .map((choice: any) => choice.url || choice.image_url)
+            .filter(Boolean)
+          console.log(`📸 [API] 从data.choices提取到 ${imageUrls.length} 个图片URL`)
+        }
+        // 格式4: images 数组格式
+        else if (data.images && Array.isArray(data.images)) {
+          imageUrls = data.images
+            .map((img: any) => typeof img === 'string' ? img : img.url)
+            .filter(Boolean)
+          console.log(`📸 [API] 从data.images提取到 ${imageUrls.length} 个图片URL`)
+        }
+        
+        // 🔥 验证是否成功提取到图片URL
+        if (imageUrls.length === 0) {
+          console.error('❌ [API] 未能从响应中提取到图片URL')
+          console.error('📦 [API] 响应数据结构:', Object.keys(data))
+          console.error('📦 [API] 完整响应:', JSON.stringify(data, null, 2))
           return NextResponse.json(
             { 
               success: false, 
-              error: 'API响应格式不正确' 
+              error: '未能从API响应中提取到图片URL，请检查API返回格式' 
             },
             { status: 500 }
           )
         }
+        
+        console.log(`✅ [API] 成功提取 ${imageUrls.length} 个图片URL`)
+        console.log('🔗 [API] 图片URLs:', imageUrls)
+        
+        return NextResponse.json({
+          success: true,
+          imageUrls: imageUrls,
+          imageUrl: imageUrls[0], // 第一张图作为主图
+          prompt: prompt,
+          generatedAt: new Date().toISOString(),
+          totalImages: imageUrls.length
+        })
       } catch (error) {
         lastError = error
         console.error(`❌ [API] 第${attempt}次尝试失败:`, error)
