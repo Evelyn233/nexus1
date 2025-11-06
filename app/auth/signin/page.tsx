@@ -55,40 +55,51 @@ function SignInForm() {
       console.log('📍 [SIGNIN-EFFECT] 当前URL:', window.location.href)
       console.log('🔍 [SIGNIN-EFFECT] 原始 callbackUrl:', callbackUrl)
       
-      // 🔥 等待更长时间确保 session cookie 完全设置并同步到 middleware
-      // 在 Vercel 上，cookie 同步可能需要更长时间
-      setTimeout(async () => {
-        // 再次更新 session，确保 cookie 同步
-        try {
-          console.log('🔄 [SIGNIN-EFFECT] 更新 session 确保 cookie 同步...')
-          await update()
-          console.log('✅ [SIGNIN-EFFECT] Session 更新成功')
-        } catch (updateError) {
-          console.warn('⚠️ [SIGNIN-EFFECT] Session 更新失败，继续跳转:', updateError)
-        }
-        
-        // 再等待一下确保 cookie 完全同步
-        await new Promise(resolve => setTimeout(resolve, 1000))
-        
+      // 🔥 构建绝对 URL，确保跳转正确
+      const absoluteUrl = finalUrl.startsWith('http') 
+        ? finalUrl 
+        : `${window.location.origin}${finalUrl}`
+      
+      console.log('🔗 [SIGNIN-EFFECT] 绝对URL:', absoluteUrl)
+      
+      // 🔥 立即尝试跳转，不等待（session 已经认证）
+      const performRedirect = () => {
         console.log('🚀 [SIGNIN-EFFECT] 开始强制跳转...')
+        console.log('📍 [SIGNIN-EFFECT] 跳转到:', absoluteUrl)
         
-        // 直接使用 window.location.replace 强制跳转
         try {
-          window.location.replace(finalUrl)
+          // 使用 window.location.replace 强制跳转
+          window.location.replace(absoluteUrl)
           console.log('✅ [SIGNIN-EFFECT] 已执行 window.location.replace')
         } catch (e) {
           console.error('❌ [SIGNIN-EFFECT] window.location.replace 失败，尝试 window.location.href:', e)
-          window.location.href = finalUrl
+          window.location.href = absoluteUrl
         }
-        
-        // 备用方案：如果2秒后还在登录页，再次强制跳转
-        setTimeout(() => {
-          if (window.location.pathname === '/auth/signin') {
-            console.log('⚠️ [SIGNIN-EFFECT] 2秒后仍在登录页，再次强制跳转')
-            window.location.replace(finalUrl)
-          }
-        }, 2000)
+      }
+      
+      // 立即执行一次跳转
+      performRedirect()
+      
+      // 同时更新 session，确保 cookie 同步
+      update().catch(err => {
+        console.warn('⚠️ [SIGNIN-EFFECT] Session 更新失败，继续跳转:', err)
+      })
+      
+      // 备用方案：如果1秒后还在登录页，再次强制跳转
+      setTimeout(() => {
+        if (window.location.pathname === '/auth/signin') {
+          console.log('⚠️ [SIGNIN-EFFECT] 1秒后仍在登录页，再次强制跳转')
+          performRedirect()
+        }
       }, 1000)
+      
+      // 最终备用方案：如果3秒后还在登录页，最后一次强制跳转
+      setTimeout(() => {
+        if (window.location.pathname === '/auth/signin') {
+          console.log('⚠️ [SIGNIN-EFFECT] 3秒后仍在登录页，最后一次强制跳转')
+          window.location.href = absoluteUrl
+        }
+      }, 3000)
     }
   }, [status, session, callbackUrl, update])
 
@@ -180,24 +191,38 @@ function SignInForm() {
         // 🔥 使用 window.location.replace 强制跳转（不会在历史记录中留下登录页）
         // 构建干净的 URL，只添加一个时间戳参数
         const finalUrl = `${targetUrl}?t=${Date.now()}`
+        
+        // 🔥 构建绝对 URL，确保跳转正确
+        const absoluteUrl = finalUrl.startsWith('http') 
+          ? finalUrl 
+          : `${window.location.origin}${finalUrl}`
+        
         console.log('🚀 [SIGNIN] 开始强制跳转...')
         console.log('📍 [SIGNIN] 当前URL:', window.location.href)
-        console.log('📍 [SIGNIN] 目标URL:', finalUrl)
+        console.log('📍 [SIGNIN] 目标URL:', absoluteUrl)
         
         // 直接使用 window.location.replace，确保跳转
         try {
-          window.location.replace(finalUrl)
+          window.location.replace(absoluteUrl)
           console.log('✅ [SIGNIN] 已执行 window.location.replace')
         } catch (e) {
           console.error('❌ [SIGNIN] window.location.replace 失败，尝试 window.location.href:', e)
-          window.location.href = finalUrl
+          window.location.href = absoluteUrl
         }
         
-        // 备用方案：如果5秒后还在登录页，再次强制跳转
+        // 备用方案：如果2秒后还在登录页，再次强制跳转
         setTimeout(() => {
           if (window.location.pathname === '/auth/signin') {
-            console.log('⚠️ [SIGNIN] 5秒后仍在登录页，再次强制跳转')
-            window.location.replace(finalUrl)
+            console.log('⚠️ [SIGNIN] 2秒后仍在登录页，再次强制跳转')
+            window.location.replace(absoluteUrl)
+          }
+        }, 2000)
+        
+        // 最终备用方案：如果5秒后还在登录页，最后一次强制跳转
+        setTimeout(() => {
+          if (window.location.pathname === '/auth/signin') {
+            console.log('⚠️ [SIGNIN] 5秒后仍在登录页，最后一次强制跳转')
+            window.location.href = absoluteUrl
           }
         }, 5000)
       } else {
