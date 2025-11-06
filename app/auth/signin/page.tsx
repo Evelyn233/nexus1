@@ -22,12 +22,22 @@ export default function SignInPage() {
     }
   }, [])
 
-  // 如果用户已登录，直接跳转
+  // 如果用户已登录，直接跳转（避免循环跳转）
   useEffect(() => {
     if (status === 'authenticated' && session) {
       const currentPath = typeof window !== 'undefined' ? window.location.pathname : ''
-      if (currentPath !== callbackUrl && !currentPath.includes('/home')) {
-        window.location.href = callbackUrl
+      const targetUrl = callbackUrl || '/home'
+      
+      // 避免在登录页面循环跳转
+      if (currentPath === '/auth/signin' || currentPath.startsWith('/auth/')) {
+        // 延迟跳转，确保session已完全设置
+        const timer = setTimeout(() => {
+          if (targetUrl && targetUrl !== currentPath) {
+            console.log('🔄 [SIGNIN] 已登录，跳转到:', targetUrl)
+            window.location.href = targetUrl
+          }
+        }, 100)
+        return () => clearTimeout(timer)
       }
     }
   }, [status, session, callbackUrl])
@@ -63,13 +73,21 @@ export default function SignInPage() {
 
       if (result?.ok) {
         setIsLoading(false)
-        // 刷新 session，useEffect 会自动处理跳转
+        // 刷新 session，然后跳转
         try {
           await update()
+          // 等待session更新后跳转
+          setTimeout(() => {
+            const targetUrl = callbackUrl || '/home'
+            console.log('✅ [SIGNIN] 登录成功，跳转到:', targetUrl)
+            window.location.href = targetUrl
+          }, 300)
         } catch (updateError) {
+          console.warn('⚠️ [SIGNIN] Session更新失败，直接跳转:', updateError)
           // 即使刷新失败，也尝试跳转（cookie 已设置）
           setTimeout(() => {
-            window.location.href = callbackUrl
+            const targetUrl = callbackUrl || '/home'
+            window.location.href = targetUrl
           }, 500)
         }
       } else {
