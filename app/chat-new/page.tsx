@@ -1885,12 +1885,22 @@ ${aiPrompt}`
               isPsychodrama: true,
               imagePrompt: additionalResults.psychodramaScene.imagePrompt || additionalResults.psychodramaScene.detailedPrompt,
               title: additionalResults.psychodramaScene.title || additionalResults.psychodramaScene.emotionalTrigger || '心理剧场景',
-              storyFragment: [
-                additionalResults.psychodramaScene.innerMonologue,
-                additionalResults.psychodramaScene.surfaceVsInner, 
-                additionalResults.psychodramaScene.consciousnessStream,
-                additionalResults.psychodramaScene.psychologicalSymbolism
-              ].filter(text => text && text.trim()).join('\n\n') || additionalResults.psychodramaScene.sceneDescription_CN || ''
+              storyFragment: (() => {
+                const parts: string[] = []
+                if (additionalResults.psychodramaScene.innerMonologue) {
+                  parts.push(`内心独白："${additionalResults.psychodramaScene.innerMonologue}"`)
+                }
+                if (additionalResults.psychodramaScene.surfaceVsInner) {
+                  parts.push(`表面vs内心：${additionalResults.psychodramaScene.surfaceVsInner}`)
+                }
+                if (additionalResults.psychodramaScene.consciousnessStream) {
+                  parts.push(`意识流：${additionalResults.psychodramaScene.consciousnessStream}`)
+                }
+                if (additionalResults.psychodramaScene.psychologicalSymbolism) {
+                  parts.push(`心理象征：${additionalResults.psychodramaScene.psychologicalSymbolism}`)
+                }
+                return parts.length > 0 ? parts.join('\n\n') : additionalResults.psychodramaScene.sceneDescription_CN || ''
+              })()
             }
             newScenes.push(psychodramaScene)
             console.log('🎭 [CHAT-NEW] 心理剧场景准备生图（优先级最高）:', {
@@ -2073,15 +2083,22 @@ ${aiPrompt}`
       // 3. ✅ 场景对象已经有storyFragment了，直接用（心理剧补充）
       scenes.forEach((scene: any) => {
         if (scene.isPsychodrama && !scene.storyFragment) {
-          // 心理剧如果没有storyFragment，用完整的心理分析文字
-          const psychodramaText = [
-            scene.innerMonologue,
-            scene.surfaceVsInner, 
-            scene.consciousnessStream,
-            scene.psychologicalSymbolism
-          ].filter(text => text && text.trim()).join('\n\n')
+          // 心理剧如果没有storyFragment，用完整的心理分析文字（格式化）
+          const parts: string[] = []
+          if (scene.innerMonologue) {
+            parts.push(`内心独白："${scene.innerMonologue}"`)
+          }
+          if (scene.surfaceVsInner) {
+            parts.push(`表面vs内心：${scene.surfaceVsInner}`)
+          }
+          if (scene.consciousnessStream) {
+            parts.push(`意识流：${scene.consciousnessStream}`)
+          }
+          if (scene.psychologicalSymbolism) {
+            parts.push(`心理象征：${scene.psychologicalSymbolism}`)
+          }
           
-          scene.storyFragment = psychodramaText || scene.sceneDescription_CN || ''
+          scene.storyFragment = parts.length > 0 ? parts.join('\n\n') : scene.sceneDescription_CN || ''
           
           console.log('🎭 [PSYCHODRAMA] 心理剧文字内容:', {
             innerMonologue: scene.innerMonologue,
