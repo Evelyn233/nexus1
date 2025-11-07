@@ -155,8 +155,8 @@ export default function HomePage() {
     },
     {
       id: 5,
-      image: 'https://images.unsplash.com/photo-1518709268805-4e9042af2176?w=400&h=300&fit=crop',
-      title: '🌒 Finding Romance in Algorithms',
+      image: '/images/divorse.jpeg',
+      title: 'The Missing Manual for Connection',
       subtitle: '',
       type: 'article' as const,
       authorInitial: 'L',
