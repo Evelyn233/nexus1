@@ -24,6 +24,14 @@ export default function HomePage() {
   const [contentLoading, setContentLoading] = useState(true)
   const [publishedContent, setPublishedContent] = useState<any[]>([])
   const [publishedLoading, setPublishedLoading] = useState(true)
+  const [customQuickOptions, setCustomQuickOptions] = useState<string[]>(() => {
+    // 从 localStorage 读取自定义选项
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('customQuickOptions')
+      return saved ? JSON.parse(saved) : []
+    }
+    return []
+  })
 
   // 检查 URL 参数，如果有 openHistory=true，自动打开历史记录侧边栏
   useEffect(() => {
@@ -175,6 +183,16 @@ export default function HomePage() {
     }
   }
 
+  const handleAddCustomOption = (value: string) => {
+    if (value.trim() && !customQuickOptions.includes(value.trim())) {
+      const newOptions = [...customQuickOptions, value.trim()]
+      setCustomQuickOptions(newOptions)
+      // 保存到 localStorage
+      localStorage.setItem('customQuickOptions', JSON.stringify(newOptions))
+      console.log('✅ [HOME] 已添加自定义快速生成选项:', value.trim())
+    }
+  }
+
   const handleSessionSelect = (session: any) => {
     console.log('加载历史会话:', session)
     // 跳转到聊天页面并传递会话ID
@@ -301,11 +319,29 @@ export default function HomePage() {
           {/* 🔥 横向滚动容器 */}
           <div className="overflow-x-auto scrollbar-hide -mx-3 px-3">
             <div className="flex gap-2 pb-2" style={{ minWidth: 'max-content' }}>
+              {/* 默认快速生成选项 */}
               {QUICK_GENERATE_OPTIONS.map((prompt) => (
                 <button
                   key={prompt}
                   onClick={() => setInputValue(prompt)}
                   className="px-3 py-1.5 text-xs bg-magazine-light-gray text-magazine-primary rounded-full hover:bg-magazine-accent transition-colors whitespace-nowrap flex-shrink-0"
+                >
+                  {prompt}
+                </button>
+              ))}
+              {/* 自定义快速生成选项 */}
+              {customQuickOptions.map((prompt, index) => (
+                <button
+                  key={`custom-${index}`}
+                  onClick={() => setInputValue(prompt)}
+                  className="px-3 py-1.5 text-xs bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200 transition-colors whitespace-nowrap flex-shrink-0"
+                  title="点击使用，长按删除"
+                  onContextMenu={(e) => {
+                    e.preventDefault()
+                    const newOptions = customQuickOptions.filter((_, i) => i !== index)
+                    setCustomQuickOptions(newOptions)
+                    localStorage.setItem('customQuickOptions', JSON.stringify(newOptions))
+                  }}
                 >
                   {prompt}
                 </button>
@@ -321,6 +357,7 @@ export default function HomePage() {
           value={inputValue}
           onChange={setInputValue}
           onSend={handleSend}
+          onAdd={handleAddCustomOption}
         />
       </div>
 

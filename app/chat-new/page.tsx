@@ -115,13 +115,21 @@ export default function ChatNewPage() {
       console.log('📚 [CHAT-NEW] 加载历史对话:', contentId)
       setIsLoading(true)
       
-      const response = await fetch(`/api/user/generated-content/${contentId}`)
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 10000) // 10秒超时
       
-      if (!response.ok) {
-        throw new Error('加载历史对话失败')
-      }
-      
-      const result = await response.json()
+      try {
+        const response = await fetch(`/api/user/generated-content/${contentId}`, {
+          signal: controller.signal
+        })
+        
+        clearTimeout(timeoutId)
+        
+        if (!response.ok) {
+          throw new Error('加载历史对话失败')
+        }
+        
+        const result = await response.json()
       
       if (result.success && result.content) {
         const content = result.content
@@ -172,9 +180,18 @@ export default function ChatNewPage() {
       } else {
         throw new Error(result.error || '历史对话不存在')
       }
+      } catch (fetchError: any) {
+        clearTimeout(timeoutId)
+        if (fetchError.name === 'AbortError') {
+          console.error('⏱️ [CHAT-NEW] 加载历史对话超时')
+          alert('加载历史对话超时，请重试')
+        } else {
+          throw fetchError
+        }
+      }
     } catch (error) {
       console.error('❌ [CHAT-NEW] 加载历史对话失败:', error)
-      alert(`加载历史对话失败: ${error}`)
+      alert(`加载历史对话失败: ${error instanceof Error ? error.message : '未知错误'}`)
       router.push('/chat-new')
     } finally {
       setIsLoading(false)
@@ -183,18 +200,30 @@ export default function ChatNewPage() {
 
   // 初始化 sessionId（从 localStorage 读取或创建新的）
   useEffect(() => {
-    // 尝试从 localStorage 读取当前活跃的 sessionId
-    const savedSessionId = localStorage.getItem('currentChatSessionId')
-    if (savedSessionId) {
-      console.log('📂 [CHAT-NEW] 恢复会话:', savedSessionId)
-      setCurrentSessionId(savedSessionId)
-      setIsNewSession(false)
-    } else {
-      // 创建新的 sessionId
+    try {
+      // 尝试从 localStorage 读取当前活跃的 sessionId
+      const savedSessionId = localStorage.getItem('currentChatSessionId')
+      if (savedSessionId) {
+        console.log('📂 [CHAT-NEW] 恢复会话:', savedSessionId)
+        setCurrentSessionId(savedSessionId)
+        setIsNewSession(false)
+      } else {
+        // 创建新的 sessionId
+        const newSessionId = `session_${Date.now()}`
+        console.log('🆕 [CHAT-NEW] 创建新会话:', newSessionId)
+        setCurrentSessionId(newSessionId)
+        try {
+          localStorage.setItem('currentChatSessionId', newSessionId)
+        } catch (storageError) {
+          console.warn('⚠️ [CHAT-NEW] localStorage写入失败，继续使用内存中的sessionId:', storageError)
+        }
+        setIsNewSession(true)
+      }
+    } catch (error) {
+      console.error('❌ [CHAT-NEW] 初始化sessionId失败:', error)
+      // 如果localStorage失败，创建新会话
       const newSessionId = `session_${Date.now()}`
-      console.log('🆕 [CHAT-NEW] 创建新会话:', newSessionId)
       setCurrentSessionId(newSessionId)
-      localStorage.setItem('currentChatSessionId', newSessionId)
       setIsNewSession(true)
     }
   }, [])
