@@ -562,6 +562,14 @@ export default function ChatNewPage() {
     const userInput = inputValue.trim()
     console.log('💬 [CHAT-NEW] 用户输入:', userInput)
     
+    // 🔥 保存用户输入到 localStorage，防止重定向后丢失
+    try {
+      localStorage.setItem('chat-new-pending-input', userInput)
+      localStorage.setItem('chat-new-pending-timestamp', Date.now().toString())
+    } catch (e) {
+      console.warn('⚠️ [CHAT-NEW] 无法保存输入到 localStorage:', e)
+    }
+    
     // 检测"直接生图"指令（精确匹配，避免误触发）
     const directGenerateKeywords = ['直接生图', '生图', '开始生成', '马上生成', '立即生成', '跳过问答']
     const isDirectGenerateCommand = directGenerateKeywords.some(keyword => 
