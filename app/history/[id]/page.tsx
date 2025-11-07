@@ -366,64 +366,62 @@ export default function HistoryDetailPage() {
               </div>
             )}
             
+            {/* 评论区域 - 只在已发布的内容显示，紧跟在图文内容之后 */}
+            {content.status === 'published' && (
+              <div className="mt-6 pt-6 border-t border-gray-200">
+                <h3 className="text-lg font-bold text-gray-900 mb-4">💬 评论 ({comments.length})</h3>
+                
+                {/* 评论输入框 */}
+                <div className="mb-6">
+                  <textarea
+                    value={commentText}
+                    onChange={(e) => setCommentText(e.target.value)}
+                    placeholder="写下你的评论..."
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+                    rows={3}
+                  />
+                  <div className="flex justify-end mt-2">
+                    <button
+                      onClick={handleSubmitComment}
+                      disabled={!commentText.trim() || isSubmittingComment}
+                      className="px-6 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isSubmittingComment ? '提交中...' : '发表评论'}
+                    </button>
+                  </div>
+                </div>
+                
+                {/* 评论列表 */}
+                <div className="space-y-4">
+                  {comments.length === 0 ? (
+                    <p className="text-gray-500 text-center py-8">暂无评论，快来发表第一条评论吧~</p>
+                  ) : (
+                    comments.map((comment) => (
+                      <div key={comment.id} className="border-b border-gray-200 pb-4 last:border-b-0">
+                        <div className="flex items-start gap-3">
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold">
+                            {comment.author.name?.[0] || '?'}
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="font-semibold text-gray-900">{comment.author.name || '匿名用户'}</span>
+                              <span className="text-xs text-gray-500">
+                                {new Date(comment.createdAt).toLocaleString('zh-CN')}
+                              </span>
+                            </div>
+                            <p className="text-gray-700 whitespace-pre-wrap">{comment.text}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+            
           </div>
         </div>
       </div>
-      
-      {/* 评论区域 - 只在已发布的内容显示 */}
-      {content.status === 'published' && (
-        <div className="max-w-4xl mx-auto mt-6">
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">💬 评论 ({comments.length})</h3>
-            
-            {/* 评论输入框 */}
-            <div className="mb-6">
-              <textarea
-                value={commentText}
-                onChange={(e) => setCommentText(e.target.value)}
-                placeholder="写下你的评论..."
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
-                rows={3}
-              />
-              <div className="flex justify-end mt-2">
-                <button
-                  onClick={handleSubmitComment}
-                  disabled={!commentText.trim() || isSubmittingComment}
-                  className="px-6 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isSubmittingComment ? '提交中...' : '发表评论'}
-                </button>
-              </div>
-            </div>
-            
-            {/* 评论列表 */}
-            <div className="space-y-4">
-              {comments.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">暂无评论，快来发表第一条评论吧~</p>
-              ) : (
-                comments.map((comment) => (
-                  <div key={comment.id} className="border-b border-gray-200 pb-4 last:border-b-0">
-                    <div className="flex items-start gap-3">
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold">
-                        {comment.author.name?.[0] || '?'}
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-semibold text-gray-900">{comment.author.name || '匿名用户'}</span>
-                          <span className="text-xs text-gray-500">
-                            {new Date(comment.createdAt).toLocaleString('zh-CN')}
-                          </span>
-                        </div>
-                        <p className="text-gray-700 whitespace-pre-wrap">{comment.text}</p>
-                      </div>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        </div>
-      )}
       
       {/* 继续创作功能 - 只在未发布的内容显示 */}
       {content.status !== 'published' && (
