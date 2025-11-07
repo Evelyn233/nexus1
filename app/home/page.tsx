@@ -193,6 +193,46 @@ export default function HomePage() {
     }
   }
 
+  const handleImageUpload = (file: File) => {
+    // 创建图片预览
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const imageUrl = e.target?.result as string
+      console.log('📸 [HOME] 图片已上传:', file.name)
+      // 可以在这里显示图片预览或保存图片
+      // 暂时先显示提示
+      alert(`图片 "${file.name}" 已上传`)
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const handleImageToAI = async (file: File) => {
+    try {
+      console.log('🤖 [HOME] 准备将图片发送给AI:', file.name)
+      
+      // 将图片转换为base64
+      const reader = new FileReader()
+      reader.onload = async (e) => {
+        const base64Image = e.target?.result as string
+        
+        // 跳转到聊天页面，传递图片数据
+        const imageData = {
+          name: file.name,
+          data: base64Image,
+          type: file.type
+        }
+        
+        // 将图片数据编码到URL中（或使用其他方式传递）
+        const encodedData = encodeURIComponent(JSON.stringify(imageData))
+        router.push(`/chat-new?image=${encodedData}`)
+      }
+      reader.readAsDataURL(file)
+    } catch (error) {
+      console.error('❌ [HOME] 处理图片失败:', error)
+      alert('处理图片失败，请重试')
+    }
+  }
+
   const handleSessionSelect = (session: any) => {
     console.log('加载历史会话:', session)
     // 跳转到聊天页面并传递会话ID
@@ -358,6 +398,8 @@ export default function HomePage() {
           onChange={setInputValue}
           onSend={handleSend}
           onAdd={handleAddCustomOption}
+          onImageUpload={handleImageUpload}
+          onImageToAI={handleImageToAI}
         />
       </div>
 

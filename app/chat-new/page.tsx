@@ -49,7 +49,7 @@ export default function ChatNewPage() {
   const [answers, setAnswers] = useState<string[]>([])
   const answersRef = useRef<string[]>([])  // 🔥 使用ref追踪实际回答数，避免state更新延迟
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
-  const [step, setStep] = useState<'loading' | 'questions' | 'generating'>('loading')
+  const [step, setStep] = useState<'loading' | 'questions' | 'generating'>('questions') // 默认设置为 questions，允许用户输入
   const [userProfile, setUserProfile] = useState<string>('')
   const [contextAnalysis, setContextAnalysis] = useState<any>(null)
   const [askedQuestions, setAskedQuestions] = useState<string[]>([])
@@ -264,6 +264,14 @@ export default function ChatNewPage() {
 
   // 初始化
   useEffect(() => {
+    // 如果没有 prompt 或 continueId，确保页面处于正确状态
+    if (!urlPrompt && !continueId) {
+      console.log('📝 [CHAT-NEW] 没有 prompt 或 continueId，等待用户输入')
+      setStep('questions') // 设置为 questions 状态，允许用户输入
+      setIsLoading(false)
+      return
+    }
+    
     if (urlPrompt || continueId) {
       // 🚨 防止React StrictMode重复执行
       let cancelled = false
