@@ -355,7 +355,11 @@ export default function ChatNewPage() {
             console.log('⚠️ [CHAT-NEW] API did not return question, generating directly with initial input')
             setApiStatus('fallback')
             // Generate directly with initial input, pass currentPrompt
-            generateInChat([currentPrompt], currentPrompt)
+            try {
+              await generateInChat([currentPrompt], currentPrompt)
+            } catch (genError) {
+              console.error('💥 [CHAT-NEW] Failed to generate in chat:', genError)
+            }
           }
           
         } catch (error) {
@@ -363,7 +367,11 @@ export default function ChatNewPage() {
           
           // API call failed, generate directly with initial input, pass currentPrompt
           console.log('💥 [CHAT-NEW] API call failed, generating directly with initial input')
-          generateInChat([currentPrompt], currentPrompt)
+          try {
+            await generateInChat([currentPrompt], currentPrompt)
+          } catch (genError) {
+            console.error('💥 [CHAT-NEW] Failed to generate in chat after error:', genError)
+          }
         }
       }, 500)
       
@@ -382,20 +390,30 @@ export default function ChatNewPage() {
   // 生成第一个问题
   const generateFirstQuestion = async () => {
     try {
-      // 第一个参数：当前输入（首次就是initialPrompt）
-      // 第二个参数：元键入（initialPrompt，最重要的）
-      // 第三个参数：之前的回答（首次为空）
-      // 第四个参数：之前的问题（首次为空）
+      // First parameter: current input (first time is initialPrompt)
+      // Second parameter: meta input (initialPrompt, most important)
+      // Third parameter: previous answers (empty first time)
+      // Fourth parameter: previous questions (empty first time)
+      console.log('📝 [CHAT-NEW] Calling generateDeepQuestions with:', {
+        userInput: initialPrompt,
+        initialPrompt,
+        previousAnswers: [],
+        previousQuestions: []
+      })
+      
       const response = await generateDeepQuestions(initialPrompt, initialPrompt, [], [])
       
+      console.log('📝 [CHAT-NEW] generateDeepQuestions response:', response)
+      
       if (response.success && response.questions && response.questions.length > 0) {
-        console.log(`📋 [CHAT-NEW] API生成了 ${response.questions.length} 个问题:`, response.questions)
-        return response.questions[0] // 只返回第一个问题
+        console.log(`📋 [CHAT-NEW] API generated ${response.questions.length} questions:`, response.questions)
+        return response.questions[0] // Only return first question
       }
       
+      console.warn('⚠️ [CHAT-NEW] No questions generated from API')
       return null
     } catch (error) {
-      console.error('💥 [CHAT-NEW] 生成问题失败:', error)
+      console.error('💥 [CHAT-NEW] Failed to generate question:', error)
       return null
     }
   }
