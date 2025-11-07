@@ -52,6 +52,12 @@ export default withAuth(
       return null
     }
 
+    // 🔥 明确排除 API 路由（API 路由应该返回 401，而不是重定向）
+    if (pathname.startsWith('/api/')) {
+      console.log('✅ [MIDDLEWARE] API 路由，跳过中间件处理（由 API 路由自己处理认证）')
+      return null
+    }
+
     // 🔥 处理保护页面
     if (!isAuth) {
       // 检查是否有时间戳参数（表示是登录后的跳转）

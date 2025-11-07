@@ -264,6 +264,31 @@ export default function ChatNewPage() {
 
   // 初始化
   useEffect(() => {
+    // 🔥 检查是否有待处理的输入（从 localStorage 恢复）
+    try {
+      const pendingInput = localStorage.getItem('chat-new-pending-input')
+      const pendingTimestamp = localStorage.getItem('chat-new-pending-timestamp')
+      
+      if (pendingInput && pendingTimestamp) {
+        const timestamp = parseInt(pendingTimestamp, 10)
+        const now = Date.now()
+        // 如果待处理输入在 30 秒内，自动恢复
+        if (now - timestamp < 30000) {
+          console.log('🔄 [CHAT-NEW] 检测到待处理的输入，自动恢复:', pendingInput)
+          setInputValue(pendingInput)
+          // 清除待处理输入
+          localStorage.removeItem('chat-new-pending-input')
+          localStorage.removeItem('chat-new-pending-timestamp')
+        } else {
+          // 超过 30 秒，清除
+          localStorage.removeItem('chat-new-pending-input')
+          localStorage.removeItem('chat-new-pending-timestamp')
+        }
+      }
+    } catch (e) {
+      console.warn('⚠️ [CHAT-NEW] 无法读取 localStorage:', e)
+    }
+    
     // 如果没有 prompt 或 continueId，确保页面处于正确状态
     if (!urlPrompt && !continueId) {
       console.log('📝 [CHAT-NEW] 没有 prompt 或 continueId，等待用户输入')
