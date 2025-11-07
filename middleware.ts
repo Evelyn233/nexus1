@@ -60,6 +60,13 @@ export default withAuth(
 
     // 🔥 处理保护页面
     if (!isAuth) {
+      // 🔥 特殊处理：chat-new 页面允许未登录访问，由前端处理认证状态
+      // 这样可以避免用户在输入时被重定向，导致输入丢失
+      if (pathname.startsWith('/chat-new')) {
+        console.log('⚠️ [MIDDLEWARE] chat-new 页面允许未登录访问，由前端处理认证状态')
+        return null
+      }
+      
       // 检查是否有时间戳参数（表示是登录后的跳转）
       const hasTimestamp = req.nextUrl.searchParams.has('t')
       
