@@ -45,9 +45,41 @@ export default function LandingPage() {
             </span>
           </h2>
           <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
-            Input "I'm feeling sad at work today" and AI will deeply understand you through conversation,
-            transforming your emotions and experiences into visual scenes and psychodrama.
+            Share your thoughts, emotions, or experiences, and AI will deeply understand you through conversation,
+            transforming your inner world into visual scenes and psychodrama.
           </p>
+          
+          {/* Example Prompts */}
+          <div className="mb-12">
+            <p className="text-sm text-gray-500 mb-4">Try these examples:</p>
+            <div className="flex flex-wrap gap-3 justify-center max-w-4xl mx-auto">
+              {[
+                "I feel disconnected from my team at work",
+                "My boyfriend only takes, never gives back",
+                "I'm questioning my career path lately",
+                "I had a meaningful conversation with a stranger today",
+                "I'm struggling with work-life balance",
+                "I discovered something beautiful in the mundane",
+                "I feel misunderstood by my family",
+                "I'm excited about a new project I'm starting",
+                "I'm reflecting on past relationships",
+                "I want to explore my creative side more",
+                "I feel overwhelmed by social expectations",
+                "I'm learning to set better boundaries",
+                "I had an epiphany about my life direction",
+                "I'm processing a difficult conversation",
+                "I'm grateful for small moments of joy"
+              ].map((prompt, index) => (
+                <Link
+                  key={index}
+                  href={`/auth/signup?prompt=${encodeURIComponent(prompt)}`}
+                  className="px-4 py-2 bg-white/80 backdrop-blur-sm border border-gray-200 rounded-full text-sm text-gray-700 hover:bg-teal-50 hover:border-teal-300 hover:text-teal-700 transition-all cursor-pointer shadow-sm"
+                >
+                  {prompt}
+                </Link>
+              ))}
+            </div>
+          </div>
           
           {/* Beautiful Image Display */}
           <div className="mb-12">

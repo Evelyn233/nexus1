@@ -1,12 +1,14 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { signIn } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 
 export default function SignUpPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const promptParam = searchParams.get('prompt') || ''
   
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -58,7 +60,12 @@ export default function SignUpPage() {
       })
 
       if (result?.ok) {
-        router.push('/user-info') // 跳转到用户信息收集页面
+        // 如果有prompt参数，跳转到聊天页面；否则跳转到用户信息收集页面
+        if (promptParam) {
+          router.push(`/chat-new?prompt=${encodeURIComponent(promptParam)}`)
+        } else {
+          router.push('/user-info') // 跳转到用户信息收集页面
+        }
       } else {
         router.push('/auth/signin')
       }
