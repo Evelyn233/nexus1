@@ -283,48 +283,64 @@ export default function ChatNewPage() {
         }
         
         try {
-          console.log('📝 [CHAT-NEW] 准备调用generateFirstQuestion函数')
-          console.log('📝 [CHAT-NEW] 开始生成第一个问题...', currentPrompt)
+          console.log('📝 [CHAT-NEW] Preparing to call generateFirstQuestion function')
+          console.log('📝 [CHAT-NEW] Starting to generate first question...', currentPrompt)
           
-          // 获取用户信息从Prisma数据库
+          // Get user info from Prisma database (with timeout handling)
           let userInfoFromAPI = null
           try {
-            const userResponse = await fetch('/api/user/info')
-            if (userResponse.ok) {
-              const userData = await userResponse.json()
-              userInfoFromAPI = userData
-              console.log('✅ [CHAT-NEW] 使用Prisma数据库的用户信息:', {
-                name: userData.userInfo?.name,
-                age: userData.userInfo?.age,
-                location: userData.userInfo?.location
+            const controller = new AbortController()
+            const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 second timeout
+            
+            try {
+              const userResponse = await fetch('/api/user/info', {
+                signal: controller.signal
               })
+              clearTimeout(timeoutId)
+              
+              if (userResponse.ok) {
+                const userData = await userResponse.json()
+                userInfoFromAPI = userData
+                console.log('✅ [CHAT-NEW] Using user info from Prisma database:', {
+                  name: userData.userInfo?.name,
+                  age: userData.userInfo?.age,
+                  location: userData.userInfo?.location
+                })
+              }
+            } catch (fetchError: any) {
+              clearTimeout(timeoutId)
+              if (fetchError.name === 'AbortError') {
+                console.log('⏱️ [CHAT-NEW] User info fetch timeout, using fallback')
+              } else {
+                throw fetchError
+              }
             }
           } catch (error) {
-            console.log('⚠️ [CHAT-NEW] 获取Prisma用户信息失败，使用localStorage或默认配置')
-            // 如果没有数据库连接，使用localStorage作为fallback
-            const userInfo = getUserInfo()
+            console.log('⚠️ [CHAT-NEW] Failed to get Prisma user info, using localStorage or default config:', error)
+            // If database connection fails, use localStorage as fallback
+            const userInfo = await getUserInfo()
             const userInfoDescription = getUserInfoDescription()
-            console.log('📊 [CHAT-NEW] localStorage用户信息:', userInfoDescription)
+            console.log('📊 [CHAT-NEW] localStorage user info:', userInfoDescription)
             
             if (!userInfo || !userInfoDescription) {
-              console.warn('⚠️ [CHAT-NEW] 没有用户信息，使用默认配置')
+              console.warn('⚠️ [CHAT-NEW] No user info available, using default config')
             }
           }
           
       const firstQuestionText = await generateFirstQuestion()
-      console.log('📝 [CHAT-NEW] API响应:', { firstQuestion: firstQuestionText })
-      console.log('📝 [CHAT-NEW] firstQuestionText类型:', typeof firstQuestionText)
-      console.log('📝 [CHAT-NEW] firstQuestionText长度:', firstQuestionText?.length)
+      console.log('📝 [CHAT-NEW] API response:', { firstQuestion: firstQuestionText })
+      console.log('📝 [CHAT-NEW] firstQuestionText type:', typeof firstQuestionText)
+      console.log('📝 [CHAT-NEW] firstQuestionText length:', firstQuestionText?.length)
       
       if (firstQuestionText) {
-        console.log(`✅ [CHAT-NEW] 生成了第一个问题:`, firstQuestionText)
+        console.log(`✅ [CHAT-NEW] Generated first question:`, firstQuestionText)
             
-            // 保存第一个问题到状态
+            // Save first question to state
         setQuestions([firstQuestionText])
-        questionsRef.current = [firstQuestionText]  // 🔥 同步更新ref
+        questionsRef.current = [firstQuestionText]  // 🔥 Sync update ref
         setAskedQuestions([firstQuestionText])
             
-            // 添加第一个问题到消息
+            // Add first question to messages
             setMessages(prev => [...prev, {
           id: `assistant-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
               type: 'assistant',
@@ -334,19 +350,19 @@ export default function ChatNewPage() {
             setApiStatus('active')
             setStep('questions')
             setCurrentQuestionIndex(0)
-            console.log(`✅ [CHAT-NEW] 第一个问题已显示，等待用户回答后动态生成下一个`)
+            console.log(`✅ [CHAT-NEW] First question displayed, waiting for user answer to dynamically generate next`)
           } else {
-            console.log('⚠️ [CHAT-NEW] API未返回问题，用初始输入直接生成')
+            console.log('⚠️ [CHAT-NEW] API did not return question, generating directly with initial input')
             setApiStatus('fallback')
-            // 使用初始输入直接生成，传入currentPrompt
+            // Generate directly with initial input, pass currentPrompt
             generateInChat([currentPrompt], currentPrompt)
           }
           
         } catch (error) {
-          console.error('💥 [CHAT-NEW] 生成第一个问题失败:', error)
+          console.error('💥 [CHAT-NEW] Failed to generate first question:', error)
           
-          // API调用失败，使用初始输入直接生成，传入currentPrompt
-          console.log('💥 [CHAT-NEW] API调用失败，使用初始输入直接生成')
+          // API call failed, generate directly with initial input, pass currentPrompt
+          console.log('💥 [CHAT-NEW] API call failed, generating directly with initial input')
           generateInChat([currentPrompt], currentPrompt)
         }
       }, 500)
@@ -1125,8 +1141,8 @@ ${aiPrompt}`
   // 生成杂志标题
   const generateMagazineTitle = async () => {
     try {
-      const userInfo = getUserInfo()
-      const userMetadata = getUserMetadata()
+      const userInfo = await getUserInfo()
+      const userMetadata = await getUserMetadata()
       
       const response = await fetch('https://api.deepseek.com/chat/completions', {
         method: 'POST',
@@ -2297,7 +2313,7 @@ ${aiPrompt}`
   ) => {
     try {
       // 🔵 第一步：存储用户原始输入（表意识层）
-      const currentMetadata = getUserMetadata() as any
+      const currentMetadata = await getUserMetadata() as any
       const rawInputsToAdd = [userAnswer]  // 用户的原始回答
       if (context.length > 0) {
         rawInputsToAdd.unshift(context[0])  // 初始prompt也要存储
@@ -2307,7 +2323,7 @@ ${aiPrompt}`
       const mentionedKeywords = userAnswer.match(/[\u4e00-\u9fa5a-zA-Z0-9]{2,}/g) || []
       
       // 获取用户的完整信息（包括八字、星盘）
-      const userInfo = getUserInfo()
+      const userInfo = await getUserInfo()
       
       const response = await fetch('https://api.deepseek.com/chat/completions', {
         method: 'POST',

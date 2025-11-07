@@ -494,21 +494,37 @@ export async function getUserInfo(): Promise<UserInfo> {
   }
   
   try {
-    // 首先尝试从API获取用户信息
+    // First try to get user info from API (with timeout handling)
     try {
-      const response = await fetch('/api/user/info')
-      if (response.ok) {
-        const data = await response.json()
-        if (data.success && data.userInfo) {
-          console.log('✅ [USER-INFO] 从API获取用户信息成功')
-          return data.userInfo
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 second timeout
+      
+      try {
+        const response = await fetch('/api/user/info', {
+          signal: controller.signal
+        })
+        clearTimeout(timeoutId)
+        
+        if (response.ok) {
+          const data = await response.json()
+          if (data.success && data.userInfo) {
+            console.log('✅ [USER-INFO] Successfully fetched user info from API')
+            return data.userInfo
+          }
+        }
+      } catch (fetchError: any) {
+        clearTimeout(timeoutId)
+        if (fetchError.name === 'AbortError') {
+          console.log('⏱️ [USER-INFO] API fetch timeout, trying localStorage')
+        } else {
+          throw fetchError
         }
       }
     } catch (apiError) {
-      console.log('⚠️ [USER-INFO] API获取失败，尝试localStorage:', apiError)
+      console.log('⚠️ [USER-INFO] API fetch failed, trying localStorage:', apiError)
     }
     
-    // 如果API失败，尝试从localStorage获取（向后兼容）
+    // If API fails, try to get from localStorage (backward compatibility)
     const currentUserName = getCurrentUserName()
     if (!currentUserName) {
       return defaultUserInfo
@@ -518,15 +534,15 @@ export async function getUserInfo(): Promise<UserInfo> {
     const stored = localStorage.getItem(userKey)
     if (stored) {
       const parsed = JSON.parse(stored)
-      // 计算年龄
+      // Calculate age
       if (parsed.birthDate.year && parsed.birthDate.month && parsed.birthDate.day) {
         parsed.age = calculateAge(parsed.birthDate)
       }
-      console.log('✅ [USER-INFO] 从localStorage获取用户信息')
+      console.log('✅ [USER-INFO] Fetched user info from localStorage')
       return parsed
     }
   } catch (error) {
-    console.error('获取用户信息失败:', error)
+    console.error('Failed to get user info:', error)
   }
   
   return defaultUserInfo
