@@ -3102,7 +3102,8 @@ AI问题：${aiQuestion}
               </div>
             )}
 
-            {/* 输入框 */}
+            {/* 输入框 - 只在有问题时显示，生成第一个问题时隐藏 */}
+            {questions.length > 0 && !isLoading && (
             <div className="sticky bottom-4 bg-white rounded-2xl shadow-lg border border-gray-200 p-4">
               <div className="flex gap-2">
                 <input
@@ -3110,7 +3111,11 @@ AI问题：${aiQuestion}
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && !isLoading && !isGenerating && handleSendMessage()}
-                  placeholder={isGenerating || isLoading ? '正在创作中...' : '请输入您的回答...'}
+                  placeholder={
+                    isGenerating 
+                      ? '正在创作中...' 
+                      : '请输入您的回答...'
+                  }
                   className="flex-1 px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-magazine-primary focus:border-transparent disabled:bg-gray-50 disabled:text-gray-400"
                   disabled={isLoading || isGenerating}
                 />
@@ -3135,6 +3140,17 @@ AI问题：${aiQuestion}
                 )}
               </div>
             </div>
+            )}
+            
+            {/* 正在生成第一个问题时显示加载提示 */}
+            {isLoading && questions.length === 0 && (
+              <div className="sticky bottom-4 bg-white rounded-2xl shadow-lg border border-gray-200 p-4">
+                <div className="flex items-center justify-center space-x-2 text-gray-600">
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <span className="text-sm">正在生成问题，请稍候...</span>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
