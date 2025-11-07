@@ -264,7 +264,7 @@ export default function ChatNewPage() {
 
   // 初始化
   useEffect(() => {
-    // 🔥 检查是否有待处理的输入（从 localStorage 恢复）
+    // 🔥 检查是否有待处理的输入（从 localStorage 恢复并保存到数据库）
     try {
       const pendingInput = localStorage.getItem('chat-new-pending-input')
       const pendingTimestamp = localStorage.getItem('chat-new-pending-timestamp')
@@ -272,15 +272,24 @@ export default function ChatNewPage() {
       if (pendingInput && pendingTimestamp) {
         const timestamp = parseInt(pendingTimestamp, 10)
         const now = Date.now()
-        // 如果待处理输入在 30 秒内，自动恢复
+        // 如果待处理输入在 30 秒内，尝试恢复并保存到数据库
         if (now - timestamp < 30000) {
-          console.log('🔄 [CHAT-NEW] 检测到待处理的输入，自动恢复:', pendingInput)
+          console.log('🔄 [CHAT-NEW] 检测到待处理的输入，尝试恢复并保存到数据库:', pendingInput)
           setInputValue(pendingInput)
-          // 清除待处理输入
-          localStorage.removeItem('chat-new-pending-input')
-          localStorage.removeItem('chat-new-pending-timestamp')
+          
+          // 尝试保存到数据库
+          saveSession().then(() => {
+            console.log('✅ [CHAT-NEW] 待处理输入已保存到数据库')
+            // 清除 localStorage 中的备份
+            localStorage.removeItem('chat-new-pending-input')
+            localStorage.removeItem('chat-new-pending-timestamp')
+          }).catch((error) => {
+            console.warn('⚠️ [CHAT-NEW] 保存待处理输入到数据库失败，保留在 localStorage:', error)
+            // 如果保存失败，保留在 localStorage，等待下次尝试
+          })
         } else {
           // 超过 30 秒，清除
+          console.log('⚠️ [CHAT-NEW] 待处理输入已过期，清除')
           localStorage.removeItem('chat-new-pending-input')
           localStorage.removeItem('chat-new-pending-timestamp')
         }
