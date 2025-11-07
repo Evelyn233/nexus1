@@ -1792,6 +1792,10 @@ ${aiPrompt}`
           const newScenes: any[] = []
           const generationPromises: Promise<void>[] = [] // 🔥 收集所有生成Promise
           
+          // 🔥 计算正确的起始索引，确保sceneIndex不冲突
+          const baseSceneCount = scenes.length // 基础场景数量
+          let currentIndex = baseSceneCount // 从基础场景数量之后开始
+          
           // 🎭 心理剧场景（第一优先级）- 🔥 生成后立即生图
           if (additionalResults.psychodramaScene) {
             // 🔥 确保心理剧字段正确传递
@@ -1814,9 +1818,11 @@ ${aiPrompt}`
               hasImagePrompt: !!psychodramaScene.imagePrompt
             })
             
-            // 🔥 立即为心理剧生图，收集Promise
-            console.log('⚡ [CHAT-NEW] 第2批：心理剧场景立即生图')
-            generationPromises.push(generateImagesForNewScenes([psychodramaScene], 0, actualPrompt, answersWithContext, questions))
+            // 🔥 立即为心理剧生图，使用正确的起始索引
+            const psychodramaStartIndex = currentIndex
+            console.log('⚡ [CHAT-NEW] 第2批：心理剧场景立即生图，起始索引:', psychodramaStartIndex)
+            generationPromises.push(generateImagesForNewScenes([psychodramaScene], psychodramaStartIndex, actualPrompt, answersWithContext, questions))
+            currentIndex += 1 // 心理剧场景数量（通常是1个）
           }
           
           // 🎬 假想场景（第二优先级）- 🔥 生成后立即生图
@@ -1845,10 +1851,12 @@ ${aiPrompt}`
               })
             })
             
-            // 🔥 立即为假想场景生图，收集Promise
+            // 🔥 立即为假想场景生图，使用正确的起始索引
             if (processedHypotheticalScenes.length > 0) {
-              console.log(`⚡ [CHAT-NEW] 第3批：假想场景立即生图（共${processedHypotheticalScenes.length}个）`)
-              generationPromises.push(generateImagesForNewScenes(processedHypotheticalScenes, 0, actualPrompt, answersWithContext, questions))
+              const hypotheticalStartIndex = currentIndex
+              console.log(`⚡ [CHAT-NEW] 第3批：假想场景立即生图（共${processedHypotheticalScenes.length}个），起始索引:`, hypotheticalStartIndex)
+              generationPromises.push(generateImagesForNewScenes(processedHypotheticalScenes, hypotheticalStartIndex, actualPrompt, answersWithContext, questions))
+              currentIndex += processedHypotheticalScenes.length
             }
           }
           
@@ -1874,10 +1882,12 @@ ${aiPrompt}`
               })
             })
             
-            // 🔥 立即为观点场景生图，收集Promise
+            // 🔥 立即为观点场景生图，使用正确的起始索引
             if (processedOpinionScenes.length > 0) {
-              console.log(`⚡ [CHAT-NEW] 第4批：观点场景立即生图（共${processedOpinionScenes.length}个）`)
-              generationPromises.push(generateImagesForNewScenes(processedOpinionScenes, 0, actualPrompt, answersWithContext, questions))
+              const opinionStartIndex = currentIndex
+              console.log(`⚡ [CHAT-NEW] 第4批：观点场景立即生图（共${processedOpinionScenes.length}个），起始索引:`, opinionStartIndex)
+              generationPromises.push(generateImagesForNewScenes(processedOpinionScenes, opinionStartIndex, actualPrompt, answersWithContext, questions))
+              currentIndex += processedOpinionScenes.length
             }
           }
           

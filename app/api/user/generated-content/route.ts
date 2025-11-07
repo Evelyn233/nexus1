@@ -70,13 +70,17 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 创建生成内容记录
-    const imagesJson = JSON.stringify(images || [])
-    const imageCount = Array.isArray(images) ? images.length : 0
+    // 🔥 确保图片按sceneIndex排序后再保存
+    const sortedImages = Array.isArray(images) 
+      ? [...images].sort((a: any, b: any) => (a.sceneIndex || 0) - (b.sceneIndex || 0))
+      : images || []
+    const imagesJson = JSON.stringify(sortedImages)
+    const imageCount = Array.isArray(sortedImages) ? sortedImages.length : 0
     
-    console.log('💾 [CONTENT-API] 准备保存图片数据:', {
+    console.log('💾 [CONTENT-API] 准备保存图片数据（已排序）:', {
       imagesJsonLength: imagesJson.length,
       imageCount,
+      sceneIndices: Array.isArray(sortedImages) ? sortedImages.map((img: any) => img.sceneIndex) : [],
       imagesJsonPreview: imagesJson.substring(0, 200) + '...'
     })
     

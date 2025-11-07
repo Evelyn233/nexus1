@@ -1030,37 +1030,60 @@ expression while imagining alternate life path, fingers resting on keyboard, rea
 - 电影黑边标识
 
 **🚨🚨🚨 核心情绪检测（必须体现）：**
-${initialPrompt.match(/讨厌|压抑|批判|反对|不满|愤怒|失望|沮丧/g) ? 
-  `检测到负面情绪：${initialPrompt.match(/讨厌|压抑|批判|反对|不满|愤怒|失望|沮丧/g)?.join(', ') || ''}` : 
-  '未检测到明显负面情绪'}
+${(() => {
+  const allInputs = [initialPrompt, ...answers].join(' ')
+  const negativeEmotions = allInputs.match(/讨厌|压抑|批判|反对|不满|愤怒|失望|沮丧|困惑|伤害|痛苦|难过/g)
+  const relationshipIssues = allInputs.match(/索取|付出|吵架|冲突|不懂|伤害|关系问题|爱商|爱人能力|只会|不会|需要锻炼/g)
+  
+  let detected = []
+  if (negativeEmotions) detected.push(`负面情绪：${negativeEmotions.join(', ')}`)
+  if (relationshipIssues) detected.push(`关系问题：${relationshipIssues.join(', ')}`)
+  
+  return detected.length > 0 ? detected.join('\n') : '未检测到明显情绪或关系问题'
+})()}
 
 **🚨🚨🚨 场景描述必须体现用户核心观点（死刑线！）🚨🚨🚨**
 
-**用户核心观点提取：**
+**用户核心观点提取（General规则，不硬编码）：**
 ${(() => {
   const allInputs = [initialPrompt, ...answers].join(' ')
   const corePoints = []
-  if (allInputs.includes('只关心发文章') || allInputs.includes('只关心论文') || allInputs.includes('卷顶会')) {
-    corePoints.push('学生们只关心发文章、卷顶会、生产垃圾')
+  
+  // General规则：提取用户表达的核心观点、情绪、问题
+  // 关系问题检测（不硬编码具体词汇，使用pattern匹配）
+  const relationshipPattern = /(男朋友|伴侣|家人|朋友|恋人).*?(索取|付出|吵架|冲突|不懂|伤害|只会|不会|需要锻炼|爱商|爱人能力)/g
+  const relationshipMatch = allInputs.match(relationshipPattern)
+  if (relationshipMatch) {
+    corePoints.push(`关系问题：${relationshipMatch[0]}`)
+  } else if (allInputs.match(/索取|付出|吵架|冲突|不懂|伤害|关系问题|爱商|爱人能力|只会|不会|需要锻炼/g)) {
+    corePoints.push('关系问题/情感冲突')
   }
-  if (allInputs.includes('生产垃圾') || allInputs.includes('没用的垃圾')) {
-    corePoints.push('论文生产垃圾、没用的垃圾')
+  
+  // 情绪表达检测（general pattern）
+  const emotionMatch = allInputs.match(/(讨厌|压抑|批判|反对|不满|愤怒|失望|沮丧|困惑|伤害|痛苦|难过)/g)
+  if (emotionMatch) {
+    corePoints.push(`情绪：${emotionMatch[0]}`)
   }
-  if (allInputs.includes('辅导学生')) {
-    corePoints.push('用户辅导学生')
+  
+  // 观点/现象检测（保留原有但作为general示例）
+  if (allInputs.match(/只关心.*?发文章|只关心.*?论文|卷顶会/g)) {
+    corePoints.push('学术环境观点')
   }
-  if (allInputs.includes('挣他们钱')) {
-    corePoints.push('辅导挣学生钱')
+  if (allInputs.match(/生产垃圾|没用的垃圾/g)) {
+    corePoints.push('论文质量问题')
   }
+  
   return corePoints.length > 0 
     ? `检测到核心观点：\n${corePoints.map(p => `- ${p}`).join('\n')}\n\n⚠️⚠️⚠️ 每个场景的description必须体现这些核心观点！⚠️⚠️⚠️` 
-    : '未检测到明显核心观点'
+    : '未检测到明显核心观点（请仔细分析用户输入，包括关系问题、情绪表达、观点描述等）'
 })()}
 
 **场景描述要求（必须体现用户核心观点）：**
 - 如果用户说"学生们只关心发文章" → description必须写："students frantically typing papers, discussing publication metrics, papers scattered everywhere, academic journals piled high, NO discussion of academic truth, ONLY focus on publishing"
 - 如果用户说"生产垃圾" → description必须写："scattered papers that appear meaningless, mechanical paper production, no genuine academic pursuit visible"
 - 如果用户说"卷顶会" → description必须写："students obsessed with top-tier conferences, calculating impact factors, discussing submission strategies"
+- **如果用户说关系问题（如"男朋友只会索取，不会为我付出"）** → description必须写："26-year-old Chinese female with disappointed/frustrated expression, boyfriend (male figure) in scene showing one-sided interaction (taking/receiving but not giving), emotional distance between them, user feeling unreciprocated, relationship tension visible in body language and expressions"
+- **如果用户说"大家天天吵"或"不懂爱"** → description必须写："conflict scene showing emotional disconnect, people arguing or showing misunderstanding, lack of emotional connection, relationship problems visible"
 
 **⚠️⚠️⚠️ 死刑规则：description必须体现用户的核心观点，不能只是客观描述！⚠️⚠️⚠️**
 - ❌ 错误："Students working on papers" → 太客观，没有体现"只关心发文章"！
@@ -1197,6 +1220,16 @@ ${i === 0 ? '→ 元键入（绝对核心！）' : '→ 补充细节（不能覆
 → 生成现象可视化场景：抽象的文化现象图景，不一定是"用户在某地观察"
 → 示例：社交网络的抽象视觉、文化隔阂的象征空间
 → ⚠️ 可以是抽象场景，不需要具体地点
+
+**类型4：关系问题/情感冲突**（如"男朋友只会索取，不会为我付出"、"大家天天吵"、"不懂爱"）
+→ 生成关系冲突场景：必须体现人物之间的互动、冲突、情感张力
+→ 关键识别词：索取、付出、吵架、冲突、不懂、伤害、关系问题、爱商、爱人能力
+→ 场景要求：
+  * 必须包含相关人物（如男朋友、伴侣、家人等）
+  * 必须体现冲突或问题（如：一方索取、另一方感到不满；双方争吵；情感隔阂）
+  * 可以是写实场景（如：两人在某个地点发生冲突）或情绪可视化场景（如：情感距离的象征）
+  * 必须体现用户的情感状态（不满、失望、愤怒、困惑等）
+→ ⚠️ 不要忽略关系问题，必须生成场景来体现这种冲突和情感张力
 
 **⚠️⚠️⚠️ 核心原则：**
 1. **所有输入同等重要**：这是一个完整对话，不分主次

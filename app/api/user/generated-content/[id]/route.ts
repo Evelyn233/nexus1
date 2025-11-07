@@ -53,6 +53,11 @@ export async function GET(
         } else if (Array.isArray(content.images)) {
           images = content.images
         }
+        
+        // 🔥 确保图片按sceneIndex排序
+        if (Array.isArray(images)) {
+          images = images.sort((a: any, b: any) => (a.sceneIndex || 0) - (b.sceneIndex || 0))
+        }
       }
     } catch (error) {
       console.error('❌ [CONTENT-DETAIL-API] 解析images失败:', error)
@@ -139,11 +144,16 @@ export async function PATCH(
     // 更新内容
     const updateData: any = {}
     if (body.images) {
-      const imagesJson = JSON.stringify(body.images)
+      // 🔥 确保图片按sceneIndex排序后再保存
+      const sortedImages = Array.isArray(body.images) 
+        ? [...body.images].sort((a: any, b: any) => (a.sceneIndex || 0) - (b.sceneIndex || 0))
+        : body.images
+      const imagesJson = JSON.stringify(sortedImages)
       updateData.images = imagesJson
-      console.log('💾 [CONTENT-UPDATE-API] 准备更新图片数据:', {
+      console.log('💾 [CONTENT-UPDATE-API] 准备更新图片数据（已排序）:', {
         imagesJsonLength: imagesJson.length,
-        imageCount: body.images.length
+        imageCount: sortedImages.length,
+        sceneIndices: Array.isArray(sortedImages) ? sortedImages.map((img: any) => img.sceneIndex) : []
       })
     }
     if (body.imageCount !== undefined) {

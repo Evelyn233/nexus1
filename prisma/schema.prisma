@@ -49,6 +49,7 @@ model User {
   payments       UserPayment[]  // 付费记录
   wallet         UserWallet?    // 钱包（一对一关系）
   dailyQuotas    UserDailyQuota[] // 每日免费额度记录
+  comments       Comment[]  // 用户发表的评论
   
   @@map("users")
 }
@@ -261,7 +262,24 @@ model UserGeneratedContent {
   updatedAt     DateTime @updatedAt
   publishedAt   DateTime? // 发布时间
   
+  comments       Comment[]  // 评论列表
+  
   @@map("user_generated_contents")
+}
+
+// 评论表
+model Comment {
+  id          String   @id @default(cuid())
+  contentId  String
+  content    UserGeneratedContent @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  text       String   // 评论内容
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  
+  @@map("comments")
 }
 
 // 用户付费记录表
