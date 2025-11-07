@@ -587,12 +587,24 @@ export default function ChatNewPage() {
     const userInput = inputValue.trim()
     console.log('💬 [CHAT-NEW] 用户输入:', userInput)
     
-    // 🔥 保存用户输入到 localStorage，防止重定向后丢失
+    // 🔥 优先保存到云端数据库（作为草稿），如果失败则保存到 localStorage 作为备份
     try {
-      localStorage.setItem('chat-new-pending-input', userInput)
-      localStorage.setItem('chat-new-pending-timestamp', Date.now().toString())
-    } catch (e) {
-      console.warn('⚠️ [CHAT-NEW] 无法保存输入到 localStorage:', e)
+      // 尝试立即保存到数据库
+      await saveSession()
+      console.log('✅ [CHAT-NEW] 用户输入已保存到云端数据库')
+      // 清除 localStorage 中的备份（如果存在）
+      localStorage.removeItem('chat-new-pending-input')
+      localStorage.removeItem('chat-new-pending-timestamp')
+    } catch (error: any) {
+      // 如果保存到数据库失败（可能是 401），保存到 localStorage 作为备份
+      console.warn('⚠️ [CHAT-NEW] 保存到数据库失败，保存到 localStorage 作为备份:', error)
+      try {
+        localStorage.setItem('chat-new-pending-input', userInput)
+        localStorage.setItem('chat-new-pending-timestamp', Date.now().toString())
+        console.log('✅ [CHAT-NEW] 用户输入已保存到 localStorage 作为备份')
+      } catch (e) {
+        console.warn('⚠️ [CHAT-NEW] 无法保存输入到 localStorage:', e)
+      }
     }
     
     // 检测"直接生图"指令（精确匹配，避免误触发）
