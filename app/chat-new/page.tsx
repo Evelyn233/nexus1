@@ -1406,20 +1406,24 @@ ${aiPrompt}`
 
   // 🔥 为新增场景生成图片的函数（并行生成）
   const generateImagesForNewScenes = async (
-    allScenes: any[], 
+    newScenes: any[], 
     startIndex: number,
     actualPrompt: string,
     answersWithContext: string[],
     questions: string[]
   ) => {
     console.log(`🎨 [CHAT-NEW] 开始为新增场景并行生成图片，从索引 ${startIndex} 开始`)
+    console.log(`📊 [CHAT-NEW] 新增场景数量: ${newScenes.length}`)
+    console.log(`📋 [CHAT-NEW] 新增场景列表:`, newScenes.map(s => ({
+      title: s.title || s.emotionalTrigger || s.opinionText,
+      isPsychodrama: s.isPsychodrama,
+      isOpinionScene: s.isOpinionScene,
+      hasImagePrompt: !!s.imagePrompt
+    })))
     
     // 🔥 设置生成状态，防止用户在生成过程中输入
     setIsGenerating(true)
     setIsLoading(true)
-    
-    // 只处理新增的场景（从startIndex开始）
-    const newScenes = allScenes.slice(startIndex)
     
     if (newScenes.length === 0) {
       console.log('⚠️ [CHAT-NEW] 没有新增场景需要生成图片')
