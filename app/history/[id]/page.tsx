@@ -215,7 +215,7 @@ export default function HistoryDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 p-6 pb-32">
       {/* 头部 */}
       <div className="max-w-6xl mx-auto mb-8">
         <button
@@ -371,28 +371,8 @@ export default function HistoryDetailPage() {
               <div className="mt-6 pt-6 border-t border-gray-200">
                 <h3 className="text-lg font-bold text-gray-900 mb-4">💬 评论 ({comments.length})</h3>
                 
-                {/* 评论输入框 */}
-                <div className="mb-6">
-                  <textarea
-                    value={commentText}
-                    onChange={(e) => setCommentText(e.target.value)}
-                    placeholder="写下你的评论..."
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
-                    rows={3}
-                  />
-                  <div className="flex justify-end mt-2">
-                    <button
-                      onClick={handleSubmitComment}
-                      disabled={!commentText.trim() || isSubmittingComment}
-                      className="px-6 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {isSubmittingComment ? '提交中...' : '发表评论'}
-                    </button>
-                  </div>
-                </div>
-                
                 {/* 评论列表 */}
-                <div className="space-y-4">
+                <div className="space-y-4 mb-24">
                   {comments.length === 0 ? (
                     <p className="text-gray-500 text-center py-8">暂无评论，快来发表第一条评论吧~</p>
                   ) : (
@@ -453,6 +433,30 @@ export default function HistoryDetailPage() {
               <p className="text-sm text-gray-500 text-center">
                 输入新内容继续创作，或点击按钮基于这个故事记录继续
               </p>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* 评论输入框 - 固定在页面底部，只在已发布的内容显示 */}
+      {content.status === 'published' && (
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-50">
+          <div className="max-w-4xl mx-auto px-6 py-4">
+            <div className="flex gap-3">
+              <textarea
+                value={commentText}
+                onChange={(e) => setCommentText(e.target.value)}
+                placeholder="写下你的评论..."
+                className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+                rows={2}
+              />
+              <button
+                onClick={handleSubmitComment}
+                disabled={!commentText.trim() || isSubmittingComment}
+                className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+              >
+                {isSubmittingComment ? '提交中...' : '发表评论'}
+              </button>
             </div>
           </div>
         </div>
