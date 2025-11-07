@@ -470,15 +470,15 @@ ${questions.map((q, i) => `Q${i+1}: ${q}\nA${i+1}: ${answers[i] || '无'}`).join
     console.log('📡 [PSYCHODRAMA] 开始调用AI API生成心理剧...')
     console.log('⏱️ [PSYCHODRAMA] 请求时间:', new Date().toLocaleTimeString())
     
-    // 🔥 添加超时控制，避免超过 Vercel 函数执行时间限制（25秒，给 Vercel 缓冲时间）
+    // 🔥 添加超时控制，避免超过 Vercel 函数执行时间限制（30秒，给 Vercel 缓冲时间）
     const controller = new AbortController()
     let timeoutId: NodeJS.Timeout | null = null
     
     try {
       timeoutId = setTimeout(() => {
-        console.warn('⏱️ [PSYCHODRAMA] API调用超时（25秒），中止请求')
+        console.warn('⏱️ [PSYCHODRAMA] API调用超时（30秒），中止请求')
         controller.abort()
-      }, 25000) // 25秒超时
+      }, 30000) // 30秒超时
       
       const response = await fetch('/api/ai/chat', {
         method: 'POST',
@@ -1869,7 +1869,7 @@ ${previousMetaphors.map((m, idx) => `心理剧${idx + 1}: ${m}`).join('\n')}
       
       // 🔥 处理超时错误（AbortError 或 TIMEOUT）
       if (error.name === 'AbortError' || error.message === 'TIMEOUT' || error.message?.includes('504')) {
-        console.warn('⏱️ [PSYCHODRAMA] API调用超时（25秒），使用fallback场景')
+        console.warn('⏱️ [PSYCHODRAMA] API调用超时（30秒），使用fallback场景')
         console.error('❌ [PSYCHODRAMA] 超时原因:', error.message || 'AbortError')
       } else {
         console.error('❌ [PSYCHODRAMA] 场景生成失败:', error)

@@ -3190,8 +3190,8 @@ AI问题：${aiQuestion}
               </div>
             )}
 
-            {/* 输入框 - 只在有问题时显示，生成第一个问题时隐藏 */}
-            {questions.length > 0 && !isLoading && (
+            {/* 输入框 - 生成结束后始终显示，允许用户继续对话 */}
+            {(!isLoading && !isGenerating) && (
             <div className="sticky bottom-4 bg-white rounded-2xl shadow-lg border border-gray-200 p-4">
               <div className="flex gap-2">
                 <input
