@@ -459,16 +459,16 @@ export default function ProfilePage() {
             
             {/* 已发布作品 */}
             {userStats.publishedContents > 0 && (
-              <div className="bg-gradient-to-br from-green-50 to-teal-50 rounded-xl shadow-sm p-6 border border-green-200">
+              <div className="bg-gradient-to-br from-teal-50 to-cyan-50 rounded-xl shadow-sm p-6 border border-teal-200">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
                     <span className="text-2xl">🌟</span>
                     已发布作品
-                    <span className="text-sm font-normal text-green-600">({userStats.publishedContents})</span>
+                    <span className="text-sm font-normal text-magazine-primary">({userStats.publishedContents})</span>
                   </h3>
                   <button
                     onClick={() => router.push('/home')}
-                    className="text-sm text-green-600 hover:text-green-700 font-medium"
+                    className="text-sm text-magazine-primary hover:text-magazine-secondary font-medium"
                   >
                     在社区查看 →
                   </button>
@@ -496,7 +496,7 @@ export default function ProfilePage() {
                           <div
                             key={content.id}
                             onClick={() => router.push(`/history/${content.id}`)}
-                            className="group cursor-pointer relative aspect-video bg-gray-100 rounded-lg overflow-hidden border border-gray-200 hover:border-green-400 transition-all hover:shadow-lg"
+                            className="group cursor-pointer relative aspect-video bg-gray-100 rounded-lg overflow-hidden border border-gray-200 hover:border-teal-400 transition-all hover:shadow-lg"
                           >
                             {firstImage?.imageUrl && (
                               <img
@@ -507,7 +507,7 @@ export default function ProfilePage() {
                             )}
                             <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
                             <div className="absolute top-2 right-2">
-                              <span className="bg-green-500 text-white text-xs px-2 py-1 rounded-full font-medium">
+                              <span className="bg-magazine-primary text-white text-xs px-2 py-1 rounded-full font-medium">
                                 ✓ 已发布
                               </span>
                             </div>
@@ -526,7 +526,7 @@ export default function ProfilePage() {
                       <p className="text-sm">还没有发布任何作品</p>
                       <button
                         onClick={() => router.push('/home')}
-                        className="mt-3 text-sm text-green-600 hover:text-green-700"
+                        className="mt-3 text-sm text-magazine-primary hover:text-magazine-secondary"
                       >
                         去创作 →
                       </button>

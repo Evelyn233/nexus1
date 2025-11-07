@@ -345,7 +345,7 @@ export default function ChatHistorySidebar({ isOpen, onClose, onSessionSelect }:
                                 {content.imageCount} 张图片
                               </span>
                               {content.status === 'published' && (
-                                <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-medium">
+                                <span className="text-xs bg-teal-100 text-teal-700 px-2 py-1 rounded-full font-medium">
                                   ✓ 已发布
                                 </span>
                               )}

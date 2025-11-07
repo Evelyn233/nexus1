@@ -102,7 +102,7 @@ export default function HistoryPage() {
       <div className="max-w-6xl mx-auto">
         {loading ? (
           <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-magazine-primary mx-auto"></div>
             <p className="text-gray-600 mt-4">加载中...</p>
           </div>
         ) : contents.length === 0 ? (
@@ -111,7 +111,7 @@ export default function HistoryPage() {
             <p className="text-gray-600">还没有故事记录</p>
             <button
               onClick={() => router.push('/home')}
-              className="mt-4 px-6 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:opacity-90 transition-opacity"
+              className="mt-4 px-6 py-2 bg-magazine-primary text-white rounded-lg hover:bg-magazine-secondary transition-colors"
             >
               开始创作
             </button>
@@ -203,7 +203,7 @@ export default function HistoryPage() {
                 {/* 分类和标签 */}
                 <div className="flex items-center gap-2 mb-3">
                   {content.category && content.category !== 'daily' && (
-                    <span className="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-full">
+                    <span className="px-2 py-1 bg-teal-100 text-teal-700 text-xs rounded-full">
                       {content.category}
                     </span>
                   )}
@@ -232,7 +232,7 @@ export default function HistoryPage() {
                       e.stopPropagation()
                       router.push(`/chat-new?continue=${content.id}`)
                     }}
-                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-sm rounded-lg hover:opacity-90 transition-opacity"
+                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-magazine-primary text-white text-sm rounded-lg hover:bg-magazine-secondary transition-colors"
                   >
                     <Play className="w-4 h-4" />
                     继续创作
@@ -260,7 +260,7 @@ export default function HistoryPage() {
                 // TODO: 加载更多
                 console.log('加载更多')
               }}
-              className="px-6 py-2 bg-white text-purple-600 border border-purple-600 rounded-lg hover:bg-purple-50 transition-colors"
+              className="px-6 py-2 bg-white text-magazine-primary border border-magazine-primary rounded-lg hover:bg-teal-50 transition-colors"
             >
               加载更多
             </button>
