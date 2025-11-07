@@ -113,6 +113,12 @@ export default withAuth(
           return true
         }
         
+        // 🔥 chat-new 页面允许未登录访问，由前端处理认证状态
+        if (pathname.startsWith('/chat-new')) {
+          console.log('⚠️ [MIDDLEWARE-AUTH] chat-new 页面允许未登录访问，由前端处理认证状态')
+          return true
+        }
+        
         // 🔥 如果有时间戳参数，可能是刚登录，cookie 还没同步，允许访问
         const hasTimestamp = req.nextUrl.searchParams.has('t')
         if (hasTimestamp) {
