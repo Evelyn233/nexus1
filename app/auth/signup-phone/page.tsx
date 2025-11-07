@@ -141,8 +141,7 @@ export default function SignUpPhonePage() {
             <img 
               src="/inflow-logo.jpeg" 
               alt="logo" 
-              className="w-24 h-20 rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
-              onClick={() => router.push('/home')}
+              className="w-24 h-20 rounded-lg"
             />
           </div>
           <h2 className="mt-2 text-xl font-semibold text-gray-900">📱 手机号注册</h2>

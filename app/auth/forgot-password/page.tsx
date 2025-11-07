@@ -26,8 +26,7 @@ export default function ForgotPasswordPage() {
           <img 
             src="/inflow-logo.jpeg" 
             alt="logo" 
-            className="w-28 h-22 rounded-lg mx-auto cursor-pointer hover:opacity-80 transition-opacity"
-            onClick={() => window.location.href = '/home'}
+            className="w-28 h-22 rounded-lg mx-auto"
           />
           <h2 className="mt-6 text-2xl font-bold text-gray-900">
             Forgot Password

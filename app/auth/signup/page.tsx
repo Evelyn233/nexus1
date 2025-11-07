@@ -84,8 +84,7 @@ export default function SignUpPage() {
             <img 
               src="/inflow-logo.jpeg" 
               alt="logo" 
-              className="w-24 h-20 rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
-              onClick={() => router.push('/home')}
+              className="w-24 h-20 rounded-lg"
             />
           </div>
           <h2 className="mt-6 text-2xl font-bold text-gray-900">
