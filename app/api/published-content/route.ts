@@ -10,6 +10,8 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '20')
     const offset = parseInt(searchParams.get('offset') || '0')
 
+    console.log('🔍 [PUBLISHED-CONTENT] 查询已发布内容:', { limit, offset })
+
     // 获取已发布的内容，按发布时间倒序排列
     const contents = await prisma.userGeneratedContent.findMany({
       where: {
@@ -32,6 +34,12 @@ export async function GET(request: NextRequest) {
           }
         }
       }
+    })
+
+    console.log('🔍 [PUBLISHED-CONTENT] 查询结果:', {
+      count: contents.length,
+      ids: contents.map(c => c.id),
+      titles: contents.map(c => c.title || c.initialPrompt?.substring(0, 30))
     })
 
     // 转换数据格式

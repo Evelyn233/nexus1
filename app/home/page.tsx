@@ -92,13 +92,32 @@ export default function HomePage() {
       setPublishedLoading(true)
       console.log('🔍 [HOME] 加载已发布内容...')
       const response = await fetch('/api/published-content?limit=8')
+      console.log('🔍 [HOME] API响应状态:', response.status)
+      
       if (response.ok) {
         const data = await response.json()
-        console.log('✅ [HOME] 加载已发布内容成功:', data.contents.length)
-        setPublishedContent(data.contents)
+        console.log('🔍 [HOME] API返回数据:', {
+          success: data.success,
+          contentsLength: data.contents?.length || 0,
+          total: data.total || 0,
+          contents: data.contents
+        })
+        
+        if (data.success && data.contents) {
+          console.log('✅ [HOME] 加载已发布内容成功:', data.contents.length, '个作品')
+          setPublishedContent(data.contents)
+        } else {
+          console.warn('⚠️ [HOME] API返回数据格式异常:', data)
+          setPublishedContent([])
+        }
+      } else {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
+        console.error('❌ [HOME] API返回错误:', response.status, errorData)
+        setPublishedContent([])
       }
     } catch (error) {
       console.error('❌ [HOME] 加载已发布内容失败:', error)
+      setPublishedContent([])
     } finally {
       setPublishedLoading(false)
     }
@@ -287,12 +306,21 @@ export default function HomePage() {
       {/* Main Content */}
       <main className="p-4 pb-40 max-w-md mx-auto">
         {/* 社区作品区域 */}
-        {!publishedLoading && publishedContent.length > 0 && (
-          <div className="mb-6">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-lg font-bold text-gray-800">🌟 社区作品</h2>
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-bold text-gray-800">🌟 社区作品</h2>
+            {!publishedLoading && (
               <span className="text-xs text-gray-500">{publishedContent.length} 个作品</span>
+            )}
+          </div>
+          
+          {publishedLoading ? (
+            <div className="grid grid-cols-2 gap-4">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="h-64 bg-gray-100 rounded-2xl animate-pulse"></div>
+              ))}
             </div>
+          ) : publishedContent.length > 0 ? (
             <div className="grid grid-cols-2 gap-4">
               {publishedContent.slice(0, 4).map((content) => {
                 const firstImage = content.images?.[0]
@@ -316,8 +344,8 @@ export default function HomePage() {
                           {content.title}
                         </p>
                         <div className="flex items-center justify-between text-xs">
-                          <span className="text-white/80">{content.author?.name}</span>
-                          <span className="text-white/60">{content.imageCount} 张</span>
+                          <span className="text-white/80">{content.author?.name || '匿名用户'}</span>
+                          <span className="text-white/60">{content.imageCount || 0} 张</span>
                         </div>
                       </div>
                       <div className="absolute top-2 right-2 bg-teal-500 text-white text-xs px-2 py-1 rounded-full">
@@ -328,8 +356,13 @@ export default function HomePage() {
                 )
               })}
             </div>
-          </div>
-        )}
+          ) : (
+            <div className="text-center py-8 bg-gray-50 rounded-2xl">
+              <p className="text-gray-500 text-sm">暂无已发布的作品</p>
+              <p className="text-gray-400 text-xs mt-2">发布你的作品，让更多人看到吧！</p>
+            </div>
+          )}
+        </div>
 
         {/* 精选内容 */}
         <div className="mb-3">
