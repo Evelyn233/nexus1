@@ -198,6 +198,40 @@ export default function ChatNewPage() {
     }
   }
 
+  // 全局错误处理：捕获未处理的 Promise rejection
+  useEffect(() => {
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      // 忽略浏览器扩展相关的错误
+      if (event.reason?.message?.includes('message channel closed') || 
+          event.reason?.message?.includes('listener indicated an asynchronous response')) {
+        console.warn('⚠️ [CHAT-NEW] 浏览器扩展相关错误（可忽略）:', event.reason?.message)
+        event.preventDefault() // 阻止默认的错误处理
+        return
+      }
+      
+      console.error('❌ [CHAT-NEW] 未处理的 Promise rejection:', event.reason)
+      // 不阻止默认处理，让其他错误正常显示
+    }
+
+    const handleError = (event: ErrorEvent) => {
+      // 忽略浏览器扩展相关的错误
+      if (event.message?.includes('message channel closed') || 
+          event.message?.includes('listener indicated an asynchronous response')) {
+        console.warn('⚠️ [CHAT-NEW] 浏览器扩展相关错误（可忽略）:', event.message)
+        event.preventDefault()
+        return
+      }
+    }
+
+    window.addEventListener('unhandledrejection', handleUnhandledRejection)
+    window.addEventListener('error', handleError)
+
+    return () => {
+      window.removeEventListener('unhandledrejection', handleUnhandledRejection)
+      window.removeEventListener('error', handleError)
+    }
+  }, [])
+
   // 初始化 sessionId（从 localStorage 读取或创建新的）
   useEffect(() => {
     try {
