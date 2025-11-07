@@ -3054,7 +3054,7 @@ AI问题：${aiQuestion}
       <div className="max-w-md mx-auto px-4 py-6">
         {step === 'loading' && (
           <div className="flex flex-col items-center justify-center py-12">
-            <Loader2 className="w-8 h-8 text-purple-500 animate-spin mb-4" />
+            <Loader2 className="w-8 h-8 text-magazine-primary animate-spin mb-4" />
             <p className="text-gray-600">正在分析您的输入...</p>
           </div>
         )}
@@ -3078,7 +3078,7 @@ AI问题：${aiQuestion}
                       <div className="flex items-center gap-2">
                         <h3 className={`text-base font-medium ${
                         message.sceneData?.isPsychodrama 
-                            ? 'text-purple-600'
+                            ? 'text-magazine-primary'
                             : message.sceneData?.isHypothetical
                             ? 'text-blue-600'
                             : 'text-gray-800'
@@ -3087,7 +3087,7 @@ AI问题：${aiQuestion}
                           {sceneTitle}
                         </h3>
                         {message.sceneData?.isPsychodrama && (
-                          <span className="text-xs bg-purple-500/90 text-white px-2 py-0.5 rounded-full">
+                          <span className="text-xs bg-magazine-primary/90 text-white px-2 py-0.5 rounded-full">
                               心理剧
                             </span>
                         )}
@@ -3101,7 +3101,7 @@ AI问题：${aiQuestion}
                       {/* 图片 - 优化显示 */}
                       <div className={`relative rounded-2xl shadow-lg overflow-hidden border-2 ${
                         message.sceneData?.isPsychodrama 
-                          ? 'border-purple-300 shadow-purple-100'
+                          ? 'border-teal-300 shadow-teal-100'
                           : message.sceneData?.isHypothetical
                           ? 'border-blue-300 shadow-blue-100'
                           : 'border-gray-200 shadow-gray-100'
@@ -3127,7 +3127,7 @@ AI问题：${aiQuestion}
                       {(message.story || message.sceneData?.storyFragment) && (
                         <div className={`rounded-xl px-4 py-3 ${
                           message.sceneData?.isPsychodrama
-                            ? 'bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-100'
+                            ? 'bg-gradient-to-r from-teal-50 to-cyan-50 border border-teal-100'
                             : message.sceneData?.isHypothetical
                             ? 'bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-100'
                             : 'bg-gray-50 border border-gray-100'
@@ -3203,7 +3203,7 @@ AI问题：${aiQuestion}
                       generateInChat(userAnswersFromMessages)
                     }, 500)
                   }}
-                  className="px-6 py-2.5 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-full font-medium shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 flex items-center gap-2"
+                  className="px-6 py-2.5 bg-magazine-primary text-white rounded-full font-medium shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 flex items-center gap-2 hover:bg-magazine-secondary"
                 >
                   <span>🎨</span>
                   <span>直接生图</span>
@@ -3255,7 +3255,7 @@ AI问题：${aiQuestion}
 
         {step === 'generating' && (
           <div className="flex flex-col items-center justify-center py-12">
-            <Loader2 className="w-8 h-8 text-purple-500 animate-spin mb-4" />
+            <Loader2 className="w-8 h-8 text-magazine-primary animate-spin mb-4" />
             <p className="text-gray-600">正在生成您的专属内容...</p>
           </div>
         )}

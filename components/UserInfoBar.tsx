@@ -40,8 +40,8 @@ function UserInfoBarContent() {
       <div className="bg-white border-b border-gray-200 px-4 py-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-1.5">
-            <div className="w-5 h-5 bg-purple-100 rounded-full flex items-center justify-center">
-              <User className="w-2.5 h-2.5 text-purple-600" />
+            <div className="w-5 h-5 bg-teal-100 rounded-full flex items-center justify-center">
+              <User className="w-2.5 h-2.5 text-teal-600" />
             </div>
             <div className="text-xs text-gray-500">加载中...</div>
           </div>
@@ -73,7 +73,7 @@ function UserInfoBarContent() {
           {/* 返回Home按钮 */}
           <button
             onClick={() => router.push('/home')}
-            className="p-1 text-gray-600 hover:text-purple-600 hover:bg-purple-50 rounded transition-colors"
+            className="p-1 text-gray-600 hover:text-teal-600 hover:bg-teal-50 rounded transition-colors"
             title="返回主页"
           >
             <Home className="w-3 h-3" />
@@ -82,7 +82,7 @@ function UserInfoBarContent() {
           {/* 展开/收起详情按钮 */}
           <button
             onClick={() => setShowDetails(!showDetails)}
-            className="p-1 text-gray-600 hover:text-purple-600 hover:bg-purple-50 rounded transition-colors"
+            className="p-1 text-gray-600 hover:text-teal-600 hover:bg-teal-50 rounded transition-colors"
             title={showDetails ? "收起详情" : "查看详情"}
           >
             {showDetails ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}

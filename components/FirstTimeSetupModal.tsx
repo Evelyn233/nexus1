@@ -25,7 +25,7 @@ export default function FirstTimeSetupModal({ isOpen, onClose, currentStep: exte
     {
       title: '生成个性化档案...',
       description: '基于您的信息创建专属用户档案',
-      icon: <Loader2 className="w-6 h-6 animate-spin text-purple-500" />
+      icon: <Loader2 className="w-6 h-6 animate-spin text-teal-500" />
     },
     {
       title: '建立记忆系统...',
@@ -86,7 +86,7 @@ export default function FirstTimeSetupModal({ isOpen, onClose, currentStep: exte
       <div className="bg-white rounded-lg p-8 max-w-md mx-4 shadow-xl">
         <div className="text-center">
           <div className="mb-6">
-            <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 bg-gradient-to-r from-teal-500 to-cyan-500 rounded-full flex items-center justify-center mx-auto mb-4">
               <span className="text-white text-2xl font-bold">✨</span>
             </div>
             <h2 className="text-2xl font-bold text-gray-800 mb-2">
@@ -101,7 +101,7 @@ export default function FirstTimeSetupModal({ isOpen, onClose, currentStep: exte
           <div className="mb-6">
             <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
               <div 
-                className="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full transition-all duration-500"
+                className="bg-gradient-to-r from-teal-500 to-cyan-500 h-2 rounded-full transition-all duration-500"
                 style={{ width: `${((currentStep + 1) / steps.length) * 100}%` }}
               />
             </div>

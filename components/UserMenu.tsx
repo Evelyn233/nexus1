@@ -19,7 +19,7 @@ export default function UserMenu() {
   return (
     <div className="relative group">
       <button className="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-100">
-        <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center text-white">
+        <div className="w-8 h-8 bg-teal-600 rounded-full flex items-center justify-center text-white">
           {session.user.name?.[0]?.toUpperCase() || session.user.email?.[0]?.toUpperCase() || 'U'}
         </div>
         <span className="text-sm text-gray-700">{session.user.name || session.user.email}</span>

@@ -335,7 +335,7 @@ export default function UserInfoPage() {
             onClick={() => handleGenderChange('male')}
             className={`px-6 py-3 rounded-xl text-sm font-medium transition-colors ${
               userInfo.gender === 'male'
-                ? 'bg-purple-600 text-white'
+                ? 'bg-teal-600 text-white'
                 : 'bg-white text-gray-700 border border-gray-300'
             }`}
           >
@@ -345,7 +345,7 @@ export default function UserInfoPage() {
             onClick={() => handleGenderChange('female')}
             className={`px-6 py-3 rounded-xl text-sm font-medium transition-colors ${
               userInfo.gender === 'female'
-                ? 'bg-purple-600 text-white'
+                ? 'bg-teal-600 text-white'
                 : 'bg-white text-gray-700 border border-gray-300'
             }`}
           >
@@ -366,7 +366,7 @@ export default function UserInfoPage() {
           <select
             value={userInfo.birthDate.year}
             onChange={(e) => handleBirthDateChange('year', e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
           >
             <option value="">年</option>
             {years.map(year => (
@@ -377,7 +377,7 @@ export default function UserInfoPage() {
           <select
             value={userInfo.birthDate.month}
             onChange={(e) => handleBirthDateChange('month', e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
           >
             <option value="">月</option>
             {months.map(month => (
@@ -388,7 +388,7 @@ export default function UserInfoPage() {
           <select
             value={userInfo.birthDate.day}
             onChange={(e) => handleBirthDateChange('day', e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
           >
             <option value="">日</option>
             {days.map(day => (
@@ -412,14 +412,14 @@ export default function UserInfoPage() {
             placeholder="身高 cm"
             value={userInfo.height}
             onChange={(e) => handlePhysicalChange('height', e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 w-24"
+            className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 w-24"
           />
           <input
             type="number"
             placeholder="体重 kg"
             value={userInfo.weight}
             onChange={(e) => handlePhysicalChange('weight', e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 w-24"
+            className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 w-24"
           />
         </div>
 
@@ -438,7 +438,7 @@ export default function UserInfoPage() {
             placeholder="例如：北京、上海、深圳..."
             value={userInfo.location}
             onChange={(e) => handlePhysicalChange('location', e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 w-48"
+            className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 w-48"
           />
         </div>
 
@@ -459,7 +459,7 @@ export default function UserInfoPage() {
             placeholder="例如：INFJ、ENFP、开朗外向、安静内敛、喜欢冒险..."
             value={userInfo.personality}
             onChange={(e) => handlePhysicalChange('personality', e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 w-48 h-20 resize-none"
+            className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 w-48 h-20 resize-none"
           />
         </div>
 
@@ -479,7 +479,7 @@ export default function UserInfoPage() {
                 onClick={() => handlePhysicalChange('hairLength', '短发')}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                   userInfo.hairLength === '短发'
-                    ? 'bg-purple-600 text-white'
+                    ? 'bg-teal-600 text-white'
                     : 'bg-white text-gray-700 border border-gray-300'
                 }`}
               >
@@ -489,7 +489,7 @@ export default function UserInfoPage() {
                 onClick={() => handlePhysicalChange('hairLength', '中长发')}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                   userInfo.hairLength === '中长发'
-                    ? 'bg-purple-600 text-white'
+                    ? 'bg-teal-600 text-white'
                     : 'bg-white text-gray-700 border border-gray-300'
                 }`}
               >
@@ -499,7 +499,7 @@ export default function UserInfoPage() {
                 onClick={() => handlePhysicalChange('hairLength', '长发')}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                   userInfo.hairLength === '长发'
-                    ? 'bg-purple-600 text-white'
+                    ? 'bg-teal-600 text-white'
                     : 'bg-white text-gray-700 border border-gray-300'
                 }`}
               >
@@ -531,7 +531,7 @@ export default function UserInfoPage() {
             disabled={!isComplete || isAnalyzing}
             className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
               isComplete && !isAnalyzing
-                ? 'bg-purple-600 text-white hover:bg-purple-700'
+                ? 'bg-teal-600 text-white hover:bg-teal-700'
                 : 'bg-gray-300 text-gray-500 cursor-not-allowed'
             }`}
           >

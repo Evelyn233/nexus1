@@ -834,10 +834,10 @@ export default function GeneratePage() {
         <main className="max-w-2xl mx-auto p-4">
           {/* Magazine Title Display */}
           {(mainTitle || title) && (
-            <div className="bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg p-6 mb-4 text-white shadow-lg">
+            <div className="bg-gradient-to-r from-teal-600 to-cyan-600 rounded-lg p-6 mb-4 text-white shadow-lg">
               <h1 className="text-xl font-bold mb-2 text-center">{mainTitle || title}</h1>
               {subtitle && (
-                <p className="text-sm text-purple-100 text-center">{subtitle}</p>
+                <p className="text-sm text-teal-100 text-center">{subtitle}</p>
               )}
             </div>
           )}
@@ -869,7 +869,7 @@ export default function GeneratePage() {
             // 初始loading界面：还没有任何图片完成
             <div className="aspect-square flex items-center justify-center bg-gray-100">
               <div className="text-center">
-                <div className="w-16 h-16 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin mx-auto mb-4"></div>
+                <div className="w-16 h-16 border-4 border-teal-200 border-t-teal-600 rounded-full animate-spin mx-auto mb-4"></div>
                 <p className="text-gray-600 font-medium">
                   {generationMessage || '🚀 并行生成中...'}
                 </p>
@@ -898,7 +898,7 @@ export default function GeneratePage() {
             <div className="relative">
               {/* 生成进度提示条 */}
               {isGenerating && (
-                <div className="sticky top-0 z-10 bg-gradient-to-r from-purple-500 to-pink-500 text-white px-4 py-3 shadow-lg">
+                <div className="sticky top-0 z-10 bg-gradient-to-r from-teal-500 to-cyan-500 text-white px-4 py-3 shadow-lg">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
                       <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -965,7 +965,7 @@ export default function GeneratePage() {
                           // 图片还在生成中
                           <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 animate-pulse">
                             <div className="text-center">
-                              <div className="w-12 h-12 border-4 border-gray-300 border-t-purple-600 rounded-full animate-spin mx-auto mb-3"></div>
+                              <div className="w-12 h-12 border-4 border-gray-300 border-t-teal-600 rounded-full animate-spin mx-auto mb-3"></div>
                               <p className="text-gray-600 text-sm font-medium">场景 {index + 1} 生成中...</p>
                               <p className="text-gray-400 text-xs mt-1">并行处理中，请稍候</p>
                             </div>
@@ -982,13 +982,13 @@ export default function GeneratePage() {
                       
                       {/* 场景对应的故事片段 */}
                       {storyFragment && (
-                        <div className="px-4 py-3 bg-purple-50 border-t border-gray-200">
+                        <div className="px-4 py-3 bg-teal-50 border-t border-gray-200">
                           <div className="flex items-center justify-between mb-2">
-                            <h4 className="text-sm font-medium text-purple-800 flex items-center">
+                            <h4 className="text-sm font-medium text-teal-800 flex items-center">
                               <span className="mr-1">📖</span>
                               故事片段
                               {isStoryMappingLoading && (
-                                <span className="ml-2 text-xs text-purple-500">(智能归属中...)</span>
+                                <span className="ml-2 text-xs text-teal-500">(智能归属中...)</span>
                               )}
                             </h4>
                             {(() => {
@@ -996,11 +996,11 @@ export default function GeneratePage() {
                               if (mapping) {
                                 return (
                                   <div className="flex items-center space-x-2">
-                                    <span className="text-xs text-purple-600">
+                                    <span className="text-xs text-teal-600">
                                       匹配度: {(mapping.confidence * 100).toFixed(0)}%
                                     </span>
                                     {mapping.keywords.length > 0 && (
-                                      <span className="text-xs text-purple-500">
+                                      <span className="text-xs text-teal-500">
                                         关键词: {mapping.keywords.slice(0, 2).join(', ')}
                                       </span>
                                     )}
@@ -1010,7 +1010,7 @@ export default function GeneratePage() {
                               return null
                             })()}
                           </div>
-                          <p className="text-sm text-purple-700 leading-relaxed">
+                          <p className="text-sm text-teal-700 leading-relaxed">
                             {storyFragment}
                           </p>
                         </div>
@@ -1055,7 +1055,7 @@ export default function GeneratePage() {
                   <div className="flex space-x-2">
                     <button
                       onClick={() => handleDownload()}
-                      className="flex-1 flex items-center justify-center space-x-2 py-2 px-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm"
+                      className="flex-1 flex items-center justify-center space-x-2 py-2 px-3 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors text-sm"
                     >
                       <Download className="w-4 h-4" />
                       <span>下载全部</span>
@@ -1063,7 +1063,7 @@ export default function GeneratePage() {
                     
                     <button
                       onClick={() => handleShare()}
-                      className="flex-1 flex items-center justify-center space-x-2 py-2 px-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm"
+                      className="flex-1 flex items-center justify-center space-x-2 py-2 px-3 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors text-sm"
                     >
                       <Share2 className="w-4 h-4" />
                       <span>分享</span>
@@ -1071,7 +1071,7 @@ export default function GeneratePage() {
                     
                     <button
                       onClick={handleRegenerate}
-                      className="flex-1 flex items-center justify-center space-x-2 py-2 px-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm"
+                      className="flex-1 flex items-center justify-center space-x-2 py-2 px-3 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors text-sm"
                     >
                       <RotateCcw className="w-4 h-4" />
                       <span>重新生成</span>
@@ -1083,7 +1083,7 @@ export default function GeneratePage() {
                     <button
                       onClick={handleGenerateCover}
                       disabled={isGeneratingCover}
-                      className="w-full flex items-center justify-center space-x-2 py-3 px-4 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full flex items-center justify-center space-x-2 py-3 px-4 bg-gradient-to-r from-teal-500 to-cyan-600 text-white rounded-lg hover:from-teal-600 hover:to-cyan-700 transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {isGeneratingCover ? (
                         <>
@@ -1117,9 +1117,9 @@ export default function GeneratePage() {
 
         {/* Magazine Cover Display */}
         {magazineCover && showCover && (
-          <div className="mt-6 bg-gradient-to-br from-pink-50 to-purple-50 rounded-lg p-6 shadow-lg border-2 border-purple-200">
+          <div className="mt-6 bg-gradient-to-br from-teal-50 to-cyan-50 rounded-lg p-6 shadow-lg border-2 border-teal-200">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-600 to-purple-600">
+              <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-teal-600 to-cyan-600">
                 📰 杂志封面
               </h2>
               <button
@@ -1139,31 +1139,31 @@ export default function GeneratePage() {
                 <p className="text-lg text-gray-600 italic">
                   {magazineCover.subtitle}
                 </p>
-                <div className="h-1 w-24 bg-gradient-to-r from-pink-500 to-purple-600 mx-auto rounded-full"></div>
+                <div className="h-1 w-24 bg-gradient-to-r from-teal-500 to-cyan-600 mx-auto rounded-full"></div>
               </div>
               
               {/* 封面信息 */}
               <div className="space-y-4 text-sm">
                 {/* 核心冲突 */}
-                <div className="bg-purple-50 rounded-lg p-4">
-                  <h3 className="font-semibold text-purple-800 mb-2">核心冲突</h3>
+                <div className="bg-teal-50 rounded-lg p-4">
+                  <h3 className="font-semibold text-teal-800 mb-2">核心冲突</h3>
                   <p className="text-gray-700 leading-relaxed">{magazineCover.coreConflict}</p>
                   <div className="mt-2 flex items-center">
-                    <span className="text-xs text-purple-600">冲突强度:</span>
-                    <div className="flex-1 ml-2 bg-purple-200 rounded-full h-2">
+                    <span className="text-xs text-teal-600">冲突强度:</span>
+                    <div className="flex-1 ml-2 bg-teal-200 rounded-full h-2">
                       <div 
-                        className="bg-purple-600 h-2 rounded-full transition-all" 
+                        className="bg-teal-600 h-2 rounded-full transition-all" 
                         style={{ width: `${(magazineCover.conflictIntensity || 5) * 10}%` }}
                       ></div>
                     </div>
-                    <span className="ml-2 text-xs text-purple-600">{magazineCover.conflictIntensity || 5}/10</span>
+                    <span className="ml-2 text-xs text-teal-600">{magazineCover.conflictIntensity || 5}/10</span>
                   </div>
                 </div>
                 
                 {/* 关键地点 */}
                 {magazineCover.keyLocation && (
-                  <div className="bg-pink-50 rounded-lg p-4">
-                    <h3 className="font-semibold text-pink-800 mb-2">📍 关键地点</h3>
+                  <div className="bg-cyan-50 rounded-lg p-4">
+                    <h3 className="font-semibold text-cyan-800 mb-2">📍 关键地点</h3>
                     <p className="text-gray-700">{magazineCover.keyLocation}</p>
                   </div>
                 )}
@@ -1205,8 +1205,8 @@ export default function GeneratePage() {
                 </div>
                 
                 {/* 配色方案 */}
-                <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg p-4">
-                  <h3 className="font-semibold text-purple-800 mb-2">🎨 配色方案</h3>
+                <div className="bg-gradient-to-r from-teal-50 to-cyan-50 rounded-lg p-4">
+                  <h3 className="font-semibold text-teal-800 mb-2">🎨 配色方案</h3>
                   <p className="text-gray-700 text-sm">{magazineCover.colorScheme}</p>
                 </div>
                 
@@ -1227,7 +1227,7 @@ export default function GeneratePage() {
             <div className="space-y-2">
               <button
                 onClick={() => router.push(`/chat?prompt=${encodeURIComponent('类似风格的更多图片')}`)}
-                className="w-full text-left p-3 bg-purple-50 text-purple-700 rounded-lg hover:bg-purple-100 transition-colors"
+                className="w-full text-left p-3 bg-teal-50 text-teal-700 rounded-lg hover:bg-teal-100 transition-colors"
               >
                 🎨 生成类似风格的图片
               </button>
@@ -1254,11 +1254,11 @@ export default function GeneratePage() {
           <input
             type="text"
             placeholder="输入您的需求..."
-            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
           />
           <button
             onClick={() => router.push('/chat-new')}
-            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+            className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors"
           >
             发送
           </button>

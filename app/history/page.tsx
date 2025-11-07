@@ -79,7 +79,7 @@ export default function HistoryPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-teal-50 via-cyan-50 to-blue-50 p-6">
       {/* 头部 */}
       <div className="max-w-6xl mx-auto mb-8">
         <button
@@ -90,7 +90,7 @@ export default function HistoryPage() {
           返回
         </button>
 
-        <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-pink-600">
+        <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-teal-600 to-cyan-600">
           你的故事记录
         </h1>
         <p className="text-gray-600 mt-2">

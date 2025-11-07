@@ -60,10 +60,10 @@ export default withAuth(
 
     // 🔥 处理保护页面
     if (!isAuth) {
-      // 🔥 特殊处理：chat-new 页面允许未登录访问，由前端处理认证状态
+      // 🔥 特殊处理：chat-new 和 home 页面允许未登录访问，由前端处理认证状态
       // 这样可以避免用户在输入时被重定向，导致输入丢失
-      if (pathname.startsWith('/chat-new')) {
-        console.log('⚠️ [MIDDLEWARE] chat-new 页面允许未登录访问，由前端处理认证状态')
+      if (pathname.startsWith('/chat-new') || pathname.startsWith('/home')) {
+        console.log('⚠️ [MIDDLEWARE]', pathname, '页面允许未登录访问，由前端处理认证状态')
         return null
       }
       
@@ -113,9 +113,9 @@ export default withAuth(
           return true
         }
         
-        // 🔥 chat-new 页面允许未登录访问，由前端处理认证状态
-        if (pathname.startsWith('/chat-new')) {
-          console.log('⚠️ [MIDDLEWARE-AUTH] chat-new 页面允许未登录访问，由前端处理认证状态')
+        // 🔥 chat-new 和 home 页面允许未登录访问，由前端处理认证状态
+        if (pathname.startsWith('/chat-new') || pathname.startsWith('/home')) {
+          console.log('⚠️ [MIDDLEWARE-AUTH]', pathname, '页面允许未登录访问，由前端处理认证状态')
           return true
         }
         

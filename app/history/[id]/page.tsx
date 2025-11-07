@@ -189,9 +189,9 @@ export default function HistoryDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-teal-50 via-cyan-50 to-blue-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-magazine-primary mx-auto"></div>
           <p className="text-gray-600 mt-4">加载中...</p>
         </div>
       </div>
@@ -200,12 +200,12 @@ export default function HistoryDetailPage() {
 
   if (error || !content) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-teal-50 via-cyan-50 to-blue-50 flex items-center justify-center">
         <div className="text-center">
           <p className="text-red-600 mb-4">{error || '内容不存在'}</p>
           <button
             onClick={() => router.push('/home')}
-            className="px-6 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:opacity-90"
+            className="px-6 py-2 bg-magazine-primary text-white rounded-lg hover:bg-magazine-secondary transition-colors"
           >
             返回
           </button>
@@ -215,7 +215,7 @@ export default function HistoryDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 p-6 pb-32">
+    <div className="min-h-screen bg-gradient-to-br from-teal-50 via-cyan-50 to-blue-50 p-6 pb-32">
       {/* 头部 */}
       <div className="max-w-6xl mx-auto mb-8">
         <button
@@ -255,7 +255,7 @@ export default function HistoryDetailPage() {
               <span>{content.images?.length || content.imageCount || 0} 张图片</span>
             </div>
             {content.category && content.category !== 'daily' && (
-              <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full">
+              <span className="px-3 py-1 bg-teal-100 text-teal-700 rounded-full">
                 {content.category}
               </span>
             )}
@@ -280,7 +280,7 @@ export default function HistoryDetailPage() {
               <>
                 {/* 用户初始输入 */}
                 <div className="flex justify-end">
-                  <div className="max-w-[80%] bg-purple-500 text-white rounded-2xl px-4 py-3">
+                  <div className="max-w-[80%] bg-magazine-primary text-white rounded-2xl px-4 py-3">
                     <p className="text-sm leading-relaxed">{content.initialPrompt}</p>
                   </div>
                 </div>
@@ -298,7 +298,7 @@ export default function HistoryDetailPage() {
                     {/* 用户回答 */}
                     {content.answers[index] && (
                       <div className="flex justify-end">
-                        <div className="max-w-[80%] bg-purple-500 text-white rounded-2xl px-4 py-3">
+                        <div className="max-w-[80%] bg-magazine-primary text-white rounded-2xl px-4 py-3">
                           <p className="text-sm leading-relaxed">{content.answers[index]}</p>
                         </div>
                       </div>
@@ -379,7 +379,7 @@ export default function HistoryDetailPage() {
                     comments.map((comment) => (
                       <div key={comment.id} className="border-b border-gray-200 pb-4 last:border-b-0">
                         <div className="flex items-start gap-3">
-                          <div className="w-10 h-10 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold">
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-r from-magazine-primary to-magazine-secondary flex items-center justify-center text-white font-bold">
                             {comment.author.name?.[0] || '?'}
                           </div>
                           <div className="flex-1">
@@ -412,7 +412,7 @@ export default function HistoryDetailPage() {
                 <input
                   type="text"
                   placeholder="输入你的新想法或故事..."
-                  className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-magazine-primary focus:border-transparent"
                   onKeyPress={(e) => {
                     if (e.key === 'Enter') {
                       const input = e.currentTarget.value.trim()
@@ -425,7 +425,7 @@ export default function HistoryDetailPage() {
                 />
                 <button
                   onClick={() => router.push(`/chat-new?continue=${contentId}`)}
-                  className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:opacity-90 transition-opacity"
+                  className="px-6 py-3 bg-magazine-primary text-white rounded-lg hover:bg-magazine-secondary transition-colors"
                 >
                   继续创作
                 </button>
@@ -447,13 +447,13 @@ export default function HistoryDetailPage() {
                 value={commentText}
                 onChange={(e) => setCommentText(e.target.value)}
                 placeholder="写下你的评论..."
-                className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+                className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-magazine-primary focus:border-transparent resize-none"
                 rows={2}
               />
               <button
                 onClick={handleSubmitComment}
                 disabled={!commentText.trim() || isSubmittingComment}
-                className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                className="px-6 py-3 bg-magazine-primary text-white rounded-lg hover:bg-magazine-secondary transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
               >
                 {isSubmittingComment ? '提交中...' : '发表评论'}
               </button>

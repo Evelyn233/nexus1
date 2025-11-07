@@ -133,7 +133,7 @@ export default function SignUpPhonePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-gradient-to-br from-teal-50 to-blue-50 flex items-center justify-center px-4">
       <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-2xl shadow-xl">
         {/* Logo */}
         <div className="text-center">
@@ -178,7 +178,7 @@ export default function SignUpPhonePage() {
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-teal-500 focus:border-teal-500"
                 placeholder="您的姓名（可选）"
               />
             </div>
@@ -195,7 +195,7 @@ export default function SignUpPhonePage() {
                   required
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-teal-500 focus:border-teal-500"
                   placeholder="请输入手机号"
                   maxLength={11}
                 />
@@ -203,7 +203,7 @@ export default function SignUpPhonePage() {
                   type="button"
                   onClick={handleSendCode}
                   disabled={countdown > 0 || isLoading}
-                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap text-sm"
+                  className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap text-sm"
                 >
                   {countdown > 0 ? `${countdown}秒后重试` : codeSent ? '重新发送' : '发送验证码'}
                 </button>
@@ -221,7 +221,7 @@ export default function SignUpPhonePage() {
                 required
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-teal-500 focus:border-teal-500"
                 placeholder="请输入6位验证码"
                 maxLength={6}
               />
@@ -238,7 +238,7 @@ export default function SignUpPhonePage() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-teal-500 focus:border-teal-500"
                 placeholder="至少6个字符"
               />
             </div>
@@ -254,7 +254,7 @@ export default function SignUpPhonePage() {
                 required
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-teal-500 focus:border-teal-500"
                 placeholder="再次输入密码"
               />
             </div>
@@ -266,7 +266,7 @@ export default function SignUpPhonePage() {
               name="terms"
               type="checkbox"
               required
-              className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+              className="h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-300 rounded"
             />
             <label htmlFor="terms" className="ml-2 block text-sm text-gray-700">
               我同意服务条款和隐私政策
@@ -276,7 +276,7 @@ export default function SignUpPhonePage() {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isLoading ? '注册中...' : '注册'}
           </button>
@@ -286,13 +286,13 @@ export default function SignUpPhonePage() {
         <div className="mt-6 space-y-2">
           <p className="text-center text-sm text-gray-600">
             已有账号？{' '}
-            <Link href="/auth/signin" className="font-medium text-purple-600 hover:text-purple-500">
+            <Link href="/auth/signin" className="font-medium text-teal-600 hover:text-teal-500">
               立即登录
             </Link>
           </p>
           <p className="text-center text-sm text-gray-600">
             使用邮箱注册？{' '}
-            <Link href="/auth/signup" className="font-medium text-purple-600 hover:text-purple-500">
+            <Link href="/auth/signup" className="font-medium text-teal-600 hover:text-teal-500">
               邮箱注册
             </Link>
           </p>

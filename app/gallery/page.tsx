@@ -235,7 +235,7 @@ export default function GalleryPage() {
                     <div className="flex space-x-2">
                       <button
                         onClick={() => handleViewContent(image.contentId)}
-                        className="flex-1 flex items-center justify-center space-x-1 py-1 px-2 bg-purple-50 text-purple-600 rounded text-xs hover:bg-purple-100 transition-colors"
+                        className="flex-1 flex items-center justify-center space-x-1 py-1 px-2 bg-teal-50 text-teal-600 rounded text-xs hover:bg-teal-100 transition-colors"
                       >
                         <Eye className="w-3 h-3" />
                         <span>详情</span>
@@ -301,7 +301,7 @@ export default function GalleryPage() {
               <div className="flex space-x-3 mt-6">
                 <button
                   onClick={() => handleViewContent(selectedImage.contentId)}
-                  className="flex-1 flex items-center justify-center space-x-2 py-2 px-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                  className="flex-1 flex items-center justify-center space-x-2 py-2 px-4 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors"
                 >
                   <Eye className="w-4 h-4" />
                   <span>查看完整创作</span>
@@ -325,11 +325,11 @@ export default function GalleryPage() {
           <input
             type="text"
             placeholder="输入您的需求..."
-            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
           />
           <button
             onClick={() => router.push('/chat-new')}
-            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+            className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors"
           >
             发送
           </button>
