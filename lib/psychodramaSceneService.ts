@@ -738,9 +738,9 @@ ${baseSceneInfo.peopleCount !== 'alone' ? `
   "subconsciousDesire": "潜意识愿望（用户真正想要的）",
   "psychologicalMechanism": "心理防御机制（如何保护自己）",
   
-  "sceneDescription_CN": "完整中文心理剧描述（150-200字）：必须深度描写用户内心！包含：1)内心独白 2)表面vs内心对比 3)意识流 4)心理象征 5)嘲讽的具体表达。外部场景（老板表演）只作为触发器简略描述！",
+  "sceneDescription_CN": "完整中文心理剧描述（150-200字）：🚨🚨🚨 必须是内心独白和心理描述，不是场景描述！格式要求：1)以内心独白开头（直接引用用户的想法，如'就是他只会索取，不会为我付出'）2)表面vs内心对比 3)意识流片段 4)心理象征。不要写'场景：家中，具体时间'这种场景描述！要写'内心独白：就是他只会索取，不会为我付出...'这种心理描述！",
   
-  "sceneDescription_EN": "完整英文心理剧描述（150-200字）：Deep psychological description focusing on user's inner world. Must include: inner monologue, surface vs inner contrast, consciousness stream, psychological symbolism, specific sarcastic expressions",
+  "sceneDescription_EN": "完整英文心理剧描述（150-200字）：🚨🚨🚨 Must be inner monologue and psychological description, NOT scene description! Format: 1) Start with inner monologue (direct quote of user's thoughts) 2) Surface vs inner contrast 3) Consciousness stream fragments 4) Psychological symbolism. Do NOT write 'Scene: home, specific time' style scene description! Write 'Inner monologue: He only takes, never gives...' style psychological description!",
   
   "imagePrompt": "⚠️⚠️⚠️ 心理剧图像提示词 - 死刑级规则！
 
@@ -1902,13 +1902,13 @@ ${previousMetaphors.map((m, idx) => `心理剧${idx + 1}: ${m}`).join('\n')}
         subconsciousDesire: '寻求真实和有意义的工作',
         consciousBehavior: '保持专业外表，内心却充满情绪波动',
         psychologicalMechanism: '通过心理距离和批判性思维保护自己',
-        sceneDescription_CN: `场景：${extractedLocation}，具体时间。
-环境氛围：描述整体气氛和背景。
-人物动作：${userInfo.age}岁${userInfo.gender === 'female' ? '女性' : '男性'}正在进行具体动作，可以有其他角色互动。
-现象描述：体现${emotion.type}情绪的具体表现，不是硬编码。
-内心独白："${emotion.quote}"
-情绪层次：从表面到内心的对比，体现复杂情感。
-场景包含：具体时间地点、多人物互动、丰富动作描述、现象描述、生动内心独白、情绪层次变化、视觉细节描写。`,
+        sceneDescription_CN: `内心独白："${emotion.quote}"
+
+表面vs内心：表面上她可能保持平静，但内心却充满${emotion.type}的情绪。这种情绪在她心中翻涌，让她感到复杂的情感冲突。
+
+意识流：${emotion.trigger}...${emotion.type}...为什么总是这样...她想要的是...但得到的却是...
+
+心理象征：这种${emotion.type}的情绪像一层薄雾，笼罩着她的内心世界，让她在表面的平静和内心的波澜之间挣扎。`,
         sceneDescription_EN: `At ${extractedLocation}, ${userInfo.age}-year-old Chinese ${userInfo.gender === 'female' ? 'female' : 'male'} maintaining calm surface while experiencing intense ${emotion.type} internally. Inner thought: "${emotion.quote}"`,
         imagePrompt: `PSYCHODRAMA - Chinese ${userInfo.gender === 'female' ? 'woman' : 'man'} at ${extractedLocation}. 
 COMPOSITION: MEDIUM SHOT showing complete figure from head to waist. 
