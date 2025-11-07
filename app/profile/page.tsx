@@ -138,17 +138,21 @@ export default function ProfilePage() {
     }
   }
 
-  // 根据tab和搜索词过滤内容
+  // 根据tab和搜索词过滤内容（排除已发布的作品，已发布作品在首页显示）
   const filteredContents = recentContents.filter(content => {
+    // 🔥 排除已发布的作品（已发布作品在首页信息流中显示，不在profile页面显示）
+    if (content.status === 'published') return false
+    
     // 🔥 先根据tab筛选状态
     if (activeTab === 'completed') {
       if (content.status !== 'completed') return false
     } else if (activeTab === 'private') {
       if (content.status !== 'private') return false
     } else if (activeTab === 'published') {
-      if (content.status !== 'published') return false
+      // 🔥 published tab 时，提示用户去首页查看
+      return false // 已发布作品不在profile页面显示
     }
-    // activeTab === 'all' 时显示所有
+    // activeTab === 'all' 时显示所有（除了已发布的）
     
     // 再根据搜索词筛选
     if (!searchQuery.trim()) return true
@@ -165,7 +169,7 @@ export default function ProfilePage() {
     switch (activeTab) {
       case 'completed': return '已创作'
       case 'private': return '🔒 私密内容'
-      case 'published': return '已发布'
+      case 'published': return '已发布（在首页查看）'
       default: return '最近创作'
     }
   }
@@ -457,7 +461,7 @@ export default function ProfilePage() {
           {/* Right Column - Recent Activity */}
           <div className="lg:col-span-2 space-y-6">
             
-            {/* 已发布作品 */}
+            {/* 已发布作品提示 - 已发布作品在首页信息流中显示，不在这里单独显示 */}
             {userStats.publishedContents > 0 && (
               <div className="bg-gradient-to-br from-teal-50 to-cyan-50 rounded-xl shadow-sm p-6 border border-teal-200">
                 <div className="flex items-center justify-between mb-4">
@@ -474,64 +478,16 @@ export default function ProfilePage() {
                   </button>
                 </div>
                 
-                <div className="bg-white/80 rounded-lg p-4">
-                  <div className="grid grid-cols-2 gap-3">
-                    {filteredContents
-                      .filter((content: any) => content.status === 'published')
-                      .slice(0, 4)
-                      .map((content: any) => {
-                        // 解析images字段，并按sceneIndex排序
-                        let images = []
-                        try {
-                          images = typeof content.images === 'string' ? JSON.parse(content.images) : content.images
-                          // 按sceneIndex排序，取第一张
-                          if (Array.isArray(images) && images.length > 0) {
-                            images = images.sort((a, b) => (a.sceneIndex || 0) - (b.sceneIndex || 0))
-                          }
-                        } catch (e) {
-                          console.error('解析images失败:', e)
-                        }
-                        const firstImage = images && images.length > 0 ? images[0] : null
-                        return (
-                          <div
-                            key={content.id}
-                            onClick={() => router.push(`/history/${content.id}`)}
-                            className="group cursor-pointer relative aspect-video bg-gray-100 rounded-lg overflow-hidden border border-gray-200 hover:border-teal-400 transition-all hover:shadow-lg"
-                          >
-                            {firstImage?.imageUrl && (
-                              <img
-                                src={firstImage.imageUrl}
-                                alt={content.initialPrompt}
-                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                              />
-                            )}
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
-                            <div className="absolute top-2 right-2">
-                              <span className="bg-magazine-primary text-white text-xs px-2 py-1 rounded-full font-medium">
-                                ✓ 已发布
-                              </span>
-                            </div>
-                            <div className="absolute bottom-2 left-2 right-2">
-                              <p className="text-white text-xs font-medium line-clamp-2">
-                                {content.initialPrompt || '无标题'}
-                              </p>
-                            </div>
-                          </div>
-                        )
-                      })}
-                  </div>
-                  
-                  {filteredContents.filter((c: any) => c.status === 'published').length === 0 && (
-                    <div className="text-center py-8 text-gray-500">
-                      <p className="text-sm">还没有发布任何作品</p>
-                      <button
-                        onClick={() => router.push('/home')}
-                        className="mt-3 text-sm text-magazine-primary hover:text-magazine-secondary"
-                      >
-                        去创作 →
-                      </button>
-                    </div>
-                  )}
+                <div className="bg-white/80 rounded-lg p-4 text-center py-8">
+                  <p className="text-sm text-gray-600 mb-3">
+                    已发布的作品会在首页"社区作品"信息流中显示，与其他用户的作品混在一起
+                  </p>
+                  <button
+                    onClick={() => router.push('/home')}
+                    className="px-6 py-2 bg-magazine-primary text-white rounded-lg hover:bg-magazine-secondary transition-colors"
+                  >
+                    去首页查看 →
+                  </button>
                 </div>
               </div>
             )}
@@ -589,21 +545,36 @@ export default function ProfilePage() {
               {filteredContents.length === 0 ? (
                 <div className="text-center py-12 text-gray-500">
                   <FileText className="w-12 h-12 mx-auto mb-3 opacity-30" />
-                  <p>{searchQuery ? '未找到匹配的创作' : '还没有创作记录'}</p>
-                  {searchQuery ? (
-                    <button
-                      onClick={() => setSearchQuery('')}
-                      className="mt-4 px-6 py-2 text-magazine-primary hover:text-magazine-secondary"
-                    >
-                      清除搜索
-                    </button>
+                  {activeTab === 'published' ? (
+                    <>
+                      <p className="mb-3">已发布的作品在首页"社区作品"信息流中显示</p>
+                      <button
+                        onClick={() => router.push('/home')}
+                        className="mt-4 px-6 py-2 bg-magazine-primary text-white rounded-lg hover:bg-magazine-secondary"
+                      >
+                        去首页查看已发布作品 →
+                      </button>
+                    </>
+                  ) : searchQuery ? (
+                    <>
+                      <p>未找到匹配的创作</p>
+                      <button
+                        onClick={() => setSearchQuery('')}
+                        className="mt-4 px-6 py-2 text-magazine-primary hover:text-magazine-secondary"
+                      >
+                        清除搜索
+                      </button>
+                    </>
                   ) : (
-                    <button
-                      onClick={() => router.push('/home')}
-                      className="mt-4 px-6 py-2 bg-magazine-primary text-white rounded-lg hover:bg-magazine-secondary"
-                    >
-                      开始创作
-                    </button>
+                    <>
+                      <p>还没有创作记录</p>
+                      <button
+                        onClick={() => router.push('/home')}
+                        className="mt-4 px-6 py-2 bg-magazine-primary text-white rounded-lg hover:bg-magazine-secondary"
+                      >
+                        开始创作
+                      </button>
+                    </>
                   )}
                 </div>
               ) : (
