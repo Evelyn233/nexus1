@@ -659,9 +659,22 @@ export default function ChatNewPage() {
             setMessages(prev => prev.filter(m => m.id !== 'assistant-thinking'))
             generateInChat([userInput])
           }
-        } catch (error) {
+        } catch (error: any) {
           console.error('❌ [CHAT-NEW] 生成问题失败:', error)
           setMessages(prev => prev.filter(m => m.id !== 'assistant-thinking'))
+          
+          // 🔥 如果是未登录错误，提示用户重新登录，但不自动跳转（避免循环）
+          if (error?.message?.includes('未登录') || error?.message?.includes('用户未登录')) {
+            setMessages(prev => [...prev, {
+              id: `error-${Date.now()}`,
+              type: 'system',
+              content: '⚠️ 登录状态已过期，请刷新页面重新登录'
+            }])
+          } else {
+            // 其他错误，直接生成
+            console.log('⚠️ [CHAT-NEW] 生成问题失败，直接生成内容')
+            generateInChat([userInput])
+          }
           setIsLoading(false)
         }
       }, 500)
@@ -776,11 +789,21 @@ export default function ChatNewPage() {
           generateInChat(newAnswers)
           return
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error(`💥 [CHAT-NEW] 动态生成问题失败:`, error)
-        // 如果出错，开始生成内容
-        setMessages(prev => prev.filter(m => !m.id.includes('assistant-processing')))
-        generateInChat(newAnswers)
+        
+        // 🔥 如果是未登录错误，提示用户重新登录，但不自动跳转（避免循环）
+        if (error?.message?.includes('未登录') || error?.message?.includes('用户未登录')) {
+          setMessages(prev => prev.filter(m => !m.id.includes('assistant-processing')).concat([{
+            id: `error-${Date.now()}`,
+            type: 'system',
+            content: '⚠️ 登录状态已过期，请刷新页面重新登录'
+          }]))
+        } else {
+          // 如果出错，开始生成内容
+          setMessages(prev => prev.filter(m => !m.id.includes('assistant-processing')))
+          generateInChat(newAnswers)
+        }
       } finally {
         setIsLoading(false)
       }
