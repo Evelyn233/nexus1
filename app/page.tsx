@@ -57,18 +57,15 @@ export default function LandingPage() {
                 "I feel disconnected from my team at work",
                 "My boyfriend only takes, never gives back",
                 "I'm questioning my career path lately",
-                "I had a meaningful conversation with a stranger today",
-                "I'm struggling with work-life balance",
-                "I discovered something beautiful in the mundane",
                 "I feel misunderstood by my family",
-                "I'm excited about a new project I'm starting",
                 "I'm reflecting on past relationships",
-                "I want to explore my creative side more",
                 "I feel overwhelmed by social expectations",
                 "I'm learning to set better boundaries",
-                "I had an epiphany about my life direction",
                 "I'm processing a difficult conversation",
-                "I'm grateful for small moments of joy"
+                "What if I hadn't gone abroad at 19?",
+                "I think I'm the villain",
+                "What if I had chosen a different path?",
+                "I wonder what my life would be like if I stayed"
               ].map((prompt, index) => (
                 <Link
                   key={index}
