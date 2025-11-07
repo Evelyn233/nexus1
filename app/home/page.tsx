@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
-import { History, X } from 'lucide-react'
+import { History, X, Image as ImageIcon } from 'lucide-react'
 import ContentCard from '@/components/ContentCard'
 import InputSection from '@/components/InputSection'
 import UserInfoBar from '@/components/UserInfoBar'
@@ -322,7 +322,7 @@ export default function HomePage() {
             </div>
           ) : publishedContent.length > 0 ? (
             <div className="grid grid-cols-2 gap-4">
-              {publishedContent.slice(0, 4).map((content) => {
+              {publishedContent.map((content) => {
                 const firstImage = content.images?.[0]
                 return (
                   <div 
@@ -331,17 +331,21 @@ export default function HomePage() {
                     onClick={() => router.push(`/history/${content.id}`)}
                   >
                     <div className="relative h-full bg-gradient-to-br from-teal-50 to-cyan-50 rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition-all group">
-                      {firstImage?.imageUrl && (
+                      {firstImage?.imageUrl ? (
                         <img
                           src={firstImage.imageUrl}
                           alt={content.title}
                           className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         />
+                      ) : (
+                        <div className="absolute inset-0 bg-gradient-to-br from-teal-100 to-cyan-100 flex items-center justify-center">
+                          <ImageIcon className="w-12 h-12 text-teal-400 opacity-50" />
+                        </div>
                       )}
                       <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
                       <div className="absolute bottom-0 left-0 right-0 p-3">
                         <p className="text-white text-sm font-medium line-clamp-2 mb-1">
-                          {content.title}
+                          {content.title || content.initialPrompt || '已发布作品'}
                         </p>
                         <div className="flex items-center justify-between text-xs">
                           <span className="text-white/80">{content.author?.name || '匿名用户'}</span>
