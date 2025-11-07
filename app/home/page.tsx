@@ -255,7 +255,8 @@ export default function HomePage() {
           <img 
             src="/inflow-logo.jpeg" 
             alt="logo" 
-            className="w-24 h-16 rounded-lg"
+            className="w-24 h-16 rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
+            onClick={() => router.push('/home')}
           />
         </div>
         <div className="flex items-center space-x-4">

@@ -282,7 +282,8 @@ export default function UserInfoPage() {
             <img 
               src="/inflow-logo.jpeg" 
               alt="logo" 
-              className="w-16 h-16 rounded-lg"
+              className="w-16 h-16 rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
+              onClick={() => router.push('/home')}
             />
           </div>
           <h1 className="text-lg font-medium text-gray-900">用户信息</h1>

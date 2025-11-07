@@ -280,7 +280,8 @@ function SignInForm() {
             <img 
               src="/inflow-logo.jpeg" 
               alt="logo" 
-              className="w-28 h-22 rounded-lg"
+              className="w-28 h-22 rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
+              onClick={() => router.push('/home')}
             />
           </div>
           <h2 className="mt-6 text-2xl font-bold text-gray-900">

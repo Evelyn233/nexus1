@@ -2891,7 +2891,8 @@ AI问题：${aiQuestion}
               <img 
                 src="/inflow-logo.jpeg" 
                 alt="logo" 
-                className="w-20 h-14 rounded-lg"
+                className="w-20 h-14 rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
+                onClick={() => router.push('/home')}
               />
             </div>
             <button

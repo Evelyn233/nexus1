@@ -206,7 +206,8 @@ export default function ProfilePage() {
             <img 
               src="/inflow-logo.jpeg" 
               alt="logo" 
-              className="w-16 h-12 rounded-lg"
+              className="w-16 h-12 rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
+              onClick={() => router.push('/home')}
             />
             <button
               onClick={() => router.push('/home')}
