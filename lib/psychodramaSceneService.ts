@@ -470,13 +470,23 @@ ${questions.map((q, i) => `Q${i+1}: ${q}\nA${i+1}: ${answers[i] || '无'}`).join
     console.log('📡 [PSYCHODRAMA] 开始调用AI API生成心理剧...')
     console.log('⏱️ [PSYCHODRAMA] 请求时间:', new Date().toLocaleTimeString())
     
+    // 🔥 添加超时控制，避免超过 Vercel 函数执行时间限制（25秒，给 Vercel 缓冲时间）
+    const controller = new AbortController()
+    let timeoutId: NodeJS.Timeout | null = null
+    
     try {
+      timeoutId = setTimeout(() => {
+        console.warn('⏱️ [PSYCHODRAMA] API调用超时（25秒），中止请求')
+        controller.abort()
+      }, 25000) // 25秒超时
+      
       const response = await fetch('/api/ai/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
         credentials: 'include',
+        signal: controller.signal, // 🔥 添加 signal
         body: JSON.stringify({
           model: 'deepseek-chat',
           messages: [
@@ -1782,12 +1792,23 @@ ${previousMetaphors.map((m, idx) => `心理剧${idx + 1}: ${m}`).join('\n')}
         })
       })
       
+      if (timeoutId) {
+        clearTimeout(timeoutId) // 🔥 清除超时定时器
+      }
+      
       console.log('✅ [PSYCHODRAMA] API响应收到，状态:', response.status)
       console.log('⏱️ [PSYCHODRAMA] 响应时间:', new Date().toLocaleTimeString())
       
       if (!response.ok) {
         const errorText = await response.text()
         console.error('❌ [PSYCHODRAMA] API调用失败:', response.status, errorText)
+        
+        // 🔥 504 超时错误特殊处理
+        if (response.status === 504) {
+          console.warn('⏱️ [PSYCHODRAMA] Vercel 函数超时，使用 fallback 场景')
+          throw new Error('TIMEOUT') // 使用特殊错误标识
+        }
+        
         throw new Error(`API调用失败: ${response.status}`)
       }
       
@@ -1841,8 +1862,18 @@ ${previousMetaphors.map((m, idx) => `心理剧${idx + 1}: ${m}`).join('\n')}
       
       return scene
       
-    } catch (error) {
-      console.error('❌ [PSYCHODRAMA] 场景生成失败:', error)
+    } catch (error: any) {
+      if (timeoutId) {
+        clearTimeout(timeoutId) // 🔥 确保清除超时定时器
+      }
+      
+      // 🔥 处理超时错误（AbortError 或 TIMEOUT）
+      if (error.name === 'AbortError' || error.message === 'TIMEOUT' || error.message?.includes('504')) {
+        console.warn('⏱️ [PSYCHODRAMA] API调用超时（25秒），使用fallback场景')
+        console.error('❌ [PSYCHODRAMA] 超时原因:', error.message || 'AbortError')
+      } else {
+        console.error('❌ [PSYCHODRAMA] 场景生成失败:', error)
+      }
       
       // 返回基础场景（使用提取的具体地点，聚焦内心）
       console.warn('⚠️ [PSYCHODRAMA] 使用fallback生成基础心理剧场景')
