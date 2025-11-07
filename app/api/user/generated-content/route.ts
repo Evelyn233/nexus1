@@ -180,10 +180,12 @@ export async function GET(request: NextRequest) {
       skip: offset,
       select: {
         id: true,
+        title: true, // 🔥 添加title字段（AI生成的标题）
         initialPrompt: true,
         questions: true,
         answers: true,
         storyNarrative: true,
+        images: true, // 🔥 添加images字段（用于显示封面图）
         imageCount: true,
         category: true,
         tags: true,
@@ -207,14 +209,34 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      contents: contents.map(c => ({
-        ...c,
-        questions: c.questions ? JSON.parse(c.questions) : [],
-        answers: c.answers ? JSON.parse(c.answers) : [],
-        tags: c.tags ? JSON.parse(c.tags) : [],
-        createdAt: c.createdAt.toISOString(),
-        updatedAt: c.updatedAt.toISOString()
-      })),
+      contents: contents.map(c => {
+        // 🔥 解析images字段，确保返回正确的格式
+        let images = []
+        try {
+          if (c.images) {
+            images = typeof c.images === 'string' ? JSON.parse(c.images) : c.images
+            // 确保images是数组并按sceneIndex排序
+            if (Array.isArray(images)) {
+              images = images.sort((a: any, b: any) => (a.sceneIndex || 0) - (b.sceneIndex || 0))
+            } else {
+              images = []
+            }
+          }
+        } catch (e) {
+          console.error('解析images字段失败:', e)
+          images = []
+        }
+        
+        return {
+          ...c,
+          images: images, // 🔥 返回解析后的images数组
+          questions: c.questions ? JSON.parse(c.questions) : [],
+          answers: c.answers ? JSON.parse(c.answers) : [],
+          tags: c.tags ? JSON.parse(c.tags) : [],
+          createdAt: c.createdAt.toISOString(),
+          updatedAt: c.updatedAt.toISOString()
+        }
+      }),
       total,
       hasMore: offset + contents.length < total
     })
