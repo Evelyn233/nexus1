@@ -70,13 +70,31 @@ export async function chatWithDoubao(messages: ChatMessage[]): Promise<DoubaoRes
         const errorText = await response.text();
         console.error('❌ DeepSeek API请求失败:', response.status, errorText);
         
-        // 🔥 检测是否是余额不足错误
+        // 🔥 如果是401未登录错误，不要切换到本地模拟，而是抛出错误让上层处理
+        if (response.status === 401) {
+          try {
+            const errorData = JSON.parse(errorText);
+            if (errorData.error === '未登录' || errorData.error?.includes('未登录')) {
+              console.error('❌ [DOUBAO] 用户未登录，需要重新登录');
+              throw new Error('用户未登录，请重新登录');
+            }
+          } catch (e) {
+            // 如果无法解析，也抛出错误
+            if (errorText.includes('未登录')) {
+              throw new Error('用户未登录，请重新登录');
+            }
+            // 如果不是未登录错误，继续抛出原始错误
+            throw e;
+          }
+        }
+        
+        // 🔥 检测是否是余额不足错误（402, 403）
         try {
           const errorData = JSON.parse(errorText);
           if (errorData.error?.includes('余额不足') || 
               errorData.error?.includes('余额') ||
               errorData.details?.includes('余额') ||
-              (response.status >= 401 && response.status <= 403)) {
+              (response.status >= 402 && response.status <= 403)) {
             console.warn('⚠️ [DOUBAO] DeepSeek API 余额不足或认证失败，切换到本地模拟API');
           }
         } catch (e) {
