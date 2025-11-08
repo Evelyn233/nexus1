@@ -166,24 +166,52 @@ export default function ProfilePage() {
 
   const parseImages = (content: any) => {
     if (!content?.images) return []
-    if (Array.isArray(content.images)) return content.images
+
+    let imagesData = content.images
     if (typeof content.images === 'string') {
       try {
-        return JSON.parse(content.images)
+        imagesData = JSON.parse(content.images)
       } catch (error) {
         console.warn('⚠️ [PROFILE] 已发布作品解析图片失败:', error)
         return []
       }
     }
-    return []
+
+    if (!Array.isArray(imagesData)) return []
+
+    return imagesData
+      .map((img: any, index: number) => {
+        if (!img) return null
+        if (typeof img === 'string') {
+          return {
+            sceneIndex: index,
+            imageUrl: img
+          }
+        }
+        if (typeof img === 'object') {
+          return {
+            sceneIndex: typeof img.sceneIndex === 'number' ? img.sceneIndex : index,
+            imageUrl: img.imageUrl || img.url || img.src || img.image_path || '',
+            ...img
+          }
+        }
+        return null
+      })
+      .filter(Boolean)
   }
 
   const getFirstImageUrl = (images: any[]): string => {
     if (!Array.isArray(images)) return ''
-    const imageObj = images.find(
-      (img: any) => img?.imageUrl || img?.url || img?.src || img?.image_path
-    )
+    const imageObj = images.find((img: any) => {
+      if (typeof img === 'string') {
+        return img.trim().length > 0
+      }
+      return img?.imageUrl || img?.url || img?.src || img?.image_path
+    })
     if (!imageObj) return ''
+    if (typeof imageObj === 'string') {
+      return imageObj
+    }
     return imageObj.imageUrl || imageObj.url || imageObj.src || imageObj.image_path || ''
   }
 
@@ -557,15 +585,12 @@ export default function ProfilePage() {
                       还有 {publishedContents.length - publishedPreview.length} 个作品已发布，快去首页查看全部 →
                     </p>
                   )}
-                  <div className="mt-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                    <p className="text-sm text-gray-600">
-                      已发布的作品会在首页"社区作品"信息流中显示，与其他用户的作品混在一起。
-                    </p>
+                  <div className="mt-6 flex flex-col sm:flex-row sm:items-center sm:justify-end gap-3">
                     <button
                       onClick={() => router.push('/home')}
                       className="px-6 py-2 bg-magazine-primary text-white rounded-lg hover:bg-magazine-secondary transition-colors text-sm font-medium"
                     >
-                      去首页查看 →
+                      去首页查看全部 →
                     </button>
                   </div>
                 </div>

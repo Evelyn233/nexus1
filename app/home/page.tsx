@@ -89,23 +89,55 @@ export default function HomePage() {
 
   const normalizeImages = (images: any): any[] => {
     if (!images) return []
-    if (Array.isArray(images)) return images
+    let result = images
+
     if (typeof images === 'string') {
       try {
         const parsed = JSON.parse(images)
-        return Array.isArray(parsed) ? parsed : []
+        result = parsed
       } catch (error) {
         console.warn('⚠️ [HOME] 解析 images 字段失败:', error)
         return []
       }
     }
-    return []
+
+    if (!Array.isArray(result)) {
+      return []
+    }
+
+    return result
+      .map((img, index) => {
+        if (!img) return null
+        if (typeof img === 'string') {
+          return {
+            sceneIndex: index,
+            imageUrl: img
+          }
+        }
+        if (typeof img === 'object') {
+          return {
+            sceneIndex: typeof img.sceneIndex === 'number' ? img.sceneIndex : index,
+            imageUrl: img.imageUrl || img.url || img.src || img.image_path || '',
+            ...img
+          }
+        }
+        return null
+      })
+      .filter(Boolean) as any[]
   }
 
   const getFirstImageUrl = (images: any[]): string => {
     if (!Array.isArray(images)) return ''
-    const imageObj = images.find((img) => img?.imageUrl || img?.url || img?.src || img?.image_path)
+    const imageObj = images.find((img) => {
+      if (typeof img === 'string') {
+        return img.trim().length > 0
+      }
+      return img?.imageUrl || img?.url || img?.src || img?.image_path
+    })
     if (!imageObj) return ''
+    if (typeof imageObj === 'string') {
+      return imageObj
+    }
     return imageObj.imageUrl || imageObj.url || imageObj.src || imageObj.image_path || ''
   }
 
