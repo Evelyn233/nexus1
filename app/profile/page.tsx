@@ -183,15 +183,26 @@ export default function ProfilePage() {
       .map((img: any, index: number) => {
         if (!img) return null
         if (typeof img === 'string') {
+          const isDataUrl = img.startsWith('data:')
           return {
             sceneIndex: index,
-            imageUrl: img
+            imageUrl: isDataUrl ? '' : img,
+            imageDataUrl: isDataUrl ? img : ''
           }
         }
         if (typeof img === 'object') {
+          const rawUrl =
+            img.imageUrl || img.url || img.src || img.image_path || img.imageURI || img.uri || ''
+          const dataUrl =
+            img.imageDataUrl && typeof img.imageDataUrl === 'string'
+              ? img.imageDataUrl
+              : rawUrl && rawUrl.startsWith('data:')
+                ? rawUrl
+                : ''
           return {
             sceneIndex: typeof img.sceneIndex === 'number' ? img.sceneIndex : index,
-            imageUrl: img.imageUrl || img.url || img.src || img.image_path || '',
+            imageUrl: rawUrl,
+            imageDataUrl: dataUrl,
             ...img
           }
         }
@@ -206,13 +217,30 @@ export default function ProfilePage() {
       if (typeof img === 'string') {
         return img.trim().length > 0
       }
-      return img?.imageUrl || img?.url || img?.src || img?.image_path
+      return (
+        img?.imageDataUrl ||
+        img?.imageUrl ||
+        img?.url ||
+        img?.src ||
+        img?.image_path ||
+        img?.imageURI ||
+        img?.uri
+      )
     })
     if (!imageObj) return ''
     if (typeof imageObj === 'string') {
       return imageObj
     }
-    return imageObj.imageUrl || imageObj.url || imageObj.src || imageObj.image_path || ''
+    return (
+      imageObj.imageDataUrl ||
+      imageObj.imageUrl ||
+      imageObj.url ||
+      imageObj.src ||
+      imageObj.image_path ||
+      imageObj.imageURI ||
+      imageObj.uri ||
+      ''
+    )
   }
 
   const publishedContents = recentContents.filter(content => content.status === 'published')

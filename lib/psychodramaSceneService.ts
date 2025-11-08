@@ -1884,8 +1884,34 @@ ${previousMetaphors.map((m, idx) => `心理剧${idx + 1}: ${m}`).join('\n')}
       // 返回基础场景（使用提取的具体地点，聚焦内心）
       console.warn('⚠️ [PSYCHODRAMA] 使用fallback生成基础心理剧场景')
       
-      // 根据情绪类型选择表情和动作
-      const emotionMapping: Record<string, any> = {
+      const combinedInputs = allInputs.join(' ')
+      const combinedInputsLower = combinedInputs.toLowerCase()
+      const hasRiver = combinedInputs.includes('河') || combinedInputsLower.includes('river')
+      const hasMorning = combinedInputs.includes('清晨') || combinedInputs.includes('早晨') || combinedInputs.includes('早起') || combinedInputsLower.includes('morning') || combinedInputsLower.includes('sunrise')
+      const hasWalk = combinedInputs.includes('散步') || combinedInputs.includes('走路') || combinedInputsLower.includes('walk')
+      
+      const fallbackLocation =
+        extractedLocation ||
+        (hasRiver ? '清晨的河边步道' : baseScene?.location || baseScene?.title || '城市清晨的开放空间')
+      
+      const fallbackLocationEN =
+        hasRiver
+          ? 'a riverside path at sunrise'
+          : baseScene?.location_EN ||
+            baseScene?.location ||
+            (hasWalk ? 'a quiet morning street' : 'an open urban space at dawn')
+      
+      const genderLabel = userInfo.gender === 'female' ? 'woman' : 'man'
+      const ageLabel = userInfo.age ? `${userInfo.age}-year-old` : 'late-twenties'
+      const hairLabel = userInfo.hairLength || 'shoulder-length hair'
+      const clothingFallback =
+        answers.find(a => a.includes('穿') || a.includes('衣服')) ||
+        baseScene?.visualDetails?.clothing ||
+        'soft knit sweater and relaxed trousers'
+      
+      const positiveKeywords = ['温暖', '感动', '愉悦', '开心', '喜悦', '平静', '满足', '放松', '幸福', '安心', '治愈', '轻松', '踏实']
+      const calmKeywords = ['宁静', '柔软', '缓慢', '沉静', '自在']
+      const negativeMapping: Record<string, any> = {
         '嘲讽': { eyes: 'VISIBLE skepticism with knowing gaze', lips: 'CLEAR subtle smirk', body: 'leaning BACK with crossed arms', color: 'dramatic color grading with emotional palette' },
         '讽刺': { eyes: 'sharp critical gaze', lips: 'lips curled in disdain', body: 'VISIBLY detached posture', color: 'artistic color treatment' },
         '失望': { eyes: 'tired distant look', lips: 'pressed thin', body: 'shoulders slightly slumped', color: 'muted artistic tones' },
@@ -1893,38 +1919,147 @@ ${previousMetaphors.map((m, idx) => `心理剧${idx + 1}: ${m}`).join('\n')}
         '不满': { eyes: 'suppressed frustration', lips: 'tense line', body: 'body RIGID with restraint', color: 'artistic color grading' }
       }
       
-      const emotionKey = Object.keys(emotionMapping).find(k => emotion.type.includes(k)) || '失望'
-      const emotionStyle = emotionMapping[emotionKey]
+      const isPositiveEmotion = positiveKeywords.some(k => emotion.type.includes(k))
+      const isCalmEmotion = calmKeywords.some(k => emotion.type.includes(k))
+      const emotionKey = Object.keys(negativeMapping).find(k => emotion.type.includes(k)) || '失望'
+      const negativeStyle = negativeMapping[emotionKey]
+      
+      const symbolism = (() => {
+        if (hasRiver) {
+          return isPositiveEmotion
+            ? '河面升起的薄雾像柔软的滤镜，把昨夜的喧嚣都溶解成温柔的光'
+            : '河面映出两道截然不同的色块，一边寒冷一边温暖，像她心里的拉扯'
+        }
+        if (hasWalk) {
+          return isPositiveEmotion
+            ? '每一步踩在湿润地砖上的水迹都在慢慢晕开，像日常里被忽略的温度重新回到身体'
+            : '鞋底在石板上的摩擦声像提醒，快乐与自律始终保持着微妙的距离'
+        }
+        return isPositiveEmotion
+          ? '晨光在肩头铺开一层金色的线条，像是迟到已久的自我温柔地回来'
+          : '微凉的空气与胸口的热度交错，像两股情绪正在安静较劲'
+      })()
+      
+      const innerMonologuePositive = emotion.quote
+        ? `内心独白："${emotion.quote}"，像是给整天定调的暗号。`
+        : '内心独白："竟然真的起床做到了，原来轻盈感可以从早晨开始。"'
+      
+      const innerMonologueNegative = emotion.quote
+        ? `内心独白："${emotion.quote}"，在清晨的光里听起来更锋利。`
+        : '内心独白："为什么连这样的清晨都留不住？"'
+      
+      const surfaceVsInnerPositive = hasWalk
+        ? `表面上她只是沿着步道慢慢走，内心却因为能够早起而泛起${emotion.type}的涟漪，像是给生活按下了一个可以重启的按钮。`
+        : `表面上她整理着呼吸和步伐，内心却因为这份${emotion.type}而悄悄松动，像是替自己争取到了一段专属的清醒时刻。`
+      
+      const surfaceVsInnerNegative = `表面上她依旧维持着节奏，内心却被${emotion.type}一次次绷紧，仿佛稍不注意就会回到昨晚的循环。`
+      
+      const consciousnessStreamPositive = hasRiver
+        ? '脚步轻踩着河边的石板，水汽贴在皮肤上。她想起最近所有的被动与迟到，再想起此刻的自我准时，心里反问：如果每一天的开始都能像现在这么柔软，是不是就能慢慢靠近想要的生活？'
+        : '她听见鞋底与地面摩擦的细小声响，像一节节向前的拍子。身体慢慢醒过来，她在心里记下：别忘了，今天的快乐是被自己提前预约好的。'
+      
+      const consciousnessStreamNegative = '晨风从耳边掠过，她数着自己的呼吸，脑子里却反复重播那些没能好好表达的瞬间——为什么总是在最想努力的时候绷得更紧？'
+      
+      const imagePromptBase = `PSYCHODRAMA - ${hasRiver ? 'sunrise riverside walkway' : 'soft dawn city ambience'}, Chinese ${genderLabel} ${hasWalk ? 'walking slowly' : 'standing quietly'} during ${hasMorning ? 'early morning' : 'dawn'}.`
+      const imagePromptPositive = `${imagePromptBase}
+COMPOSITION: medium-wide shot capturing full figure and surrounding environment with gentle motion blur on water surface or morning air particles.
+USER: ${ageLabel} Chinese ${genderLabel}, ${userInfo.height || 165}cm, ${hairLabel}, wearing ${clothingFallback}, posture relaxed with shoulders gently open, fingertips brushing along the railing or holding a warm drink.
+FACE: soft expression, eyes reflecting ${emotion.type}, lips slightly curved with quiet contentment.
+ENVIRONMENT: ${hasRiver ? 'riverside with gentle current, low stone embankment, delicate mist rising from water, faint silhouettes of early joggers' : 'quiet tree-lined street, golden sunlight through leaves, few commuters in distance'}.
+LIGHTING: warm sunrise glow with pastel tones, cinematic soft focus.
+ATMOSPHERE: contemplative yet hopeful, air saturated with warmth and dew.
+STYLE: Fine art cinematic photography, Fujifilm film stock, 35mm lens, subtle grain. --ar 16:9`
+      
+      const imagePromptNegative = `${imagePromptBase}
+COMPOSITION: medium shot focusing on body tension and contrasting light.
+USER: ${ageLabel} Chinese ${genderLabel}, ${userInfo.height || 165}cm, ${hairLabel}, wearing ${clothingFallback}, posture subtly rigid with hands gripping phone or jacket hem.
+FACE: ${negativeStyle.eyes}, ${negativeStyle.lips}, brows slightly furrowed.
+ENVIRONMENT: ${hasRiver ? 'riverside path with cool blue morning light, distant commuters blurred' : 'street lamps still on, cool-toned dawn light, long shadows on pavement'}.
+LIGHTING: ${negativeStyle.color}, cinematic rim light highlighting emotional tension.
+ATMOSPHERE: inner conflict vs outer composure, psychological tension visualized with layered light and shadow.
+STYLE: Cinematic photography, moody color grading, 50mm lens, shallow depth of field. --ar 16:9`
+      
+      const sceneDescriptionCN = (() => {
+        const timePhrase = hasMorning ? '清晨六点半左右' : '日出刚透过云层'
+        const actionPhrase = hasWalk ? '她沿着步道缓慢地走，刻意放慢心里的节奏' : '她停在栏杆旁，听着风吹过水面的声音'
+        const emotionalPhrase = isPositiveEmotion
+          ? `每一步都像在验证：她不是只会说说想改变的人，这一刻，她真的完成了和自己约定的早起。`
+          : `她努力让自己看起来很淡定，可脑子里还是闪过昨晚未完成的工作、自责的对话、自我怀疑的影子。`
+        
+        return `${timePhrase}，${fallbackLocation}。${actionPhrase}。空气里混着露水、青草和新鲜烘焙面包的味道。
+${isPositiveEmotion ? '她把毛衣的袖口往上推，手心贴到微凉的铁栏杆，心里冒出一个轻快的想法：今天也许可以从这里重新开始。' : '她盯着河面上交错的光线，想到今天必须面对的事情，心里升起一阵不合时宜的酸涩。'}
+${emotionalPhrase}
+${symbolism}`
+      })()
+      
+      const sceneDescriptionEN = (() => {
+        const timePhrase = hasMorning ? 'It is around 6:30 a.m.' : 'The sun has just broken through a thin layer of clouds.'
+        const actionPhrase = hasWalk
+          ? 'She walks slowly along the path, deliberately syncing her pace with her breathing.'
+          : 'She stands by the railing, tracing the lines of the water with her eyes.'
+        const emotionalPhrase = isPositiveEmotion
+          ? 'Each step confirms that she is capable of showing up for herself; this morning is the proof she has been waiting for.'
+          : 'She keeps her shoulders steady, but unfinished tasks and unanswered conversations flicker through her mind like stubborn subtitles.'
+        
+        return `${timePhrase} at ${fallbackLocationEN}. ${actionPhrase} The air smells like dew, grass, and freshly baked bread.
+${isPositiveEmotion ? 'She pushes her sleeves up and lets the cold railing wake her palm; a small, hopeful thought appears: maybe today can restart from right here.' : 'She watches the layered reflections on the water and feels a quiet tightness behind her ribs, as if the day were already demanding too much.'}
+${emotionalPhrase}
+${symbolism}`
+      })()
+      
+      const innerMonologue = isPositiveEmotion ? innerMonologuePositive : innerMonologueNegative
+      const surfaceVsInner = isPositiveEmotion ? surfaceVsInnerPositive : surfaceVsInnerNegative
+      const consciousnessStream = isPositiveEmotion ? consciousnessStreamPositive : consciousnessStreamNegative
+      const behaviorKeywords = ['散步', '走路', '慢跑', '呼吸', '伸展', '早起', '抬头', '喝水', '伸懒腰', '跑步', '行走', '踏步', '停下来', '观察']
+      const extractBehaviorDescription = () => {
+        const segments = combinedInputs
+          .split(/[\n。！？!?\r]/)
+          .map(segment => segment.trim())
+          .filter(Boolean)
+        
+        const matchedSegment = segments.find(segment =>
+          behaviorKeywords.some(keyword => segment.includes(keyword))
+        )
+        
+        if (matchedSegment) {
+          return matchedSegment
+        }
+        
+        if (typeof baseScene?.consciousBehavior === 'string' && baseScene.consciousBehavior.trim()) {
+          return baseScene.consciousBehavior
+        }
+        
+        return hasWalk
+          ? '她让步伐跟着呼吸慢慢展开，不再把时间往后拖'
+          : '她专注地调整呼吸，让身体记住这种被晨光包裹的节奏'
+      }
+      
+      const consciousBehaviorText = extractBehaviorDescription()
+      
+      const psychologicalSymbolism = symbolism
+      const imagePrompt = isPositiveEmotion || isCalmEmotion ? imagePromptPositive : imagePromptNegative
       
       return {
         emotionalTrigger: emotion.trigger,
         emotionalIntensity: emotion.intensity,
-        location: extractedLocation,
-        task: '观察和反应',
-        otherCharacters: [],
-        innerConflict: `面对"${emotion.trigger}"，产生强烈的${emotion.type}情绪`,
-        externalConflict: `表面上保持冷静和专业，内心却充满${emotion.type}的情绪`,
+        location: fallbackLocation,
+        task: isPositiveEmotion ? '感受身体传回来的信号' : '观察并允许情绪显现',
+        otherCharacters: baseScene?.otherCharacters || [],
+        innerMonologue,
+        surfaceVsInner,
+        consciousnessStream,
+        psychologicalSymbolism,
+        innerConflict: surfaceVsInner,
+        externalConflict: surfaceVsInner,
         conflictIntensity: emotion.intensity,
-        subconsciousDesire: '寻求真实和有意义的工作',
-        consciousBehavior: '保持专业外表，内心却充满情绪波动',
-        psychologicalMechanism: '通过心理距离和批判性思维保护自己',
-        sceneDescription_CN: `内心独白："${emotion.quote}"
-
-表面vs内心：表面上她可能保持平静，但内心却充满${emotion.type}的情绪。这种情绪在她心中翻涌，让她感到复杂的情感冲突。
-
-意识流：${emotion.trigger}...${emotion.type}...为什么总是这样...她想要的是...但得到的却是...
-
-心理象征：这种${emotion.type}的情绪像一层薄雾，笼罩着她的内心世界，让她在表面的平静和内心的波澜之间挣扎。`,
-        sceneDescription_EN: `At ${extractedLocation}, ${userInfo.age}-year-old Chinese ${userInfo.gender === 'female' ? 'female' : 'male'} maintaining calm surface while experiencing intense ${emotion.type} internally. Inner thought: "${emotion.quote}"`,
-        imagePrompt: `PSYCHODRAMA - Chinese ${userInfo.gender === 'female' ? 'woman' : 'man'} at ${extractedLocation}. 
-COMPOSITION: MEDIUM SHOT showing complete figure from head to waist. 
-USER: ${userInfo.age}-year-old Chinese ${userInfo.gender === 'female' ? 'female' : 'male'}, ${userInfo.height}cm, ${userInfo.hairLength || 'long hair'}, 
-wearing modern Chinese business attire, ${emotionStyle.body}, hands showing emotion. 
-Face: Chinese features, ${emotionStyle.eyes}, ${emotionStyle.lips}. 
-ENVIRONMENT: ${extractedLocation} with Chinese office setting, modern Chinese interior design.
-LIGHTING: dramatic theatrical lighting, ${emotionStyle.color} color treatment. 
-ATMOSPHERE: psychological tension, theatrical. 
-STYLE: Cinematic photography, Chinese business environment, NOT close-up portrait. --ar 16:9`
+        subconsciousDesire: isPositiveEmotion ? '把这种掌控感延续到生活的其他角落' : '找到一种不再被动的生活节奏',
+        consciousBehavior: consciousBehaviorText,
+        psychologicalMechanism: isPositiveEmotion
+          ? '通过身体和节奏把自律感重新唤醒'
+          : '用惯常的节奏控制住不安，延迟情绪爆发',
+        sceneDescription_CN: sceneDescriptionCN,
+        sceneDescription_EN: sceneDescriptionEN,
+        imagePrompt
       }
     }
   }

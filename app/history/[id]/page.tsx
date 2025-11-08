@@ -14,8 +14,10 @@ interface ContentDetail {
     sceneTitle: string
     sceneIndex: number
     prompt: string
-    imageUrl: string
+    imageUrl?: string
+    imageDataUrl?: string | null
     story?: string
+    [key: string]: any
   }>
   imageCount: number
   category: string
@@ -114,29 +116,97 @@ export default function HistoryDetailPage() {
       console.log('🔍 [HISTORY-DETAIL] title:', result.content?.title)
       
       if (result.success && result.content) {
-        // 🔥 确保images是数组格式
-        let images = result.content.images
-        if (typeof images === 'string') {
-          try {
-            images = JSON.parse(images)
-            console.log('✅ [HISTORY-DETAIL] 成功解析JSON字符串')
-          } catch (e) {
-            console.error('❌ [HISTORY-DETAIL] 解析images失败:', e)
-            images = []
+        // 🔥 确保images是数组格式并规范化字段
+        const normalizeImages = (rawImages: any): ContentDetail['images'] => {
+          let imagesData = rawImages
+
+          if (typeof rawImages === 'string') {
+            try {
+              imagesData = JSON.parse(rawImages)
+              console.log('✅ [HISTORY-DETAIL] 成功解析JSON字符串')
+            } catch (e) {
+              console.error('❌ [HISTORY-DETAIL] 解析images失败:', e)
+              imagesData = []
+            }
           }
+
+          if (!Array.isArray(imagesData)) {
+            console.warn('⚠️ [HISTORY-DETAIL] images不是数组，转换为数组')
+            console.warn('⚠️ [HISTORY-DETAIL] images实际类型:', typeof imagesData, imagesData)
+            imagesData = []
+          }
+
+          const getImageSources = (img: any): { imageUrl: string; imageDataUrl: string } => {
+            if (!img) {
+              return { imageUrl: '', imageDataUrl: '' }
+            }
+
+            if (typeof img === 'string') {
+              const isDataUrl = img.startsWith('data:')
+              return {
+                imageUrl: isDataUrl ? '' : img,
+                imageDataUrl: isDataUrl ? img : ''
+              }
+            }
+
+            const rawUrl =
+              img.imageUrl || img.url || img.src || img.image_path || img.imageURI || img.uri || ''
+            const dataUrl =
+              (typeof img.imageDataUrl === 'string' && img.imageDataUrl) ||
+              (typeof rawUrl === 'string' && rawUrl.startsWith('data:') ? rawUrl : '')
+
+            return {
+              imageUrl: rawUrl || '',
+              imageDataUrl: dataUrl || ''
+            }
+          }
+
+          return (imagesData as any[]).map((img, index) => {
+            if (!img) {
+              return {
+                sceneTitle: `场景 ${index + 1}`,
+                sceneIndex: index,
+                prompt: '',
+                imageUrl: '',
+                imageDataUrl: ''
+              }
+            }
+
+            if (typeof img === 'string') {
+              const sources = getImageSources(img)
+              return {
+                sceneTitle: `场景 ${index + 1}`,
+                sceneIndex: index,
+                prompt: '',
+                imageUrl: sources.imageUrl,
+                imageDataUrl: sources.imageDataUrl
+              }
+            }
+
+            const sceneIndex = typeof img.sceneIndex === 'number' ? img.sceneIndex : index
+            const { imageUrl, imageDataUrl } = getImageSources(img)
+
+            return {
+              ...img,
+              sceneTitle: img.sceneTitle || img.title || `场景 ${sceneIndex + 1}`,
+              sceneIndex,
+              prompt: img.prompt || img.scenePrompt || '',
+              imageUrl,
+              imageDataUrl: imageDataUrl || null,
+              story: img.story || img.description || img.caption || ''
+            }
+          })
         }
-        if (!Array.isArray(images)) {
-          console.warn('⚠️ [HISTORY-DETAIL] images不是数组，转换为数组')
-          console.warn('⚠️ [HISTORY-DETAIL] images实际类型:', typeof images, images)
-          images = []
-        }
-        
-        console.log('✅ [HISTORY-DETAIL] 最终图片数据:', images)
-        console.log('✅ [HISTORY-DETAIL] 最终图片数量:', images.length)
-        
+
+        const normalizedImages = normalizeImages(result.content.images)
+
+        console.log('✅ [HISTORY-DETAIL] 最终图片数据:', normalizedImages)
+        console.log('✅ [HISTORY-DETAIL] 最终图片数量:', normalizedImages.length)
+
         setContent({
           ...result.content,
-          images: images
+          images: normalizedImages,
+          imageCount: normalizedImages.length
         })
       } else {
         setError(result.error || '内容不存在')
@@ -332,21 +402,42 @@ export default function HistoryDetailPage() {
                   
                   {/* 图片 */}
                   <div className="my-3">
-                    <div className="relative rounded-xl overflow-hidden border border-gray-200">
-                      <img
-                        src={image.imageUrl}
-                        alt={image.sceneTitle || `Scene ${index + 1}`}
-                        className="w-full h-auto"
-                        onError={(e) => {
-                          console.error('图片加载失败:', image.imageUrl)
-                          e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgdmlld0JveD0iMCAwIDQwMCAzMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iMzAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0xNzUgMTI1SDIyNVYxNzVIMTc1VjEyNVoiIGZpbGw9IiM5Q0EzQUYiLz4KPHA+PC9wPgo8L3N2Zz4K'
-                          e.currentTarget.alt = '图片加载失败'
-                        }}
-                        onLoad={() => {
-                          console.log('图片加载成功:', image.imageUrl)
-                        }}
-                      />
-                    </div>
+                    {(() => {
+                      const resolvedImageUrl =
+                        typeof image === 'string'
+                          ? image
+                          : image?.imageDataUrl ||
+                            image?.imageUrl ||
+                            image?.url ||
+                            image?.src ||
+                            image?.image_path ||
+                            image?.imageURI ||
+                            image?.uri ||
+                            ''
+
+                      return resolvedImageUrl ? (
+                        <div className="relative rounded-xl overflow-hidden border border-gray-200">
+                          <img
+                            src={resolvedImageUrl}
+                            alt={image.sceneTitle || `Scene ${index + 1}`}
+                            className="w-full h-auto"
+                            onError={(e) => {
+                              console.error('图片加载失败:', resolvedImageUrl)
+                              e.currentTarget.src =
+                                'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgdmlld0JveD0iMCAwIDQwMCAzMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iMzAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0xNzUgMTI1SDIyNVYxNzVIMTc1VjEyNVoiIGZpbGw9IiM5Q0EzQUYiLz4KPHA+PC9wPgo8L3N2Zz4K'
+                              e.currentTarget.alt = '图片加载失败'
+                            }}
+                            onLoad={() => {
+                              console.log('图片加载成功:', resolvedImageUrl)
+                            }}
+                          />
+                        </div>
+                      ) : (
+                        <div className="relative rounded-xl overflow-hidden border border-dashed border-gray-200 bg-gray-50 flex items-center justify-center py-12 text-gray-400 text-sm">
+                          图片缺失或尚未生成
+                        </div>
+                      )
+                    })()}
                   </div>
                   
                   {/* 文字内容 */}

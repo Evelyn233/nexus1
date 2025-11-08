@@ -65,6 +65,7 @@ export default function ChatNewPage() {
   const [isNewSession, setIsNewSession] = useState(true) // 是否是新会话
   const [generatedImagesData, setGeneratedImagesData] = useState<Array<{ 
     imageUrl: string; 
+    imageDataUrl?: string;
     story: string; 
     sceneTitle: string;
     sceneIndex: number;
@@ -72,6 +73,7 @@ export default function ChatNewPage() {
   }>>([]) // 🔥 收集所有生成的图片数据
   const generatedImagesDataRef = useRef<Array<{ 
     imageUrl: string; 
+    imageDataUrl?: string;
     story: string; 
     sceneTitle: string;
     sceneIndex: number;
@@ -3312,7 +3314,7 @@ AI问题：${aiQuestion}
                     </label>
                     <div className="relative aspect-video bg-gray-100 rounded-lg overflow-hidden border-2 border-teal-300 shadow-md">
                       <img
-                        src={coverImage.imageUrl}
+                        src={coverImage.imageDataUrl || coverImage.imageUrl}
                         alt={coverImage.sceneTitle}
                         className="w-full h-full object-cover"
                       />
@@ -3347,8 +3349,8 @@ AI问题：${aiQuestion}
                     <div key={index} className="bg-gray-50 rounded-lg overflow-hidden border border-gray-200">
                       {/* 图片部分 */}
                       <div className="relative aspect-video bg-gray-100">
-                        <img
-                          src={image.imageUrl}
+                    <img
+                      src={image.imageDataUrl || image.imageUrl}
                           alt={image.sceneTitle}
                           className="w-full h-full object-cover"
                         />

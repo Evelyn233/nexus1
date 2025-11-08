@@ -70,10 +70,95 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 🔥 确保图片按sceneIndex排序后再保存
-    const sortedImages = Array.isArray(images) 
-      ? [...images].sort((a: any, b: any) => (a.sceneIndex || 0) - (b.sceneIndex || 0))
-      : images || []
+    // 🔥 确保图片按sceneIndex排序后再保存，并在保存前下载为持久化的 data URL
+    let sortedImages: any[] = []
+
+    if (Array.isArray(images)) {
+      const imagesByOrder = [...images].sort(
+        (a: any, b: any) => (a?.sceneIndex || 0) - (b?.sceneIndex || 0)
+      )
+
+      sortedImages = (
+        await Promise.all(
+          imagesByOrder.map(async (img: any, index: number) => {
+            if (!img) {
+              return null
+            }
+
+            const baseObject =
+              typeof img === 'object'
+                ? { ...img }
+                : {
+                    sceneTitle: `场景 ${index + 1}`,
+                    prompt: '',
+                    story: '',
+                  }
+
+            const sceneIndex =
+              typeof baseObject.sceneIndex === 'number'
+                ? baseObject.sceneIndex
+                : index
+
+            const candidateUrl =
+              typeof img === 'string'
+                ? img
+                : img?.imageUrl ||
+                  img?.url ||
+                  img?.src ||
+                  img?.image_path ||
+                  img?.imageURI ||
+                  img?.uri ||
+                  ''
+
+            const existingDataUrl =
+              typeof img === 'string' && img.startsWith('data:')
+                ? img
+                : baseObject.imageDataUrl && typeof baseObject.imageDataUrl === 'string'
+                  ? baseObject.imageDataUrl
+                  : candidateUrl.startsWith('data:')
+                    ? candidateUrl
+                    : ''
+
+            let imageDataUrl = existingDataUrl
+
+            if (!imageDataUrl && candidateUrl && !candidateUrl.startsWith('data:')) {
+              try {
+                console.log('🖼️ [CONTENT-API] 下载远程图片以持久化:', candidateUrl)
+                const imageResponse = await fetch(candidateUrl, {
+                  cache: 'no-store'
+                })
+
+                if (imageResponse.ok) {
+                  const arrayBuffer = await imageResponse.arrayBuffer()
+                  const buffer = Buffer.from(arrayBuffer)
+                  const contentType =
+                    imageResponse.headers.get('content-type') || 'image/jpeg'
+                  imageDataUrl = `data:${contentType};base64,${buffer.toString('base64')}`
+                  console.log('✅ [CONTENT-API] 图片持久化成功')
+                } else {
+                  console.warn(
+                    '⚠️ [CONTENT-API] 下载图片失败，状态码:',
+                    imageResponse.status
+                  )
+                }
+              } catch (downloadError) {
+                console.error('❌ [CONTENT-API] 图片下载异常:', downloadError)
+              }
+            }
+
+            return {
+              ...baseObject,
+              sceneIndex,
+              imageUrl: candidateUrl,
+              imageDataUrl: imageDataUrl || null
+            }
+          })
+        )
+      ).filter(Boolean) as any[]
+    } else if (images) {
+      sortedImages = images
+    }
+
     const imagesJson = JSON.stringify(sortedImages)
     const imageCount = Array.isArray(sortedImages) ? sortedImages.length : 0
     

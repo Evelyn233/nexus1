@@ -7,6 +7,7 @@ import { ArrowLeft, Download, Trash2, Eye } from 'lucide-react'
 interface SavedImage {
   id: string
   imageUrl: string
+  imageDataUrl?: string
   prompt: string
   story: string
   sceneTitle: string
@@ -78,10 +79,24 @@ export default function GalleryPage() {
             
             if (Array.isArray(images) && images.length > 0) {
               images.forEach((img: any, imgIndex: number) => {
-                if (img.imageUrl) {
+                const imageUrl =
+                  typeof img === 'string'
+                    ? img
+                    : img.imageUrl || img.url || img.src || img.image_path || img.imageURI || img.uri || ''
+                const imageDataUrl =
+                  typeof img === 'string' && img.startsWith('data:')
+                    ? img
+                    : img.imageDataUrl && typeof img.imageDataUrl === 'string'
+                      ? img.imageDataUrl
+                      : imageUrl && imageUrl.startsWith('data:')
+                        ? imageUrl
+                        : ''
+
+                if (imageUrl || imageDataUrl) {
                   allImages.push({
                     id: `${content.id}-${img.sceneIndex || imgIndex}`,
-                    imageUrl: img.imageUrl,
+                    imageUrl: imageUrl || '',
+                    imageDataUrl,
                     prompt: img.prompt || img.story || content.initialPrompt || '',
                     story: img.story || '',
                     sceneTitle: img.sceneTitle || `场景 ${(img.sceneIndex ?? imgIndex) + 1}`,
@@ -107,7 +122,7 @@ export default function GalleryPage() {
       console.log('🖼️ [GALLERY] 图片列表预览:', allImages.slice(0, 3).map(img => ({
         id: img.id,
         sceneTitle: img.sceneTitle,
-        hasUrl: !!img.imageUrl
+        hasUrl: !!(img.imageUrl || img.imageDataUrl)
       })))
       
       setSavedImages(allImages)
@@ -128,7 +143,12 @@ export default function GalleryPage() {
   const handleDownload = (image: SavedImage) => {
     // 下载图片
     const link = document.createElement('a')
-    link.href = image.imageUrl
+    const downloadSource = image.imageDataUrl || image.imageUrl
+    if (!downloadSource) {
+      alert('当前图片无法下载，缺少有效的图片数据')
+      return
+    }
+    link.href = downloadSource
     link.download = `${image.sceneTitle}.jpg`
     link.target = '_blank'
     document.body.appendChild(link)
@@ -212,7 +232,7 @@ export default function GalleryPage() {
                 <div key={image.id} className="bg-white rounded-lg shadow-sm overflow-hidden group">
                   <div className="aspect-square relative">
                     <img
-                      src={image.imageUrl}
+                      src={image.imageDataUrl || image.imageUrl}
                       alt={image.sceneTitle}
                       className="w-full h-full object-cover cursor-pointer transition-transform group-hover:scale-105"
                       onClick={() => setSelectedImage(image)}
@@ -273,7 +293,7 @@ export default function GalleryPage() {
             <div className="p-4">
               <div className="aspect-square relative mb-4 rounded-lg overflow-hidden">
                 <img
-                  src={selectedImage.imageUrl}
+                  src={selectedImage.imageDataUrl || selectedImage.imageUrl}
                   alt={selectedImage.sceneTitle}
                   className="w-full h-full object-cover"
                 />
