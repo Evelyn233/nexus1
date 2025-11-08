@@ -87,6 +87,28 @@ export default function HomePage() {
     }
   }
 
+  const normalizeImages = (images: any): any[] => {
+    if (!images) return []
+    if (Array.isArray(images)) return images
+    if (typeof images === 'string') {
+      try {
+        const parsed = JSON.parse(images)
+        return Array.isArray(parsed) ? parsed : []
+      } catch (error) {
+        console.warn('⚠️ [HOME] 解析 images 字段失败:', error)
+        return []
+      }
+    }
+    return []
+  }
+
+  const getFirstImageUrl = (images: any[]): string => {
+    if (!Array.isArray(images)) return ''
+    const imageObj = images.find((img) => img?.imageUrl || img?.url || img?.src || img?.image_path)
+    if (!imageObj) return ''
+    return imageObj.imageUrl || imageObj.url || imageObj.src || imageObj.image_path || ''
+  }
+
   const loadPublishedContent = async () => {
     try {
       setPublishedLoading(true)
@@ -103,9 +125,20 @@ export default function HomePage() {
           contents: data.contents
         })
         
-        if (data.success && data.contents) {
+        if (data.success && Array.isArray(data.contents)) {
           console.log('✅ [HOME] 加载已发布内容成功:', data.contents.length, '个作品')
-          setPublishedContent(data.contents)
+          const normalized = data.contents.map((content: any) => {
+            const images = normalizeImages(content.images)
+            const sortedImages = Array.isArray(images)
+              ? [...images].sort((a, b) => (a?.sceneIndex || 0) - (b?.sceneIndex || 0))
+              : []
+            return {
+              ...content,
+              images: sortedImages,
+              firstImageUrl: getFirstImageUrl(sortedImages)
+            }
+          })
+          setPublishedContent(normalized)
         } else {
           console.warn('⚠️ [HOME] API返回数据格式异常:', data)
           setPublishedContent([])
@@ -323,7 +356,7 @@ export default function HomePage() {
           ) : publishedContent.length > 0 ? (
             <div className="grid grid-cols-2 gap-4">
               {publishedContent.map((content) => {
-                const firstImage = content.images?.[0]
+                const firstImageUrl = content.firstImageUrl || getFirstImageUrl(content.images)
                 return (
                   <div 
                     key={content.id} 
@@ -331,9 +364,9 @@ export default function HomePage() {
                     onClick={() => router.push(`/history/${content.id}`)}
                   >
                     <div className="relative h-full bg-gradient-to-br from-teal-50 to-cyan-50 rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition-all group">
-                      {firstImage?.imageUrl ? (
+                      {firstImageUrl ? (
                         <img
-                          src={firstImage.imageUrl}
+                          src={firstImageUrl}
                           alt={content.title}
                           className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         />

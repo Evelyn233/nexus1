@@ -163,6 +163,32 @@ export default function ProfilePage() {
       content.title?.toLowerCase().includes(query)
     )
   })
+
+  const parseImages = (content: any) => {
+    if (!content?.images) return []
+    if (Array.isArray(content.images)) return content.images
+    if (typeof content.images === 'string') {
+      try {
+        return JSON.parse(content.images)
+      } catch (error) {
+        console.warn('⚠️ [PROFILE] 已发布作品解析图片失败:', error)
+        return []
+      }
+    }
+    return []
+  }
+
+  const getFirstImageUrl = (images: any[]): string => {
+    if (!Array.isArray(images)) return ''
+    const imageObj = images.find(
+      (img: any) => img?.imageUrl || img?.url || img?.src || img?.image_path
+    )
+    if (!imageObj) return ''
+    return imageObj.imageUrl || imageObj.url || imageObj.src || imageObj.image_path || ''
+  }
+
+  const publishedContents = recentContents.filter(content => content.status === 'published')
+  const publishedPreview = publishedContents.slice(0, 4)
   
   // 获取当前tab的标题
   const getTabTitle = () => {
@@ -478,16 +504,70 @@ export default function ProfilePage() {
                   </button>
                 </div>
                 
-                <div className="bg-white/80 rounded-lg p-4 text-center py-8">
-                  <p className="text-sm text-gray-600 mb-3">
-                    已发布的作品会在首页"社区作品"信息流中显示，与其他用户的作品混在一起
-                  </p>
-                  <button
-                    onClick={() => router.push('/home')}
-                    className="px-6 py-2 bg-magazine-primary text-white rounded-lg hover:bg-magazine-secondary transition-colors"
-                  >
-                    去首页查看 →
-                  </button>
+                <div className="bg-white/80 rounded-lg p-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {publishedPreview.map((content) => {
+                      const images = parseImages(content)
+                      const firstImageUrl = getFirstImageUrl(images)
+
+                      return (
+                        <div
+                          key={content.id}
+                          onClick={() => router.push(`/history/${content.id}`)}
+                          className="group relative overflow-hidden rounded-lg border border-teal-100 hover:border-magazine-primary hover:shadow-lg transition-all cursor-pointer"
+                        >
+                          <div className="aspect-video bg-teal-50 flex items-center justify-center">
+                            {firstImageUrl ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={firstImageUrl}
+                                alt={content.title || '已发布作品封面'}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="flex flex-col items-center justify-center text-magazine-primary">
+                                <ImageIcon className="w-8 h-8 mb-2" />
+                                <span className="text-xs text-gray-500">暂无封面图</span>
+                              </div>
+                            )}
+                          </div>
+                          <div className="p-3 bg-white">
+                            <h4 className="text-sm font-semibold text-gray-900 line-clamp-1 group-hover:text-magazine-primary transition-colors">
+                              {content.title || content.initialPrompt || '已发布作品'}
+                            </h4>
+                            <p className="text-xs text-gray-500 mt-2 line-clamp-2">
+                              {content.storyNarrative || '暂无描述'}
+                            </p>
+                            <div className="mt-2 flex items-center justify-between text-xs text-gray-400">
+                              <span className="flex items-center gap-1">
+                                <ImageIcon className="w-3 h-3" />
+                                {content.imageCount || 0} 张
+                              </span>
+                              <span>
+                                {new Date(content.publishedAt || content.createdAt).toLocaleDateString('zh-CN')}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                  {publishedContents.length > publishedPreview.length && (
+                    <p className="mt-4 text-xs text-gray-500 text-center">
+                      还有 {publishedContents.length - publishedPreview.length} 个作品已发布，快去首页查看全部 →
+                    </p>
+                  )}
+                  <div className="mt-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <p className="text-sm text-gray-600">
+                      已发布的作品会在首页"社区作品"信息流中显示，与其他用户的作品混在一起。
+                    </p>
+                    <button
+                      onClick={() => router.push('/home')}
+                      className="px-6 py-2 bg-magazine-primary text-white rounded-lg hover:bg-magazine-secondary transition-colors text-sm font-medium"
+                    >
+                      去首页查看 →
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
