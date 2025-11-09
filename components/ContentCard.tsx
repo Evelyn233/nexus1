@@ -24,12 +24,13 @@ interface ContentCardProps {
 
 export default function ContentCard({ data }: ContentCardProps) {
   if (data.type === 'ai-suggestion') {
+    const coverImage = data.generatedImage || data.image
     const content = (
       <div className={`magazine-card ${data.bgColor} p-4 h-full flex flex-col justify-between`}>
-        {data.generatedImage && (
+        {coverImage && (
           <div className="relative h-32 w-full mb-4 rounded-lg overflow-hidden">
             <Image
-              src={data.generatedImage}
+              src={coverImage}
               alt={data.title}
               fill
               className="object-cover object-top"

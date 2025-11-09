@@ -285,6 +285,7 @@ export default function HomePage() {
       source: 'AI Life Suggestions',
       type: 'ai-suggestion' as const,
       bgColor: 'bg-magazine-light-gray',
+      image: '/images/weekend.jpeg',
       generatedImage: '/images/weekend.jpeg',
       authorInitial: 'I',
       authorName: 'Inflow',
