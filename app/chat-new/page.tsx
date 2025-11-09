@@ -170,7 +170,7 @@ export default function ChatNewPage() {
           })
         }
         
-        let normalizedImages: Array<{
+        type HistoryImage = {
           imageUrl: string
           imageDataUrl?: string
           story: string
@@ -179,7 +179,11 @@ export default function ChatNewPage() {
           prompt: string
           isPsychodrama?: boolean
           isHypothetical?: boolean
-        }> = []
+        }
+
+        const isHistoryImage = (img: HistoryImage | null): img is HistoryImage => Boolean(img)
+
+        let normalizedImages: HistoryImage[] = []
 
         if (Array.isArray(content.images)) {
           normalizedImages = content.images
@@ -228,8 +232,8 @@ export default function ChatNewPage() {
                 isHypothetical: Boolean(img.isHypothetical)
               }
             })
-            .filter(Boolean)
-            .sort((a, b) => a!.sceneIndex - b!.sceneIndex) as typeof normalizedImages
+            .filter(isHistoryImage)
+            .sort((a: HistoryImage, b: HistoryImage) => a.sceneIndex - b.sceneIndex)
         }
 
         if (normalizedImages.length > 0) {

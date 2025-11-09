@@ -543,12 +543,12 @@ ${conversationText}
       }
       return fallback
     }
-
+    
     const consciousData = {
       rawInputs: safeJsonParse(userMetadata.userRawInputs, []),
       mentionedKeywords: safeJsonParse(userMetadata.userMentionedKeywords, [])
     }
-
+    
     const subconsciousData = {
       coreTraits: safeJsonParse(userMetadata.coreTraits, []),
       emotionalPattern: safeJsonParse(userMetadata.emotionalPattern, []),
@@ -556,7 +556,7 @@ ${conversationText}
       stressResponse: safeJsonParse(userMetadata.stressResponse, []),
       interpersonalChallenges: safeJsonParse(userMetadata.interpersonalChallenges, [])
     }
-
+    
     const allInputs = [initialPrompt, ...answers].filter(input => input && input.trim())
     console.log('🔄 [PSYCHODRAMA] 叙述输入汇总:', allInputs)
 
@@ -580,14 +580,14 @@ ${conversationText}
           allText.includes('起床') || allText.includes('起来')) {
         return '家中'
       }
-      if (allText.includes('工作') || allText.includes('项目') || allText.includes('同事') || allText.includes('老板') ||
-          allText.includes('上班') || allText.includes('办公室') || allText.includes('公司') ||
+      if (allText.includes('工作') || allText.includes('项目') || allText.includes('同事') || allText.includes('老板') || 
+          allText.includes('上班') || allText.includes('办公室') || allText.includes('公司') || 
           allText.includes('chatgpt') || allText.includes('ChatGPT') || allText.includes('chat')) {
-        return '办公室'
+      return '办公室'
       }
       return '家中'
     })()
-
+    
     const baseSceneInfo = baseScene ? {
       location: baseScene.location || extractedLocation,
       description: baseScene.description || baseScene.description_zh,
@@ -596,9 +596,33 @@ ${conversationText}
       peopleCount: baseScene.peopleCount || 'alone',
       atmosphere: baseScene.visualDetails?.atmosphere || 'realistic'
     } : null
-
+    
     const combinedInputs = allInputs.join(' ')
     const combinedInputsLower = combinedInputs.toLowerCase()
+
+    const hasRiver = combinedInputs.includes('河') || combinedInputsLower.includes('river')
+    const hasMorning =
+      combinedInputs.includes('清晨') ||
+      combinedInputs.includes('早晨') ||
+      combinedInputs.includes('早起') ||
+      combinedInputsLower.includes('morning') ||
+      combinedInputsLower.includes('sunrise')
+    const hasWalk =
+      combinedInputs.includes('散步') ||
+      combinedInputs.includes('走路') ||
+      combinedInputsLower.includes('walk')
+    const hasFoodContext =
+      combinedInputs.includes('烧烤') ||
+      combinedInputs.includes('烤串') ||
+      combinedInputs.includes('烤肉') ||
+      combinedInputs.includes('餐') ||
+      combinedInputs.includes('杯') ||
+      combinedInputs.includes('味道') ||
+      combinedInputs.includes('香味') ||
+      combinedInputsLower.includes('bbq') ||
+      combinedInputsLower.includes('dinner') ||
+      combinedInputsLower.includes('meal') ||
+      combinedInputsLower.includes('restaurant')
 
     const defaultLocationCN = baseScene?.location || extractedLocation || baseScene?.title || '家中'
     const defaultLocationEN = baseScene?.location_EN || baseScene?.location || 'a quiet interior space'
@@ -787,28 +811,49 @@ ${conversationText}
       }
     }
 
-    const behaviorKeywords = ['散步', '走路', '慢跑', '呼吸', '伸展', '早起', '抬头', '喝水', '伸懒腰', '跑步', '行走', '踏步', '停下来', '观察']
     const extractBehaviorDescription = () => {
       const segments = combinedInputs
         .split(/[\n。！？!?\r]/)
         .map(segment => segment.trim())
         .filter(Boolean)
 
-      const matchedSegment = segments.find(segment =>
-        behaviorKeywords.some(keyword => segment.includes(keyword))
-      )
+      const hasActionSignature = (segment: string) => {
+        if (!segment) return false
+        const pronounMatch = /(她|他|我)/.test(segment)
+        if (!pronounMatch) return false
+        const actionMatch = /(在|着|地|着手|握|靠|沿|举|捧|端|踩|走|坐|站|靠着|顺着|保持|调整|吸|呼|品|回味)/.test(segment)
+        if (!actionMatch) return false
+        return true
+      }
 
-      if (matchedSegment) {
-        return matchedSegment
+      const descriptiveSegment =
+        segments.find(segment => hasActionSignature(segment) && segment.length >= 6) ||
+        segments.find(segment => hasActionSignature(segment)) ||
+        segments.find(segment => /(她|他|我)/.test(segment))
+
+      if (descriptiveSegment) {
+        return descriptiveSegment
       }
 
       if (typeof baseScene?.consciousBehavior === 'string' && baseScene.consciousBehavior.trim()) {
         return baseScene.consciousBehavior
       }
 
-      return hasWalk
-        ? '她让步伐跟着呼吸慢慢展开，不再把时间往后拖'
-        : '她专注地调整呼吸，让身体记住这种被晨光包裹的节奏'
+      if (hasFoodContext) {
+        return isPositiveEmotion || isCalmEmotion
+          ? '她双手捧着还残留炭火温度的杯子，让香气慢慢安抚胸口。'
+          : '她握紧杯身的热度，提醒自己不要被短暂的香味牵着情绪走。'
+      }
+
+      if (hasWalk) {
+        return isPositiveEmotion || isCalmEmotion
+          ? '她让步伐跟着呼吸慢慢展开，不再把时间往后拖'
+          : '她刻意放慢步伐，让紧绷的思绪在节奏里慢慢化开'
+      }
+
+      return isPositiveEmotion || isCalmEmotion
+        ? '她让呼吸沿着胸腔缓缓铺开，给内心的温度留出空间。'
+        : '她稳住肩膀和呼吸，不让胸口的紧绷继续扩散。'
     }
 
     const clothingHint = clothingHintBase || baseSceneInfo?.clothing || 'textured attire with muted tones echoing inner tension'
@@ -886,187 +931,147 @@ ${conversationText}
       )
     }
 
-    console.warn('⚠️ [PSYCHODRAMA] 使用fallback叙述')
+    const buildFallbackScene = (): PsychodramaScene => {
+      console.warn('⚠️ [PSYCHODRAMA] 使用fallback叙述')
 
-    const normalizeEmotionQuote = (quote?: string) => {
-      if (!quote) return ''
-      let result = quote.trim()
-      result = result.replace(/^["']/, '').replace(/["']$/, '')
-      result = result.replace(/^(内心独白|心理独白|心声|内心OS|内在独白|内心旁白)[：:\-——\s]*/i, '')
-      result = result.replace(/^["']/, '').replace(/["']$/, '')
-      return result.trim()
-    }
+      const normalizeEmotionQuote = (quote?: string) => {
+        if (!quote) return ''
+        let result = quote.trim()
+        result = result.replace(/^['\"]/, '').replace(/['\"]$/, '')
+        result = result.replace(/^(内心独白|心理独白|心声|内心OS|内在独白|内心旁白)[：:\-——\s]*/i, '')
+        result = result.replace(/^['\"]/, '').replace(/['\"]$/, '')
+        return result.trim()
+      }
 
-    const normalizedEmotionQuote = normalizeEmotionQuote(emotion.quote)
+      const normalizedEmotionQuote = normalizeEmotionQuote(emotion.quote)
 
-    const buildConsciousnessStreamFromInputs = (text: string, fallbackSegments: string[]) => {
-      const normalized = text.replace(/\s+/g, ' ').trim()
-      if (normalized) {
-        const fragments = normalized
-          .split(/[。！？!?…]/)
-          .map(fragment => fragment.replace(/[,\s]+/g, ' ').trim())
-          .filter(Boolean)
-        const sliced = fragments.slice(0, 4).map(fragment => limitText(fragment, 26))
-        if (sliced.length > 0) {
-          return `${sliced.join('...')}...`
+      const buildConsciousnessStreamFromInputs = (text: string, fallbackSegments: string[]) => {
+        const normalized = text.replace(/\s+/g, ' ').trim()
+        if (normalized) {
+          const fragments = normalized
+            .split(/[。！？!?…]/)
+            .map(fragment => fragment.replace(/[\,\s]+/g, ' ').trim())
+            .filter(Boolean)
+          const sliced = fragments.slice(0, 4).map(fragment => limitText(fragment, 26))
+          if (sliced.length > 0) {
+            return `${sliced.join('...')}...`
+          }
         }
+        if (fallbackSegments.length > 0) {
+          return `${fallbackSegments.join('...')}...`
+        }
+        return '思绪在胸口反复回响...温度与怀疑交错...情绪仍未降临终点...'
       }
-      if (fallbackSegments.length > 0) {
-        return `${fallbackSegments.join('...')}...`
-      }
-      return '思绪在胸口反复回响...温度与怀疑交错...情绪仍未降临终点...'
-    }
 
-    const isPositiveLike = isPositiveEmotion || isCalmEmotion
-    const symbolismPositive = derivedContext.symbolismPositive || '环境里的细节像隐形的符号，把真实的温度照亮。'
-    const symbolismNegative = derivedContext.symbolismNegative || '角落里的暗影像未说出口的情绪，在胸口盘旋。'
-    const surfaceSummaryPositiveCN = derivedContext.surfaceSummaryPositiveCN || `表面上她保持原有姿态，内心却因为${emotion.type}而慢慢松开。`
-    const surfaceSummaryNegativeCN = derivedContext.surfaceSummaryNegativeCN || `表面上她仍维持镇定，内心却被${emotion.type}牢牢牵住。`
-    const innerPositiveAddon = derivedContext.innerPositiveAddon || '她想把这份真实的温度记在心里。'
-    const innerNegativeAddon = derivedContext.innerNegativeAddon || '她提醒自己别再被情绪推着走。'
-    const descriptionCN = derivedContext.descriptionCN || '空气静下来，光线沿着墙面缓慢移动。'
-    const descriptionEN = derivedContext.descriptionEN || 'The air has settled; light slides softly across the wall.'
-    const surfaceActionCN = derivedContext.surfaceActionCN || '她保持着原本的坐姿，让意识追上情绪。'
-    const surfaceActionEN = derivedContext.surfaceActionEN || 'She keeps the same posture, waiting for her mind to catch up.'
-    const innerPositiveCN = derivedContext.innerPositiveCN || `她感到一丝${emotion.type}重新回到身体里。`
-    const innerPositiveEN = derivedContext.innerPositiveEN || `A trace of ${emotion.type} returns to her body.`
-    const innerNegativeCN = derivedContext.innerNegativeCN || `她仍能感觉到${emotion.type}在胸口打圈。`
-    const innerNegativeEN = derivedContext.innerNegativeEN || `${emotion.type} still circles behind her ribs.`
+      const isPositiveLike = isPositiveEmotion || isCalmEmotion
+      const symbolismPositive = derivedContext.symbolismPositive || '环境里的细节像隐形的符号，把真实的温度照亮。'
+      const symbolismNegative = derivedContext.symbolismNegative || '角落里的暗影像未说出口的情绪，在胸口盘旋。'
+      const surfaceSummaryPositiveCN =
+        derivedContext.surfaceSummaryPositiveCN || `表面上她保持原有姿态，内心却因为${emotion.type}而慢慢松开。`
+      const surfaceSummaryNegativeCN =
+        derivedContext.surfaceSummaryNegativeCN || `表面上她仍维持镇定，内心却被${emotion.type}牢牢牵住。`
+      const innerPositiveAddon = derivedContext.innerPositiveAddon || '她想把这份真实的温度记在心里。'
+      const innerNegativeAddon = derivedContext.innerNegativeAddon || '她提醒自己别再被情绪推着走。'
+      const descriptionCN = derivedContext.descriptionCN || '空气静下来，光线沿着墙面缓慢移动。'
+      const descriptionEN = derivedContext.descriptionEN || 'The air has settled; light slides softly across the wall.'
+      const surfaceActionCN = derivedContext.surfaceActionCN || '她保持着原本的坐姿，让意识追上情绪。'
+      const surfaceActionEN = derivedContext.surfaceActionEN || 'She keeps the same posture, waiting for her mind to catch up.'
+      const innerPositiveCN = derivedContext.innerPositiveCN || `她感到一丝${emotion.type}重新回到身体里。`
+      const innerPositiveEN = derivedContext.innerPositiveEN || `A trace of ${emotion.type} returns to her body.`
+      const innerNegativeCN = derivedContext.innerNegativeCN || `她仍能感觉到${emotion.type}在胸口打圈。`
+      const innerNegativeEN = derivedContext.innerNegativeEN || `${emotion.type} still circles behind her ribs.`
 
-    const innerMonologueBase = normalizedEmotionQuote
-      ? `内心独白："${normalizedEmotionQuote}"`
-      : `内心独白："${limitText(emotion.trigger || emotion.type, 60)}"`
-    const innerMonologue = `${innerMonologueBase}，${isPositiveLike ? innerPositiveAddon : innerNegativeAddon}`
+      const innerMonologueBase = normalizedEmotionQuote
+        ? `内心独白:"${normalizedEmotionQuote}"`
+        : `内心独白:"${limitText(emotion.trigger || emotion.type, 60)}"`
+      const innerMonologue = `${innerMonologueBase}，${isPositiveLike ? innerPositiveAddon : innerNegativeAddon}`
 
-    const surfaceVsInner = isPositiveLike ? surfaceSummaryPositiveCN : surfaceSummaryNegativeCN
+      const surfaceVsInner = isPositiveLike ? surfaceSummaryPositiveCN : surfaceSummaryNegativeCN
 
-    const consciousnessStream = buildConsciousnessStreamFromInputs(combinedInputs, derivedContext.streamFallback || [])
-
-    const psychologicalSymbolism = isPositiveLike ? symbolismPositive : symbolismNegative
-
-    const sceneDescription_CN = [
-      `${fallbackLocation}，${descriptionCN}`,
-      surfaceActionCN,
-      isPositiveLike ? innerPositiveCN : innerNegativeCN,
-      psychologicalSymbolism
-    ]
-      .filter(Boolean)
-      .join('\n')
-
-    const sceneDescription_EN = [
-      `${fallbackLocationEN}, ${descriptionEN}`,
-      surfaceActionEN,
-      isPositiveLike ? innerPositiveEN : innerNegativeEN,
-      psychologicalSymbolism
-    ]
-      .filter(Boolean)
-      .join('\n')
-
-    const behaviorKeywords = [
-      '散步',
-      '走路',
-      '慢跑',
-      '呼吸',
-      '伸展',
-      '早起',
-      '抬头',
-      '喝水',
-      '伸懒腰',
-      '跑步',
-      '行走',
-      '踏步',
-      '停下来',
-      '观察',
-      '吃',
-      '夹起',
-      '烤串',
-      '举杯',
-      '品尝',
-      '回味',
-      '炭火'
-    ]
-
-    const extractBehaviorDescription = () => {
-      const segments = combinedInputs
-        .split(/[\n。！？!?\r]/)
-        .map(segment => segment.trim())
-        .filter(Boolean)
-
-      const matchedSegment = segments.find(segment =>
-        behaviorKeywords.some(keyword => segment.includes(keyword))
+      const consciousnessStream = buildConsciousnessStreamFromInputs(
+        combinedInputs,
+        derivedContext.streamFallback || []
       )
 
-      if (matchedSegment) {
-        return matchedSegment
-      }
+      const psychologicalSymbolism = isPositiveLike ? symbolismPositive : symbolismNegative
 
-      if (typeof baseScene?.consciousBehavior === 'string' && baseScene.consciousBehavior.trim()) {
-        return baseScene.consciousBehavior
-      }
+      const sceneDescription_CN = [
+        `${fallbackLocation}，${descriptionCN}`,
+        surfaceActionCN,
+        isPositiveLike ? innerPositiveCN : innerNegativeCN,
+        psychologicalSymbolism
+      ]
+        .filter(Boolean)
+        .join('\n')
 
-      if (derivedContext.consciousBehavior) {
-        return derivedContext.consciousBehavior
-      }
+      const sceneDescription_EN = [
+        `${fallbackLocationEN}, ${descriptionEN}`,
+        surfaceActionEN,
+        isPositiveLike ? innerPositiveEN : innerNegativeEN,
+        psychologicalSymbolism
+      ]
+        .filter(Boolean)
+        .join('\n')
 
-      return '她让手指记住此刻的温度，提醒自己这份感受是真实的'
+      const consciousBehaviorText = extractBehaviorDescription()
+
+      const fallbackSceneInfoForPrompt =
+        baseSceneInfo || {
+          location: derivedContext.locationCN,
+          description: descriptionCN,
+          objects: derivedContext.objects || [],
+          clothing: derivedContext.clothing || clothingHint,
+          peopleCount: baseScene?.peopleCount || 'alone',
+          atmosphere: derivedContext.atmosphere || 'intimate interior'
+        }
+
+      const imagePrompt = createPsychodramaImagePrompt({
+        emotionType: emotion.type,
+        emotionIntensity: emotion.intensity,
+        location: fallbackLocation,
+        baseSceneInfo: fallbackSceneInfoForPrompt,
+        symbolism: psychologicalSymbolism,
+        surfaceVsInner,
+        consciousnessStream,
+        clothingHint,
+        actionHint: derivedContext.actionHint
+      })
+
+      const task = isPositiveLike
+        ? derivedContext.taskPositive || '记录这份真实带来的安全感'
+        : derivedContext.taskNegative || '辨认温度退去后仍在的疑虑'
+
+      const psychologicalMechanism = isPositiveLike
+        ? derivedContext.mechanismPositive || '用真实体验重建对世界的信任'
+        : derivedContext.mechanismNegative || '用理性框住情绪，避免再次受伤'
+
+      const subconsciousDesireText = isPositiveLike
+        ? `保留这份${emotion.type}带来的证据`
+        : `重新整理${emotion.type}背后的故事`
+
+      return {
+        emotionalTrigger: emotion.trigger,
+        emotionalIntensity: emotion.intensity,
+        location: fallbackLocation,
+        task,
+        otherCharacters: baseScene?.otherCharacters || [],
+        innerMonologue,
+        surfaceVsInner,
+        consciousnessStream,
+        psychologicalSymbolism,
+        innerConflict: surfaceVsInner,
+        externalConflict: surfaceVsInner,
+        conflictIntensity: emotion.intensity,
+        subconsciousDesire: subconsciousDesireText,
+        consciousBehavior: consciousBehaviorText,
+        psychologicalMechanism,
+        sceneDescription_CN,
+        sceneDescription_EN,
+        imagePrompt
+      }
     }
 
-    const consciousBehaviorText = extractBehaviorDescription()
-
-    const fallbackSceneInfoForPrompt =
-      baseSceneInfo || {
-        location: derivedContext.locationCN,
-        description: descriptionCN,
-        objects: derivedContext.objects || [],
-        clothing: derivedContext.clothing || clothingHint,
-        peopleCount: baseScene?.peopleCount || 'alone',
-        atmosphere: derivedContext.atmosphere || 'intimate interior'
-      }
-
-    const imagePrompt = createPsychodramaImagePrompt({
-      emotionType: emotion.type,
-      emotionIntensity: emotion.intensity,
-      location: fallbackLocation,
-      baseSceneInfo: fallbackSceneInfoForPrompt,
-      symbolism: psychologicalSymbolism,
-      surfaceVsInner,
-      consciousnessStream,
-      clothingHint,
-      actionHint: derivedContext.actionHint
-    })
-
-    const task = isPositiveLike
-      ? derivedContext.taskPositive || '记录这份真实带来的安全感'
-      : derivedContext.taskNegative || '辨认温度退去后仍在的疑虑'
-
-    const psychologicalMechanism = isPositiveLike
-      ? derivedContext.mechanismPositive || '用真实体验重建对世界的信任'
-      : derivedContext.mechanismNegative || '用理性框住情绪，避免再次受伤'
-
-    const subconsciousDesireText = isPositiveLike
-      ? `保留这份${emotion.type}带来的证据`
-      : `重新整理${emotion.type}背后的故事`
-
-    return {
-      emotionalTrigger: emotion.trigger,
-      emotionalIntensity: emotion.intensity,
-      location: fallbackLocation,
-      task,
-      otherCharacters: baseScene?.otherCharacters || [],
-      innerMonologue,
-      surfaceVsInner,
-      consciousnessStream,
-      psychologicalSymbolism,
-      innerConflict: surfaceVsInner,
-      externalConflict: surfaceVsInner,
-      conflictIntensity: emotion.intensity,
-      subconsciousDesire: subconsciousDesireText,
-      consciousBehavior: consciousBehaviorText,
-      psychologicalMechanism,
-      sceneDescription_CN,
-      sceneDescription_EN,
-      imagePrompt
-    }
+    return buildFallbackScene()
   }
 
   private static async generateScene(
@@ -1381,197 +1386,19 @@ ${allInputs.map((input, i) => `输入${i + 1}: "${input}"`).join('\n')}
       console.error('❌ [PSYCHODRAMA] 场景生成失败:', error)
       }
       
-      // 返回基础场景（使用提取的具体地点，聚焦内心）
-      console.warn('⚠️ [PSYCHODRAMA] 使用fallback生成基础心理剧场景')
-      
-      const combinedInputs = allInputs.join(' ')
-      const combinedInputsLower = combinedInputs.toLowerCase()
-      const hasRiver = combinedInputs.includes('河') || combinedInputsLower.includes('river')
-      const hasMorning = combinedInputs.includes('清晨') || combinedInputs.includes('早晨') || combinedInputs.includes('早起') || combinedInputsLower.includes('morning') || combinedInputsLower.includes('sunrise')
-      const hasWalk = combinedInputs.includes('散步') || combinedInputs.includes('走路') || combinedInputsLower.includes('walk')
-      
-      const fallbackLocation =
-        extractedLocation ||
-        (hasRiver ? '清晨的河边步道' : baseScene?.location || baseScene?.title || '城市清晨的开放空间')
-      
-      const fallbackLocationEN =
-        hasRiver
-          ? 'a riverside path at sunrise'
-          : baseScene?.location_EN ||
-            baseScene?.location ||
-            (hasWalk ? 'a quiet morning street' : 'an open urban space at dawn')
-      
-      const genderLabel = userInfo.gender === 'female' ? 'woman' : 'man'
-      const ageLabel = userInfo.age ? `${userInfo.age}-year-old` : 'late-twenties'
-      const hairLabel = userInfo.hairLength || 'shoulder-length hair'
-      const clothingFallback =
-        answers.find(a => a.includes('穿') || a.includes('衣服')) ||
-        baseScene?.visualDetails?.clothing ||
-        'soft knit sweater and relaxed trousers'
-      
-      const positiveKeywords = ['温暖', '感动', '愉悦', '开心', '喜悦', '平静', '满足', '放松', '幸福', '安心', '治愈', '轻松', '踏实']
-      const calmKeywords = ['宁静', '柔软', '缓慢', '沉静', '自在']
-      const negativeMapping: Record<string, any> = {
-        '嘲讽': { eyes: 'VISIBLE skepticism with knowing gaze', lips: 'CLEAR subtle smirk', body: 'leaning BACK with crossed arms', color: 'dramatic color grading with emotional palette' },
-        '讽刺': { eyes: 'sharp critical gaze', lips: 'lips curled in disdain', body: 'VISIBLY detached posture', color: 'artistic color treatment' },
-        '失望': { eyes: 'tired distant look', lips: 'pressed thin', body: 'shoulders slightly slumped', color: 'muted artistic tones' },
-        '愤怒': { eyes: 'INTENSE suppressed anger', lips: 'pressed THIN in tension', body: 'fists CLEARLY clenched', color: 'dramatic desaturated palette' },
-        '不满': { eyes: 'suppressed frustration', lips: 'tense line', body: 'body RIGID with restraint', color: 'artistic color grading' }
-      }
-      
-      const isPositiveEmotion = positiveKeywords.some(k => emotion.type.includes(k))
-      const isCalmEmotion = calmKeywords.some(k => emotion.type.includes(k))
-      const emotionKey = Object.keys(negativeMapping).find(k => emotion.type.includes(k)) || '失望'
-      const negativeStyle = negativeMapping[emotionKey]
-      
-      const normalizeEmotionQuote = (quote?: string) => {
-        if (!quote) return ''
-        let result = quote.trim()
-        result = result.replace(/^["']/, '').replace(/["']$/, '')
-        result = result.replace(/^(内心独白|心理独白|心声|内心OS|内在独白|内心旁白)[：:\-——\s]*/i, '')
-        result = result.replace(/^["']/, '').replace(/["']$/, '')
-        return result.trim()
-      }
+      // 回退到旧版提示词逻辑，保证生成不中断
+      console.warn('⚠️ [PSYCHODRAMA] 使用legacy心理剧生成逻辑')
 
-      const normalizedEmotionQuote = normalizeEmotionQuote(emotion.quote)
-
-      const symbolism = (() => {
-        if (hasRiver) {
-          return isPositiveEmotion
-            ? '河面升起的薄雾像柔软的滤镜，把昨夜的喧嚣都溶解成温柔的光'
-            : '河面映出两道截然不同的色块，一边寒冷一边温暖，像她心里的拉扯'
-        }
-        if (hasWalk) {
-          return isPositiveEmotion
-            ? '每一步踩在湿润地砖上的水迹都在慢慢晕开，像日常里被忽略的温度重新回到身体'
-            : '鞋底在石板上的摩擦声像提醒，快乐与自律始终保持着微妙的距离'
-        }
-        return isPositiveEmotion
-          ? '晨光在肩头铺开一层金色的线条，像是迟到已久的自我温柔地回来'
-          : '微凉的空气与胸口的热度交错，像两股情绪正在安静较劲'
-      })()
-      
-      const innerMonologuePositive = normalizedEmotionQuote
-        ? `内心独白："${normalizedEmotionQuote}"，像是给整天定调的暗号。`
-        : '内心独白："竟然真的起床做到了，原来轻盈感可以从早晨开始。"'
-      
-      const innerMonologueNegative = normalizedEmotionQuote
-        ? `内心独白："${normalizedEmotionQuote}"，在清晨的光里听起来更锋利。`
-        : '内心独白："为什么连这样的清晨都留不住？"'
-      
-      const surfaceVsInnerPositive = hasWalk
-        ? `表面上她只是沿着步道慢慢走，内心却因为能够早起而泛起${emotion.type}的涟漪，像是给生活按下了一个可以重启的按钮。`
-        : `表面上她整理着呼吸和步伐，内心却因为这份${emotion.type}而悄悄松动，像是替自己争取到了一段专属的清醒时刻。`
-      
-      const surfaceVsInnerNegative = `表面上她依旧维持着节奏，内心却被${emotion.type}一次次绷紧，仿佛稍不注意就会回到昨晚的循环。`
-      
-      const consciousnessStreamPositive = hasRiver
-        ? '脚步轻踩着河边的石板，水汽贴在皮肤上。她想起最近所有的被动与迟到，再想起此刻的自我准时，心里反问：如果每一天的开始都能像现在这么柔软，是不是就能慢慢靠近想要的生活？'
-        : '她听见鞋底与地面摩擦的细小声响，像一节节向前的拍子。身体慢慢醒过来，她在心里记下：别忘了，今天的快乐是被自己提前预约好的。'
-      
-      const consciousnessStreamNegative = '晨风从耳边掠过，她数着自己的呼吸，脑子里却反复重播那些没能好好表达的瞬间——为什么总是在最想努力的时候绷得更紧？'
-      
-      const imagePromptBase = `PSYCHODRAMA - ${hasRiver ? 'sunrise riverside walkway' : 'soft dawn city ambience'}, Chinese ${genderLabel} ${hasWalk ? 'walking slowly' : 'standing quietly'} during ${hasMorning ? 'early morning' : 'dawn'}.`
-      const imagePromptPositive = `${imagePromptBase}
-COMPOSITION: medium-wide shot capturing full figure and surrounding environment with gentle motion blur on water surface or morning air particles.
-USER: ${ageLabel} Chinese ${genderLabel}, ${userInfo.height || 165}cm, ${hairLabel}, wearing ${clothingFallback}, posture relaxed with shoulders gently open, fingertips brushing along the railing or holding a warm drink.
-FACE: soft expression, eyes reflecting ${emotion.type}, lips slightly curved with quiet contentment.
-ENVIRONMENT: ${hasRiver ? 'riverside with gentle current, low stone embankment, delicate mist rising from water, faint silhouettes of early joggers' : 'quiet tree-lined street, golden sunlight through leaves, few commuters in distance'}.
-LIGHTING: warm sunrise glow with pastel tones, cinematic soft focus.
-ATMOSPHERE: contemplative yet hopeful, air saturated with warmth and dew.
-STYLE: Fine art cinematic photography, Fujifilm film stock, 35mm lens, subtle grain. --ar 16:9`
-      
-      const imagePromptNegative = `${imagePromptBase}
-COMPOSITION: medium shot focusing on body tension and contrasting light.
-USER: ${ageLabel} Chinese ${genderLabel}, ${userInfo.height || 165}cm, ${hairLabel}, wearing ${clothingFallback}, posture subtly rigid with hands gripping phone or jacket hem.
-FACE: ${negativeStyle.eyes}, ${negativeStyle.lips}, brows slightly furrowed.
-ENVIRONMENT: ${hasRiver ? 'riverside path with cool blue morning light, distant commuters blurred' : 'street lamps still on, cool-toned dawn light, long shadows on pavement'}.
-LIGHTING: ${negativeStyle.color}, cinematic rim light highlighting emotional tension.
-ATMOSPHERE: inner conflict vs outer composure, psychological tension visualized with layered light and shadow.
-STYLE: Cinematic photography, moody color grading, 50mm lens, shallow depth of field. --ar 16:9`
-      
-      const sceneDescriptionCN = (() => {
-        const timePhrase = hasMorning ? '清晨六点半左右' : '日出刚透过云层'
-        const actionPhrase = hasWalk ? '她沿着步道缓慢地走，刻意放慢心里的节奏' : '她停在栏杆旁，听着风吹过水面的声音'
-        const emotionalPhrase = isPositiveEmotion
-          ? `每一步都像在验证：她不是只会说说想改变的人，这一刻，她真的完成了和自己约定的早起。`
-          : `她努力让自己看起来很淡定，可脑子里还是闪过昨晚未完成的工作、自责的对话、自我怀疑的影子。`
-        
-        return `${timePhrase}，${fallbackLocation}。${actionPhrase}。空气里混着露水、青草和新鲜烘焙面包的味道。
-${isPositiveEmotion ? '她把毛衣的袖口往上推，手心贴到微凉的铁栏杆，心里冒出一个轻快的想法：今天也许可以从这里重新开始。' : '她盯着河面上交错的光线，想到今天必须面对的事情，心里升起一阵不合时宜的酸涩。'}
-${emotionalPhrase}
-${symbolism}`
-      })()
-      
-      const sceneDescriptionEN = (() => {
-        const timePhrase = hasMorning ? 'It is around 6:30 a.m.' : 'The sun has just broken through a thin layer of clouds.'
-        const actionPhrase = hasWalk
-          ? 'She walks slowly along the path, deliberately syncing her pace with her breathing.'
-          : 'She stands by the railing, tracing the lines of the water with her eyes.'
-        const emotionalPhrase = isPositiveEmotion
-          ? 'Each step confirms that she is capable of showing up for herself; this morning is the proof she has been waiting for.'
-          : 'She keeps her shoulders steady, but unfinished tasks and unanswered conversations flicker through her mind like stubborn subtitles.'
-        
-        return `${timePhrase} at ${fallbackLocationEN}. ${actionPhrase} The air smells like dew, grass, and freshly baked bread.
-${isPositiveEmotion ? 'She pushes her sleeves up and lets the cold railing wake her palm; a small, hopeful thought appears: maybe today can restart from right here.' : 'She watches the layered reflections on the water and feels a quiet tightness behind her ribs, as if the day were already demanding too much.'}
-${emotionalPhrase}
-${symbolism}`
-      })()
-      
-      const innerMonologue = isPositiveEmotion ? innerMonologuePositive : innerMonologueNegative
-      const surfaceVsInner = isPositiveEmotion ? surfaceVsInnerPositive : surfaceVsInnerNegative
-      const consciousnessStream = isPositiveEmotion ? consciousnessStreamPositive : consciousnessStreamNegative
-      const behaviorKeywords = ['散步', '走路', '慢跑', '呼吸', '伸展', '早起', '抬头', '喝水', '伸懒腰', '跑步', '行走', '踏步', '停下来', '观察']
-      const extractBehaviorDescription = () => {
-        const segments = combinedInputs
-          .split(/[\n。！？!?\r]/)
-          .map(segment => segment.trim())
-          .filter(Boolean)
-        
-        const matchedSegment = segments.find(segment =>
-          behaviorKeywords.some(keyword => segment.includes(keyword))
-        )
-        
-        if (matchedSegment) {
-          return matchedSegment
-        }
-        
-        if (typeof baseScene?.consciousBehavior === 'string' && baseScene.consciousBehavior.trim()) {
-          return baseScene.consciousBehavior
-        }
-        
-        return hasWalk
-          ? '她让步伐跟着呼吸慢慢展开，不再把时间往后拖'
-          : '她专注地调整呼吸，让身体记住这种被晨光包裹的节奏'
-      }
-      
-      const consciousBehaviorText = extractBehaviorDescription()
-      
-      const psychologicalSymbolism = symbolism
-      const imagePrompt = isPositiveEmotion || isCalmEmotion ? imagePromptPositive : imagePromptNegative
-      
-      return {
-        emotionalTrigger: emotion.trigger,
-        emotionalIntensity: emotion.intensity,
-        location: fallbackLocation,
-        task: isPositiveEmotion ? '感受身体传回来的信号' : '观察并允许情绪显现',
-        otherCharacters: baseScene?.otherCharacters || [],
-        innerMonologue,
-        surfaceVsInner,
-        consciousnessStream,
-        psychologicalSymbolism,
-        innerConflict: surfaceVsInner,
-        externalConflict: surfaceVsInner,
-        conflictIntensity: emotion.intensity,
-        subconsciousDesire: isPositiveEmotion ? '把这种掌控感延续到生活的其他角落' : '找到一种不再被动的生活节奏',
-        consciousBehavior: consciousBehaviorText,
-        psychologicalMechanism: isPositiveEmotion
-          ? '通过身体和节奏把自律感重新唤醒'
-          : '用惯常的节奏控制住不安，延迟情绪爆发',
-        sceneDescription_CN: sceneDescriptionCN,
-        sceneDescription_EN: sceneDescriptionEN,
-        imagePrompt
-      }
+      return await this.generateSceneLegacy(
+        emotion,
+        initialPrompt,
+        answers,
+        questions,
+        userInfo,
+        userMetadata,
+        previousMetaphors,
+        baseScene
+      )
     }
   }
   
