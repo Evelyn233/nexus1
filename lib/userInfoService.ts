@@ -499,17 +499,17 @@ export async function getUserInfo(): Promise<UserInfo> {
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 second timeout
       
-      try {
+    try {
         const response = await fetch('/api/user/info', {
           signal: controller.signal
         })
         clearTimeout(timeoutId)
         
-        if (response.ok) {
-          const data = await response.json()
-          if (data.success && data.userInfo) {
+      if (response.ok) {
+        const data = await response.json()
+        if (data.success && data.userInfo) {
             console.log('✅ [USER-INFO] Successfully fetched user info from API')
-            return data.userInfo
+          return data.userInfo
           }
         }
       } catch (fetchError: any) {

@@ -64,7 +64,7 @@ export default function SignUpPage() {
         if (promptParam) {
           router.push(`/chat-new?prompt=${encodeURIComponent(promptParam)}`)
         } else {
-          router.push('/user-info') // 跳转到用户信息收集页面
+        router.push('/user-info') // 跳转到用户信息收集页面
         }
       } else {
         router.push('/auth/signin')

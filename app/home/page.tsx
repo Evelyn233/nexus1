@@ -399,13 +399,13 @@ export default function HomePage() {
       {/* Main Content */}
       <main className="p-4 pb-40 max-w-md mx-auto">
         {/* 社区作品区域 */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-bold text-gray-800">🌟 社区作品</h2>
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-lg font-bold text-gray-800">🌟 社区作品</h2>
             {!publishedLoading && (
               <span className="text-xs text-gray-500">{publishedContent.length} 个作品</span>
             )}
-          </div>
+            </div>
           
           {publishedLoading ? (
             <div className="grid grid-cols-2 gap-4">
@@ -457,8 +457,8 @@ export default function HomePage() {
             <div className="text-center py-8 bg-gray-50 rounded-2xl">
               <p className="text-gray-500 text-sm">暂无已发布的作品</p>
               <p className="text-gray-400 text-xs mt-2">发布你的作品，让更多人看到吧！</p>
-            </div>
-          )}
+          </div>
+        )}
         </div>
 
         {/* 精选内容 */}

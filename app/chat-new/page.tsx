@@ -1824,13 +1824,6 @@ ${aiPrompt}`
       if (contentResult.needsAdditionalGeneration) {
         console.log('🔄 [CHAT-NEW] 启动后台并行检测观点和情绪（基于用户输入）...')
         
-        // 🔥 显示检测提示
-        setMessages(prev => [...prev, {
-          id: `detecting-${Date.now()}`,
-          type: 'system',
-          content: '🔍 正在检测您的观点和情绪...'
-        }])
-        
         // 获取用户信息
         const userInfo = await getUserInfo()
         const userMetadata = await getUserMetadata()
@@ -1874,6 +1867,18 @@ ${aiPrompt}`
           // 🔥 收集新增场景和所有生成Promise
           const newScenes: any[] = []
           const generationPromises: Promise<void>[] = [] // 🔥 收集所有生成Promise
+          const detectionMessageId = `detection-${Date.now()}`
+          let detectionMessageShown = false
+          const ensureDetectionMessage = () => {
+            if (!detectionMessageShown) {
+              detectionMessageShown = true
+              setMessages(prev => [...prev, {
+                id: detectionMessageId,
+                type: 'system',
+                content: '🔍 正在检测您的观点和情绪，为您生成专属心理场景...'
+              }])
+            }
+          }
           
           // 🔥 计算正确的起始索引，确保sceneIndex不冲突
           const baseSceneCount = scenes.length // 基础场景数量
@@ -1881,6 +1886,7 @@ ${aiPrompt}`
           
           // 🎭 心理剧场景（第一优先级）- 🔥 生成后立即生图
           if (additionalResults.psychodramaScene) {
+            ensureDetectionMessage()
             // 🔥 确保心理剧字段正确传递
             const psychodramaScene = {
               ...additionalResults.psychodramaScene,
@@ -1927,6 +1933,7 @@ ${aiPrompt}`
             
             const processedHypotheticalScenes: any[] = []
             hypotheticalScenes.forEach((scene: any) => {
+              ensureDetectionMessage()
               const hypotheticalScene = {
                 ...scene,
                 isHypothetical: true,
@@ -1957,6 +1964,7 @@ ${aiPrompt}`
           if (additionalResults.opinionScenes?.length > 0) {
             const processedOpinionScenes: any[] = []
             additionalResults.opinionScenes.forEach((scene: any) => {
+              ensureDetectionMessage()
               // 🔥 确保字段正确传递
               const opinionScene = {
                 ...scene,
@@ -2351,13 +2359,6 @@ ${aiPrompt}`
       // 🔥 注意：如果有新增场景（观点、心理剧），元数据更新会在新增场景图片生成完成后执行
       // 如果没有新增场景，在这里执行元数据更新（基础场景图片已完成）
       // 这样不会影响生图速度
-      
-      // 🔥 立即显示检测通知（如果有新增场景，会在后面移除）
-      setMessages(prev => [...prev, {
-        id: `detection-${Date.now()}`,
-        type: 'system',
-        content: '🔍 正在检测您的观点和情绪，为您生成专属心理场景...'
-      }])
       
       console.log('✅ [CHAT-NEW] 基础场景图片已完成：图片+故事配对显示')
       

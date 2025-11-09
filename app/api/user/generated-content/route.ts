@@ -313,13 +313,13 @@ export async function GET(request: NextRequest) {
         }
         
         return {
-          ...c,
+        ...c,
           images: images, // 🔥 返回解析后的images数组
-          questions: c.questions ? JSON.parse(c.questions) : [],
-          answers: c.answers ? JSON.parse(c.answers) : [],
-          tags: c.tags ? JSON.parse(c.tags) : [],
-          createdAt: c.createdAt.toISOString(),
-          updatedAt: c.updatedAt.toISOString()
+        questions: c.questions ? JSON.parse(c.questions) : [],
+        answers: c.answers ? JSON.parse(c.answers) : [],
+        tags: c.tags ? JSON.parse(c.tags) : [],
+        createdAt: c.createdAt.toISOString(),
+        updatedAt: c.updatedAt.toISOString()
         }
       }),
       total,

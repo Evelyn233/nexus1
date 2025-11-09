@@ -121,21 +121,21 @@ export default function HistoryDetailPage() {
           let imagesData = rawImages
 
           if (typeof rawImages === 'string') {
-            try {
+          try {
               imagesData = JSON.parse(rawImages)
-              console.log('✅ [HISTORY-DETAIL] 成功解析JSON字符串')
-            } catch (e) {
-              console.error('❌ [HISTORY-DETAIL] 解析images失败:', e)
+            console.log('✅ [HISTORY-DETAIL] 成功解析JSON字符串')
+          } catch (e) {
+            console.error('❌ [HISTORY-DETAIL] 解析images失败:', e)
               imagesData = []
-            }
           }
+        }
 
           if (!Array.isArray(imagesData)) {
-            console.warn('⚠️ [HISTORY-DETAIL] images不是数组，转换为数组')
+          console.warn('⚠️ [HISTORY-DETAIL] images不是数组，转换为数组')
             console.warn('⚠️ [HISTORY-DETAIL] images实际类型:', typeof imagesData, imagesData)
             imagesData = []
-          }
-
+        }
+        
           const getImageSources = (img: any): { imageUrl: string; imageDataUrl: string } => {
             if (!img) {
               return { imageUrl: '', imageDataUrl: '' }
@@ -202,7 +202,7 @@ export default function HistoryDetailPage() {
 
         console.log('✅ [HISTORY-DETAIL] 最终图片数据:', normalizedImages)
         console.log('✅ [HISTORY-DETAIL] 最终图片数量:', normalizedImages.length)
-
+        
         setContent({
           ...result.content,
           images: normalizedImages,
@@ -416,22 +416,22 @@ export default function HistoryDetailPage() {
                             ''
 
                       return resolvedImageUrl ? (
-                        <div className="relative rounded-xl overflow-hidden border border-gray-200">
-                          <img
+                    <div className="relative rounded-xl overflow-hidden border border-gray-200">
+                      <img
                             src={resolvedImageUrl}
-                            alt={image.sceneTitle || `Scene ${index + 1}`}
-                            className="w-full h-auto"
-                            onError={(e) => {
+                        alt={image.sceneTitle || `Scene ${index + 1}`}
+                        className="w-full h-auto"
+                        onError={(e) => {
                               console.error('图片加载失败:', resolvedImageUrl)
                               e.currentTarget.src =
                                 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgdmlld0JveD0iMCAwIDQwMCAzMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iMzAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0xNzUgMTI1SDIyNVYxNzVIMTc1VjEyNVoiIGZpbGw9IiM5Q0EzQUYiLz4KPHA+PC9wPgo8L3N2Zz4K'
-                              e.currentTarget.alt = '图片加载失败'
-                            }}
-                            onLoad={() => {
+                          e.currentTarget.alt = '图片加载失败'
+                        }}
+                        onLoad={() => {
                               console.log('图片加载成功:', resolvedImageUrl)
-                            }}
-                          />
-                        </div>
+                        }}
+                      />
+                    </div>
                       ) : (
                         <div className="relative rounded-xl overflow-hidden border border-dashed border-gray-200 bg-gray-50 flex items-center justify-center py-12 text-gray-400 text-sm">
                           图片缺失或尚未生成
@@ -496,37 +496,37 @@ export default function HistoryDetailPage() {
       
       {/* 继续创作功能 - 只在未发布的内容显示 */}
       {content.status !== 'published' && (
-        <div className="max-w-4xl mx-auto mt-6">
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <div className="space-y-4">
-              <div className="flex gap-4">
-                <input
-                  type="text"
-                  placeholder="输入你的新想法或故事..."
+      <div className="max-w-4xl mx-auto mt-6">
+        <div className="bg-white rounded-xl shadow-sm p-6">
+          <div className="space-y-4">
+            <div className="flex gap-4">
+              <input
+                type="text"
+                placeholder="输入你的新想法或故事..."
                   className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-magazine-primary focus:border-transparent"
-                  onKeyPress={(e) => {
-                    if (e.key === 'Enter') {
-                      const input = e.currentTarget.value.trim()
-                      if (input) {
-                        // 跳转到聊天页面，带上输入内容
-                        router.push(`/chat-new?prompt=${encodeURIComponent(input)}&continue=${contentId}`)
-                      }
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter') {
+                    const input = e.currentTarget.value.trim()
+                    if (input) {
+                      // 跳转到聊天页面，带上输入内容
+                      router.push(`/chat-new?prompt=${encodeURIComponent(input)}&continue=${contentId}`)
                     }
-                  }}
-                />
-                <button
-                  onClick={() => router.push(`/chat-new?continue=${contentId}`)}
+                  }
+                }}
+              />
+              <button
+                onClick={() => router.push(`/chat-new?continue=${contentId}`)}
                   className="px-6 py-3 bg-magazine-primary text-white rounded-lg hover:bg-magazine-secondary transition-colors"
-                >
-                  继续创作
-                </button>
-              </div>
-              <p className="text-sm text-gray-500 text-center">
-                输入新内容继续创作，或点击按钮基于这个故事记录继续
-              </p>
+              >
+                继续创作
+              </button>
             </div>
+            <p className="text-sm text-gray-500 text-center">
+              输入新内容继续创作，或点击按钮基于这个故事记录继续
+            </p>
           </div>
         </div>
+      </div>
       )}
       
       {/* 评论输入框 - 固定在页面底部，只在已发布的内容显示 */}

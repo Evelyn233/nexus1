@@ -566,10 +566,10 @@ export default function ProfilePage() {
                       const images = parseImages(content)
                       const firstImageUrl = getFirstImageUrl(images)
 
-                      return (
-                        <div
-                          key={content.id}
-                          onClick={() => router.push(`/history/${content.id}`)}
+                        return (
+                          <div
+                            key={content.id}
+                            onClick={() => router.push(`/history/${content.id}`)}
                           className="group relative overflow-hidden rounded-lg border border-teal-100 hover:border-magazine-primary hover:shadow-lg transition-all cursor-pointer"
                         >
                           <div className="aspect-video bg-teal-50 flex items-center justify-center">
@@ -603,10 +603,10 @@ export default function ProfilePage() {
                                 {new Date(content.publishedAt || content.createdAt).toLocaleDateString('zh-CN')}
                               </span>
                             </div>
+                            </div>
                           </div>
-                        </div>
-                      )
-                    })}
+                        )
+                      })}
                   </div>
                   {publishedContents.length > publishedPreview.length && (
                     <p className="mt-4 text-xs text-gray-500 text-center">
@@ -614,13 +614,13 @@ export default function ProfilePage() {
                     </p>
                   )}
                   <div className="mt-6 flex flex-col sm:flex-row sm:items-center sm:justify-end gap-3">
-                    <button
-                      onClick={() => router.push('/home')}
+                      <button
+                        onClick={() => router.push('/home')}
                       className="px-6 py-2 bg-magazine-primary text-white rounded-lg hover:bg-magazine-secondary transition-colors text-sm font-medium"
-                    >
+                      >
                       去首页查看全部 →
-                    </button>
-                  </div>
+                      </button>
+                    </div>
                 </div>
               </div>
             )}
@@ -691,22 +691,22 @@ export default function ProfilePage() {
                   ) : searchQuery ? (
                     <>
                       <p>未找到匹配的创作</p>
-                      <button
-                        onClick={() => setSearchQuery('')}
-                        className="mt-4 px-6 py-2 text-magazine-primary hover:text-magazine-secondary"
-                      >
-                        清除搜索
-                      </button>
+                    <button
+                      onClick={() => setSearchQuery('')}
+                      className="mt-4 px-6 py-2 text-magazine-primary hover:text-magazine-secondary"
+                    >
+                      清除搜索
+                    </button>
                     </>
                   ) : (
                     <>
                       <p>还没有创作记录</p>
-                      <button
-                        onClick={() => router.push('/home')}
-                        className="mt-4 px-6 py-2 bg-magazine-primary text-white rounded-lg hover:bg-magazine-secondary"
-                      >
-                        开始创作
-                      </button>
+                    <button
+                      onClick={() => router.push('/home')}
+                      className="mt-4 px-6 py-2 bg-magazine-primary text-white rounded-lg hover:bg-magazine-secondary"
+                    >
+                      开始创作
+                    </button>
                     </>
                   )}
                 </div>

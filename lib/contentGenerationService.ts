@@ -458,8 +458,6 @@ static async generateQuickContent(options: {
           } else {
             console.warn('⚠️ [ADDITIONAL-GEN] 心理剧场景生成返回null')
           }
-        } else {
-          console.log('⚠️ [ADDITIONAL-GEN] 未检测到情绪')
         }
       }).catch(error => {
         console.error('❌ [ADDITIONAL-GEN] 情绪检测或生成失败:', error)

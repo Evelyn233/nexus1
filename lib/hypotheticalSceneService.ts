@@ -399,7 +399,7 @@ ${answers.length > 0 ? `用户回答：\n${answers.map((a, i) => `回答${i+1}: 
      * Joker类 → 混乱、废弃、涂鸦感的空间
      * 黑寡妇类 → 冷酷、现代、致命的空间
      * 暮光类 → 阴郁、森林、雨中、神秘
-   - ✅ 如果用户没提到知名角色，用通用象征性环境："天台"、"暗处"、"高处"、"工业空间"
+   - ✅ 如果用户没有指定知名角色，也要从假想内容里提炼象征空间（例如用户描述的是掌控全局感，可延伸成俯瞰城市的高处；如果是潜伏感，可演绎成低光暗处）。不要直接套用固定列表，必须结合用户的假想细节去创造对应的环境语言。
 
 3. **穿着：角色化的造型（体现角色特质）**
    - ❌ 死刑：日常便装
@@ -434,10 +434,10 @@ ${answers.length > 0 ? `用户回答：\n${answers.map((a, i) => `回答${i+1}: 
      * 暮光类 → 阴郁的自然光、柔和雾气、神秘氛围（"moody natural lighting with soft fog"）
 
 **示例imagePrompt（正确的身份幻想 - 汉尼拔类）：**
-"CINEMATIC HYPOTHETICAL SCENE - 26-year-old Chinese female, 165cm, long hair, standing on rooftop edge at night, arms crossed, cold calculating smile with predatory calmness, elegant dark attire with refined danger, wind blowing hair dramatically, gazing down at city lights below with composed menace embodying Hannibal-like sophistication, dramatic noir lighting with elegant shadows and refined contrast, cinematic composition with letterbox black bars"
+"CINEMATIC HYPOTHETICAL SCENE - 26-year-old Chinese female, 165cm, long hair, standing on rooftop edge at night, arms crossed, cold calculating smile with predatory calmness, elegant dark attire with refined danger, wind blowing hair dramatically, gazing down at city lights below with composed menace embodying Hannibal-like sophistication, dramatic noir lighting with elegant shadows and refined contrast, cinematic composition with letterbox black bars showing IMAGINATIVE REALITY on top and HANNIBAL VIGIL below, subtle film grain texture"
 
 **示例imagePrompt（正确的身份幻想 - Joker类）：**
-"CINEMATIC HYPOTHETICAL SCENE - 26-year-old Chinese female, 165cm, long hair, standing in abandoned warehouse with graffiti, exaggerated manic posture with arms spread wide, chaotic colorful outfit with purple and green accents, wild grin and unstable eyes embodying Joker-like chaos, harsh colorful lighting with chaotic contrast creating unstable atmosphere, cinematic composition with letterbox black bars"
+"CINEMATIC HYPOTHETICAL SCENE - 26-year-old Chinese female, 165cm, long hair, standing in abandoned warehouse with graffiti, exaggerated manic posture with arms spread wide, chaotic colorful outfit with purple and green accents, wild grin and unstable eyes embodying Joker-like chaos, harsh colorful lighting with chaotic contrast creating unstable atmosphere, cinematic composition with letterbox black bars reading IMAGINATIVE REALITY on top and JOKER FANTASY below, analog film grain visible"
 
 **示例imagePrompt（死刑错误）：**
 ❌ "26-year-old Chinese female standing, thinking..." ← 太平淡！缺少角色感！
@@ -472,7 +472,8 @@ ${answers.length > 0 ? `用户回答：\n${answers.map((a, i) => `回答${i+1}: 
 wearing casual gray hoodie and jeans, hair in messy ponytail, sitting in bare-bones Silicon 
 Valley startup office with whiteboards covered in product sketches, laptop open showing code, 
 youthful passionate energy in eyes, dramatic side lighting creating film-like atmosphere, 
-cinematic composition suggesting this is a visualized fantasy of entrepreneurial path not taken"
+cinematic composition with letterbox black bars bearing IF I WERE A FOUNDER on the upper bar 
+and STARTUP AWAKENING on the lower bar, subtle analog film grain emphasizing that this is a visualized fantasy of the entrepreneurial path not taken"
 
 **示例imagePrompt（死刑错误）：**
 ❌ "26-year-old Chinese female in office..." ← 错误年龄！
@@ -489,7 +490,7 @@ cinematic composition suggesting this is a visualized fantasy of entrepreneurial
     "title": "场景1标题（包含'假想'）",
     "location": "用户提到的地点（不能编造！）",
     "sceneDescription_CN": "中文描述（必须有叙事铺垫）",
-    "imagePrompt": "CINEMATIC HYPOTHETICAL SCENE - 19-year-old Chinese ${userInfo.gender}, ${userInfo.height}cm, ${userInfo.hairLength}, wearing [具体穿着], [具体动作和场景]...",
+    "imagePrompt": "CINEMATIC HYPOTHETICAL SCENE - 19-year-old Chinese ${userInfo.gender}, ${userInfo.height}cm, ${userInfo.hairLength}, wearing [具体穿着], [具体动作和场景], letterbox black bars with [上栏假想提示] on top and [主题英文大写] on bottom, visible film grain...",
     "hypotheticalTrigger": "假定触发点",
     "originalReality": "原始现实",
     "hypotheticalReality": "假定现实",
@@ -500,14 +501,14 @@ cinematic composition suggesting this is a visualized fantasy of entrepreneurial
     "title": "场景2标题",
     "location": "用户提到的地点",
     "sceneDescription_CN": "中文描述（必须有叙事铺垫）",
-    "imagePrompt": "CINEMATIC HYPOTHETICAL SCENE - 19-year-old Chinese ${userInfo.gender}, ${userInfo.height}cm, ${userInfo.hairLength}, wearing [具体穿着], [具体动作和场景]...",
+    "imagePrompt": "CINEMATIC HYPOTHETICAL SCENE - 19-year-old Chinese ${userInfo.gender}, ${userInfo.height}cm, ${userInfo.hairLength}, wearing [具体穿着], [具体动作和场景], letterbox black bars reading [上栏假想提示] on top and [主题英文大写] on bottom, analog film texture...",
     ...
   },
   {
     "title": "场景3标题（可选）",
     "location": "用户提到的地点",
     "sceneDescription_CN": "中文描述（必须有叙事铺垫）",
-    "imagePrompt": "CINEMATIC HYPOTHETICAL SCENE - 19-year-old Chinese ${userInfo.gender}, ${userInfo.height}cm, ${userInfo.hairLength}, wearing [具体穿着], [具体动作和场景]...",
+    "imagePrompt": "CINEMATIC HYPOTHETICAL SCENE - 19-year-old Chinese ${userInfo.gender}, ${userInfo.height}cm, ${userInfo.hairLength}, wearing [具体穿着], [具体动作和场景], cinematic letterbox bars with [上栏假想提示] on top and [主题英文大写] on bottom, film grain present...",
     ...
   }
 ]
@@ -516,8 +517,9 @@ cinematic composition suggesting this is a visualized fantasy of entrepreneurial
 1. ✅ 必须以"CINEMATIC HYPOTHETICAL SCENE - 19-year-old Chinese ${userInfo.gender}, ${userInfo.height}cm, ${userInfo.hairLength}"开头
 2. ✅ 必须包含穿着描述："wearing casual hoodie/t-shirt and jeans"或类似创业者装扮
 3. ✅ 必须包含年轻状态："youthful energy", "passionate startup founder vibe"
-4. ✅ 必须包含电影感元素："dramatic lighting", "cinematic composition", "film-like quality"
-5. ❌ 死刑错误：写成"26-year-old"、缺少"female/male"、缺少电影感标识
+4. ✅ 必须包含电影感元素："dramatic lighting", "cinematic composition", "film-like quality", "film grain"
+5. ✅ 必须写明letterbox black bars及两条文字：top bar 用一句英文概括这是假想/平行现实，bottom bar 用全大写英文总结场景主题
+6. ❌ 死刑错误：写成"26-year-old"、缺少"female/male"、缺少电影感标识或缺少letterbox文字（任意一条缺失均不合格）
 
 **⚠️⚠️⚠️ 记住：必须生成2-3个场景，每个场景基于用户回答中的具体活动/地点/人物！⚠️⚠️⚠️`
           },
@@ -638,6 +640,8 @@ cinematic composition suggesting this is a visualized fantasy of entrepreneurial
   * "slightly surreal atmosphere of imagined future"
   * "movie trailer key frame aesthetic"
   * "soft glow effect indicating this is a visualized fantasy"
+- ✅ 明确写出 letterbox black bars：top bar 写明这是假想/平行现实（例如“IMAGINED REALITY”“IF I WERE...”），bottom bar 用全大写英文概括场景主题
+- ✅ 加入 "film grain"、"analog film texture" 等胶片质感描述
 - ✅ 可以加入视觉标识：
   * 光晕效果（subtle glow/halo effect）
   * 戏剧化打光（dramatic cinematic lighting）
@@ -647,7 +651,7 @@ cinematic composition suggesting this is a visualized fantasy of entrepreneurial
 
 **示例：**
 - ❌ 死刑："19-year-old Chinese female in university classroom, realistic photography, natural lighting"
-- ✅ 正确："CINEMATIC HYPOTHETICAL SCENE - 19-year-old Chinese female in imagined alternate timeline, sitting in empty classroom with dramatic side lighting and soft ethereal glow, gazing towards entrepreneurial future with determined expression, cinematic composition suggesting this is a visualized fantasy, film-like quality with slightly surreal atmosphere"
+- ✅ 正确："CINEMATIC HYPOTHETICAL SCENE - 19-year-old Chinese female in imagined alternate timeline, sitting in empty classroom with dramatic side lighting and soft ethereal glow, gazing towards entrepreneurial future with determined expression, cinematic composition with letterbox black bars reading ALTERNATE TIMELINE on the top bar and ACADEMIC ESCAPE on the bottom bar, visible analog film grain emphasizing this is a visualized fantasy"
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 

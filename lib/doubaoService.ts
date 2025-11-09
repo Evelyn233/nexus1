@@ -48,28 +48,28 @@ export async function chatWithDoubao(messages: ChatMessage[]): Promise<DoubaoRes
     const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 second timeout
 
     try {
-      const response = await fetch('/api/ai/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        credentials: 'include',
+    const response = await fetch('/api/ai/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      credentials: 'include',
         signal: controller.signal,
-        body: JSON.stringify({
-          model: 'deepseek-chat',
-          messages: messages,
-          temperature: 0.7,
-          max_tokens: 2000
-        })
+      body: JSON.stringify({
+        model: 'deepseek-chat',
+        messages: messages,
+        temperature: 0.7,
+        max_tokens: 2000
       })
+    })
 
       clearTimeout(timeoutId)
-      console.log('📡 DeepSeek API响应状态:', response.status);
+    console.log('📡 DeepSeek API响应状态:', response.status);
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('❌ DeepSeek API请求失败:', response.status, errorText);
-        
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ DeepSeek API请求失败:', response.status, errorText);
+      
         // 🔥 如果是401未登录错误，不要切换到本地模拟，而是抛出错误让上层处理
         if (response.status === 401) {
           try {
@@ -89,29 +89,29 @@ export async function chatWithDoubao(messages: ChatMessage[]): Promise<DoubaoRes
         }
         
         // 🔥 检测是否是余额不足错误（402, 403）
-        try {
-          const errorData = JSON.parse(errorText);
-          if (errorData.error?.includes('余额不足') || 
-              errorData.error?.includes('余额') ||
-              errorData.details?.includes('余额') ||
+      try {
+        const errorData = JSON.parse(errorText);
+        if (errorData.error?.includes('余额不足') || 
+            errorData.error?.includes('余额') ||
+            errorData.details?.includes('余额') ||
               (response.status >= 402 && response.status <= 403)) {
-            console.warn('⚠️ [DOUBAO] DeepSeek API 余额不足或认证失败，切换到本地模拟API');
-          }
-        } catch (e) {
-          // 无法解析错误，继续使用备用方案
+          console.warn('⚠️ [DOUBAO] DeepSeek API 余额不足或认证失败，切换到本地模拟API');
         }
-        
-        // 如果API失败，使用本地模拟
-        console.log('🔄 切换到本地模拟API...');
-        return await fallbackToLocalAPI(messages);
+      } catch (e) {
+        // 无法解析错误，继续使用备用方案
       }
-
-      const data = await response.json();
-      console.log('✅ DeepSeek API响应成功:', data);
       
-      return {
-        success: true,
-        content: data.choices?.[0]?.message?.content || '没有收到回复'
+      // 如果API失败，使用本地模拟
+      console.log('🔄 切换到本地模拟API...');
+      return await fallbackToLocalAPI(messages);
+    }
+
+    const data = await response.json();
+    console.log('✅ DeepSeek API响应成功:', data);
+    
+    return {
+      success: true,
+      content: data.choices?.[0]?.message?.content || '没有收到回复'
       }
     } catch (fetchError: any) {
       clearTimeout(timeoutId)
@@ -242,79 +242,79 @@ ${userInfo?.gender === 'male' ?
     const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 second timeout
 
     try {
-      const response = await fetch('/api/ai/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        credentials: 'include',
+    const response = await fetch('/api/ai/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      credentials: 'include',
         signal: controller.signal,
-        body: JSON.stringify({
-          model: 'deepseek-chat',
-          messages: [
-            {
-              role: 'system',
-              content: '你是一个专业的智能问答专家，擅长基于用户元数据分析结果生成个性化的深度问题。你的任务是生成3个智能的备用问题，必须遵循原有的逻辑规则：活动导向、关键信息提取、活动细节优先、地理位置关键、穿搭融入问题、智能同伴询问等。基于用户档案和输入，避免模板化。请用JSON格式返回。'
-            },
-            {
-              role: 'user',
-              content: context
-            }
-          ],
-          max_tokens: 500,
-          temperature: 0.7
-        })
+      body: JSON.stringify({
+        model: 'deepseek-chat',
+        messages: [
+          {
+            role: 'system',
+            content: '你是一个专业的智能问答专家，擅长基于用户元数据分析结果生成个性化的深度问题。你的任务是生成3个智能的备用问题，必须遵循原有的逻辑规则：活动导向、关键信息提取、活动细节优先、地理位置关键、穿搭融入问题、智能同伴询问等。基于用户档案和输入，避免模板化。请用JSON格式返回。'
+          },
+          {
+            role: 'user',
+            content: context
+          }
+        ],
+        max_tokens: 500,
+        temperature: 0.7
       })
+    })
 
       clearTimeout(timeoutId)
 
-      if (!response.ok) {
-        throw new Error(`DeepSeek API调用失败: ${response.status}`)
-      }
+    if (!response.ok) {
+      throw new Error(`DeepSeek API调用失败: ${response.status}`)
+    }
 
-      const data = await response.json()
-      if (data.choices && data.choices[0] && data.choices[0].message) {
-        const content = data.choices[0].message.content.trim()
+    const data = await response.json()
+    if (data.choices && data.choices[0] && data.choices[0].message) {
+      const content = data.choices[0].message.content.trim()
+      
+      try {
+        let cleanContent = content
         
-        try {
-          let cleanContent = content
-          
-          // 清理JSON格式 - 移除```json标记
-          if (cleanContent.includes('```json')) {
-            cleanContent = cleanContent.replace(/```json\s*/, '').replace(/```\s*$/, '').trim()
-          }
-          if (cleanContent.includes('```')) {
-            cleanContent = cleanContent.replace(/```\s*/, '').replace(/```\s*$/, '').trim()
-          }
-          
-          const parsed = JSON.parse(cleanContent)
-          console.log('✅ [DOUBAO-SERVICE] LLM生成备用问题成功:', parsed.questions)
-          return parsed.questions || []
-        } catch (parseError) {
-          console.error('❌ [DOUBAO-SERVICE] JSON解析失败:', parseError)
-          console.log('📄 原始内容:', content)
-          
-          // 尝试从文本中提取问题
-          const lines = content.split('\n').filter((line: string) => line.trim().length > 0)
-          const questions = lines.filter((line: string) =>
-            line.includes('？') || line.includes('?') || 
-            line.length > 10 && !line.includes('```')
-          ).slice(0, 3)
-          
-          if (questions.length > 0) {
-            console.log('✅ 从文本中提取到问题:', questions)
-            return questions
-          }
-          
-          // 如果提取失败，返回基于用户输入的具体问题
-          return [
-            `关于您提到的"${userInput}"，您希望如何处理这个情况？`,
-            '您目前最关心的是什么问题？',
-            '您希望获得什么样的帮助或建议？'
-          ]
+        // 清理JSON格式 - 移除```json标记
+        if (cleanContent.includes('```json')) {
+          cleanContent = cleanContent.replace(/```json\s*/, '').replace(/```\s*$/, '').trim()
         }
-      } else {
-        throw new Error('DeepSeek API返回格式错误')
+        if (cleanContent.includes('```')) {
+          cleanContent = cleanContent.replace(/```\s*/, '').replace(/```\s*$/, '').trim()
+        }
+        
+        const parsed = JSON.parse(cleanContent)
+        console.log('✅ [DOUBAO-SERVICE] LLM生成备用问题成功:', parsed.questions)
+        return parsed.questions || []
+      } catch (parseError) {
+        console.error('❌ [DOUBAO-SERVICE] JSON解析失败:', parseError)
+        console.log('📄 原始内容:', content)
+        
+        // 尝试从文本中提取问题
+        const lines = content.split('\n').filter((line: string) => line.trim().length > 0)
+        const questions = lines.filter((line: string) =>
+          line.includes('？') || line.includes('?') || 
+          line.length > 10 && !line.includes('```')
+        ).slice(0, 3)
+        
+        if (questions.length > 0) {
+          console.log('✅ 从文本中提取到问题:', questions)
+          return questions
+        }
+        
+        // 如果提取失败，返回基于用户输入的具体问题
+        return [
+          `关于您提到的"${userInput}"，您希望如何处理这个情况？`,
+          '您目前最关心的是什么问题？',
+          '您希望获得什么样的帮助或建议？'
+        ]
+      }
+    } else {
+      throw new Error('DeepSeek API返回格式错误')
       }
     } catch (fetchError: any) {
       clearTimeout(timeoutId)
@@ -404,19 +404,19 @@ export async function generateDeepQuestions(
   
   try {
     console.log('📝 [DEEP-QUESTIONS] Starting to fetch user info...')
-    // 获取用户基本信息和性格
-    const userInfoDescription = await getUserDescription()
+  // 获取用户基本信息和性格
+  const userInfoDescription = await getUserDescription()
     console.log('✅ [DEEP-QUESTIONS] Got userInfoDescription')
-    const userInfo = await getUserInfo()
+  const userInfo = await getUserInfo()
     console.log('✅ [DEEP-QUESTIONS] Got userInfo')
-    const userMetadata = await getUserMetadata()
+  const userMetadata = await getUserMetadata()
     console.log('✅ [DEEP-QUESTIONS] Got userMetadata')
-    const isMale = userInfo?.gender === 'male'
+  const isMale = userInfo?.gender === 'male'
     
     console.log('📝 [DEEP-QUESTIONS] Building prompts...')
-    
-    // 构建基于用户分析数据的个性化提示词
-    const userAnalysisPrompt = userMetadata && userMetadata.corePersonalityTraits ? `
+  
+  // 构建基于用户分析数据的个性化提示词
+  const userAnalysisPrompt = userMetadata && userMetadata.corePersonalityTraits ? `
 用户深度分析档案：
 - 核心性格特质：${userMetadata.corePersonalityTraits.join('、')}
 - 沟通风格特征：${userMetadata.communicationStyle?.join('、') || ''}
@@ -1809,10 +1809,10 @@ ${previousAnswers && previousAnswers.length > 0 ? (() => {
 
 现在生成问题：`
   
-    const messages: ChatMessage[] = [
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: userMessage }
-    ]
+  const messages: ChatMessage[] = [
+    { role: 'system', content: systemPrompt },
+    { role: 'user', content: userMessage }
+  ]
 
     console.log('📝 [DEEP-QUESTIONS] Calling chatWithDoubao...')
     const response = await chatWithDoubao(messages)
