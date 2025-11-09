@@ -63,13 +63,47 @@ export default function ContentCard({ data }: ContentCardProps) {
     )
   }
 
+  if (data.moduleLabel === 'CURRENT') {
+    const currentCard = (
+      <div className="magazine-card relative h-full overflow-hidden text-white">
+        {data.image && (
+          <Image
+            src={data.image}
+            alt={data.title}
+            fill
+            className="object-cover"
+            sizes="(max-width: 768px) 50vw, 25vw"
+          />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+        <span className="absolute top-3 left-3 rounded-full bg-black/40 px-3 py-1 text-[10px] uppercase tracking-[0.4em] backdrop-blur-sm">
+          {data.moduleLabel}
+        </span>
+        <div className="absolute bottom-3 left-3 right-3">
+          <h3 className="text-base font-semibold leading-tight text-white drop-shadow-md">
+            {data.title}
+          </h3>
+        </div>
+      </div>
+    )
+
+    if (data.href) {
+      return (
+        <Link
+          href={data.href}
+          className="block h-full hover:-translate-y-1 hover:shadow-xl transition-all duration-200"
+        >
+          {currentCard}
+        </Link>
+      )
+    }
+
+    return currentCard
+  }
+
   const card = (
     <div
-      className={`magazine-card flex flex-col h-full ${
-        data.moduleLabel === 'CURRENT'
-          ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white'
-          : ''
-      }`}
+      className={`magazine-card flex flex-col h-full`}
     >
       {data.image && (
         <div className="relative h-48 w-full">
@@ -80,71 +114,44 @@ export default function ContentCard({ data }: ContentCardProps) {
             className="object-cover object-top"
             sizes="(max-width: 768px) 50vw, 25vw"
           />
-          {data.moduleLabel === 'CURRENT' && (
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent"></div>
-          )}
         </div>
       )}
 
       <div
-        className={`flex flex-col flex-grow ${
-          data.moduleLabel === 'CURRENT' ? 'p-3 space-y-3' : 'p-2'
-        }`}
+        className={`flex flex-col flex-grow p-2`}
       >
         {data.moduleLabel && (
           <div
-            className={`flex items-center justify-between ${
-              data.moduleLabel === 'CURRENT' ? 'text-white/80' : 'text-magazine-primary'
-            }`}
+            className={`flex items-center justify-between text-magazine-primary`}
           >
             <span className="text-[10px] uppercase tracking-[0.35em]">
               {data.moduleLabel}
             </span>
-            {data.moduleLabel === 'CURRENT' && (
-              <span className="text-[10px] uppercase tracking-[0.3em] text-white/60">
-                Trend Radar
-              </span>
-            )}
           </div>
         )}
 
         <h3
-          className={`font-semibold leading-tight ${
-            data.moduleLabel === 'CURRENT'
-              ? 'text-base text-white'
-              : 'text-sm text-magazine-dark'
-          }`}
+          className={`font-semibold leading-tight text-sm text-magazine-dark`}
         >
           {data.title}
         </h3>
 
         {data.subtitle && (
           <p
-            className={`text-xs leading-relaxed ${
-              data.moduleLabel === 'CURRENT'
-                ? 'text-white/70'
-                : 'text-magazine-gray'
-            }`}
+            className={`text-xs leading-relaxed text-magazine-gray`}
           >
             {data.subtitle}
           </p>
         )}
 
-        {data.moduleLabel === 'CURRENT' ? (
-          <div className="flex items-center justify-between mt-auto pt-2 border-t border-white/10 text-[10px] uppercase tracking-[0.3em] text-white/60">
-            <span>Live Brief</span>
-            <span>Realtime Lens</span>
+        <div className="flex items-center gap-2 mt-auto">
+          <div
+            className="w-4 h-4 bg-magazine-primary rounded-full flex items-center justify-center"
+          >
+            <span className="text-white text-xs font-bold">{data.authorInitial || 'E'}</span>
           </div>
-        ) : (
-          <div className="flex items-center gap-2 mt-auto">
-            <div
-              className="w-4 h-4 bg-magazine-primary rounded-full flex items-center justify-center"
-            >
-              <span className="text-white text-xs font-bold">{data.authorInitial || 'E'}</span>
-            </div>
-            <span className="text-xs text-magazine-gray font-medium">{data.authorName || 'Evelyn'}</span>
-          </div>
-        )}
+          <span className="text-xs text-magazine-gray font-medium">{data.authorName || 'Evelyn'}</span>
+        </div>
       </div>
     </div>
   )
