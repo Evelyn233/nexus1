@@ -232,11 +232,11 @@ export default function HomePage() {
     {
       id: 1,
       image: '/loneliness.jpeg',
-      title: 'Emotional Style Guide',
+      title: 'ai current sam altman: The Last Human CEO?',
       subtitle: '',
       type: 'article' as const,
-      authorInitial: 'E',
-      authorName: 'Evelyn'
+      authorInitial: 'A',
+      authorName: 'AI Current'
     },
     {
       id: 2,
