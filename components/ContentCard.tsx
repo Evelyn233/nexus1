@@ -63,7 +63,7 @@ export default function ContentCard({ data }: ContentCardProps) {
     )
   }
 
-  if (data.moduleLabel === 'CURRENT') {
+  if (data.moduleLabel && ['CURRENT', 'WEEKEND'].includes(data.moduleLabel)) {
     const currentCard = (
       <div className="magazine-card relative h-full overflow-hidden text-white">
         {data.image && (

@@ -38,31 +38,6 @@ export default function SamAltmanFeature() {
             <span className="h-3 w-px bg-gray-300" />
             <span>AI Current</span>
           </div>
-          <Link
-            href="/chat-new"
-            className="inline-flex items-center text-sm font-semibold text-indigo-600 hover:text-indigo-800 transition-colors"
-          >
-            Generate your own life story →
-          </Link>
-          <form
-            action="/chat-new"
-            method="get"
-            className="mt-2 flex flex-col sm:flex-row gap-3 sm:items-center"
-          >
-            <input
-              type="text"
-              name="prompt"
-              required
-              placeholder="Describe the moment you want to explore"
-              className="flex-1 rounded-full border border-gray-300 bg-white/70 px-4 py-2 text-sm text-gray-700 placeholder-gray-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200"
-            />
-            <button
-              type="submit"
-              className="inline-flex items-center justify-center rounded-full bg-indigo-600 px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-300"
-            >
-              Open Chat
-            </button>
-          </form>
         </div>
 
         <article className="prose prose-sm md:prose-base max-w-none prose-p:text-gray-700 prose-headings:tracking-tight prose-headings:text-gray-900">
@@ -177,6 +152,34 @@ export default function SamAltmanFeature() {
             />
           </div>
         </article>
+
+        <div className="space-y-3 border-t border-gray-200 pt-6">
+          <Link
+            href="/chat-new"
+            className="inline-flex items-center text-sm font-semibold text-indigo-600 hover:text-indigo-800 transition-colors"
+          >
+            Generate your own life story →
+          </Link>
+          <form
+            action="/chat-new"
+            method="get"
+            className="flex flex-col sm:flex-row gap-3"
+          >
+            <input
+              type="text"
+              name="prompt"
+              required
+              placeholder="Describe the moment you want to explore"
+              className="flex-1 rounded-full border border-gray-300 bg-white px-4 py-2 text-sm text-gray-700 placeholder-gray-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+            />
+            <button
+              type="submit"
+              className="inline-flex items-center justify-center rounded-full bg-indigo-600 px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-300"
+            >
+              Open Chat
+            </button>
+          </form>
+        </div>
       </div>
     </div>
   )

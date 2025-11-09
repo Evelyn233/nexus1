@@ -242,12 +242,14 @@ export default function HomePage() {
     },
     {
       id: 2,
-      image: '/images/night.jpeg',
-      title: '☕ Moon Milk Foam & 2AM Documents',
-      subtitle: '',
+      image: '/images/weekend.jpeg',
+      moduleLabel: 'WEEKEND',
+      title: 'Weekend Revival Manual',
+      subtitle: 'Shanghai escapes for creative reset',
       type: 'article' as const,
       authorInitial: 'A',
-      authorName: 'Alex'
+      authorName: 'AI Current',
+      href: '/current/weekend-revival-manual'
     },
     {
       id: 3,
