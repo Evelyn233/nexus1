@@ -170,6 +170,103 @@ export default function ChatNewPage() {
           })
         }
         
+        let normalizedImages: Array<{
+          imageUrl: string
+          imageDataUrl?: string
+          story: string
+          sceneTitle: string
+          sceneIndex: number
+          prompt: string
+          isPsychodrama?: boolean
+          isHypothetical?: boolean
+        }> = []
+
+        if (Array.isArray(content.images)) {
+          normalizedImages = content.images
+            .map((img: any, idx: number) => {
+              if (!img) return null
+
+              const resolvedIndex =
+                typeof img.sceneIndex === 'number' ? img.sceneIndex : idx
+
+              const resolvedDataUrl =
+                typeof img.imageDataUrl === 'string' && img.imageDataUrl
+                  ? img.imageDataUrl
+                  : typeof img === 'string' && img.startsWith('data:')
+                    ? img
+                    : typeof img.imageUrl === 'string' && img.imageUrl.startsWith('data:')
+                      ? img.imageUrl
+                      : ''
+
+              const resolvedUrl =
+                resolvedDataUrl ||
+                (typeof img === 'string'
+                  ? img
+                  : img.imageUrl ||
+                    img.url ||
+                    img.src ||
+                    img.image_path ||
+                    img.imageURI ||
+                    img.uri ||
+                    '')
+
+              if (!resolvedUrl) {
+                return null
+              }
+
+              return {
+                imageUrl: resolvedUrl,
+                imageDataUrl: resolvedDataUrl || undefined,
+                story: typeof img.story === 'string' ? img.story : '',
+                sceneTitle:
+                  img.sceneTitle ||
+                  img.title ||
+                  `场景 ${resolvedIndex + 1}`,
+                sceneIndex: resolvedIndex,
+                prompt: typeof img.prompt === 'string' ? img.prompt : '',
+                isPsychodrama: Boolean(img.isPsychodrama),
+                isHypothetical: Boolean(img.isHypothetical)
+              }
+            })
+            .filter(Boolean)
+            .sort((a, b) => a!.sceneIndex - b!.sceneIndex) as typeof normalizedImages
+        }
+
+        if (normalizedImages.length > 0) {
+          normalizedImages.forEach((img, index) => {
+            historyMessages.push({
+              id: `image-history-${index}-${Date.now()}`,
+              type: 'image',
+              content: img.sceneTitle,
+              story: img.story,
+              imageUrl: img.imageDataUrl || img.imageUrl,
+              sceneData: {
+                title: img.sceneTitle,
+                storyFragment: img.story,
+                isPsychodrama: img.isPsychodrama,
+                isHypothetical: img.isHypothetical
+              },
+              sceneIndex: img.sceneIndex
+            })
+          })
+
+          updateGeneratedImagesData(() =>
+            normalizedImages.map(img => ({
+              imageUrl: img.imageUrl,
+              imageDataUrl: img.imageDataUrl,
+              story: img.story,
+              sceneTitle: img.sceneTitle,
+              sceneIndex: img.sceneIndex,
+              prompt: img.prompt
+            }))
+          )
+
+          setGeneratedImagesCount(normalizedImages.length)
+        } else {
+          updateGeneratedImagesData(() => [])
+          setGeneratedImagesCount(0)
+        }
+
         setMessages(historyMessages)
         setStep('questions')
         

@@ -599,20 +599,101 @@ ${conversationText}
 
     const combinedInputs = allInputs.join(' ')
     const combinedInputsLower = combinedInputs.toLowerCase()
-    const hasRiver = combinedInputs.includes('河') || combinedInputsLower.includes('river')
-    const hasMorning = combinedInputs.includes('清晨') || combinedInputs.includes('早晨') || combinedInputs.includes('早起') || combinedInputsLower.includes('morning') || combinedInputsLower.includes('sunrise')
-    const hasWalk = combinedInputs.includes('散步') || combinedInputs.includes('走路') || combinedInputsLower.includes('walk')
 
-    const fallbackLocation =
-      extractedLocation ||
-      (hasRiver ? '清晨的河边步道' : baseScene?.location || baseScene?.title || '城市清晨的开放空间')
+    const defaultLocationCN = baseScene?.location || extractedLocation || baseScene?.title || '家中'
+    const defaultLocationEN = baseScene?.location_EN || baseScene?.location || 'a quiet interior space'
+
+    const deriveFallbackContext = (
+      rawText: string,
+      defaults: { locationCN: string; locationEN: string }
+    ) => {
+      const lower = rawText.toLowerCase()
+      const contains = (keyword: string) => rawText.includes(keyword)
+
+      if (
+        contains('烧烤') ||
+        contains('烤串') ||
+        contains('烤肉') ||
+        contains('炭火') ||
+        contains('服务员') ||
+        lower.includes('bbq')
+      ) {
+        return {
+          locationCN: defaults.locationCN.includes('家') ? defaults.locationCN : '家中的客厅',
+          locationEN: defaults.locationEN || 'a lived-in apartment living room',
+          descriptionCN: '空气里还缠着炭火与孜然的味道，小桌上散落着签子和刚拆开的外卖袋。',
+          descriptionEN: 'The air still carries charcoal and cumin; skewers and takeaway bags rest on the table.',
+          objects: ['冒着余温的烤串签', '倒了一半的茶杯', '摊开的收据'],
+          atmosphere: 'glow of charcoal warmth mixing with night air',
+          surfaceActionCN: '她安静地坐在家里的椅子上，指尖不自觉地摩挲杯壁。',
+          surfaceActionEN: 'She sits quietly at home, fingertips tracing the rim of a warm cup.',
+          surfaceSummaryPositiveCN: '表面上她只是坐着回味那顿烧烤，内心却因真实的善意而慢慢松开。',
+          surfaceSummaryPositiveEN: 'Outwardly she just sits and remembers the meal; inwardly the genuine kindness eases her guard.',
+          surfaceSummaryNegativeCN: '表面上她依旧维持冷静的坐姿，内心却提醒自己别被瞬间的温度迷惑。',
+          surfaceSummaryNegativeEN: 'Outwardly she keeps a cool pose; inwardly she warns herself not to be fooled by a fleeting warmth.',
+          innerPositiveCN: '那份被服务员点燃的满足感让她暂时放下对社会的尖锐嘲讽。',
+          innerPositiveEN: 'The attentive service softens her usual barbed view of society.',
+          innerNegativeCN: '她仍听见心里那股讥讽的回音，担心温度会像炭火一样很快熄灭。',
+          innerNegativeEN: 'Cynical echoes remain, afraid the warmth will die like a coal ember.',
+          innerPositiveAddon: '她想把这种真实的温度好好记住。',
+          innerNegativeAddon: '她提醒自己别让短暂的感动削弱了戒心。',
+          symbolismPositive: '桌上残留的炭火像黑暗里保存下来的篝火，让她看到世界仍有光亮。',
+          symbolismNegative: '逐渐暗下的炭火像即将熄灭的信念，提醒她温暖往往太短暂。',
+          actionHint: '双手环抱温热的杯子，让指尖记住炭火的温度',
+          clothing: 'soft sweater still carrying a hint of charcoal smoke',
+          consciousBehavior: '她轻轻呼一口气，让香味在口腔里停留更久。',
+          streamFallback: ['炭火的香味', '服务员的笑脸', '嘲讽社会的老念头', '真实的温暖'],
+          taskPositive: '记录下善意带来的安全感',
+          taskNegative: '看清温暖背后仍存的疑虑',
+          mechanismPositive: '用真实的体验修补对世界的怀疑裂缝',
+          mechanismNegative: '用理性框住情绪，避免再次失望'
+        }
+      }
+
+      return {
+        locationCN: defaults.locationCN,
+        locationEN: defaults.locationEN,
+        descriptionCN: '清晨的空气还带着水汽，光线从窗边斜落。',
+        descriptionEN: 'Morning air still carries dew; light falls in from the window.',
+        objects: ['窗边的植物', '折叠好的外套', '玻璃水杯'],
+        atmosphere: 'soft morning hush',
+        surfaceActionCN: '她站在窗边，努力让呼吸与脉搏同步。',
+        surfaceActionEN: 'She stands by the window, syncing breath to pulse.',
+        surfaceSummaryPositiveCN: '表面上她只是调整呼吸，内心却因这份宁静而渐渐松开。',
+        surfaceSummaryPositiveEN: 'Outwardly she only adjusts her breathing; inwardly the quiet loosens a knot.',
+        surfaceSummaryNegativeCN: '表面上她显得平静，内心却仍被焦虑紧紧勒住。',
+        surfaceSummaryNegativeEN: 'Outwardly she seems calm, but anxiety still holds tight inside.',
+        innerPositiveCN: '一点点勇气重新回到身体里，仿佛今天的开始值得被珍惜。',
+        innerPositiveEN: 'A small courage returns to her body; this beginning feels worth keeping.',
+        innerNegativeCN: '胸口依旧发紧，她担心下一次失控随时会出现。',
+        innerNegativeEN: 'Her chest stays tight, bracing for the next slip.',
+        innerPositiveAddon: '她想把这种稳稳的节奏延续下去。',
+        innerNegativeAddon: '她提醒自己别再松懈。',
+        symbolismPositive: '窗外的光像柔软的带子，把她从阴影里牵出。',
+        symbolismNegative: '窗外的雾像一层玻璃墙，把她和真实的暖意隔开。',
+        actionHint: '顺着窗外的光线缓慢吸气',
+        clothing: 'soft knit layered with a light coat',
+        consciousBehavior: '她盯着窗框的影子数呼吸。',
+        streamFallback: ['窗外的光线', '昨夜的念头', '今天的节奏'],
+        taskPositive: '把这份安定感保持到接下来的计划里',
+        taskNegative: '识别焦虑真正的触发点',
+        mechanismPositive: '通过身体节奏重新获得掌控感',
+        mechanismNegative: '用具体动作把情绪锁进可控范围'
+      }
+    }
+
+    const derivedContext = deriveFallbackContext(combinedInputs, {
+      locationCN: defaultLocationCN,
+      locationEN: defaultLocationEN
+    })
+
+    const fallbackLocation = extractedLocation || derivedContext.locationCN
 
     const fallbackLocationEN =
-      hasRiver
-        ? 'a riverside path at sunrise'
-        : baseScene?.location_EN ||
-          baseScene?.location ||
-          (hasWalk ? 'a quiet morning street' : 'an open urban space at dawn')
+      baseScene?.location_EN ||
+      baseScene?.location ||
+      derivedContext.locationEN ||
+      'an introspective interior space'
 
     const clothingHintBase =
       answers.find(a => a.includes('穿') || a.includes('衣服')) ||
@@ -795,26 +876,6 @@ ${conversationText}
     const isPositiveEmotion = positiveKeywords.some(k => emotion.type.includes(k))
     const isCalmEmotion = calmKeywords.some(k => emotion.type.includes(k))
 
-    const positiveSymbolism = (() => {
-      if (hasRiver) {
-        return '河面升起的薄雾像柔软的滤镜，把昨夜的喧嚣都溶解成温柔的光'
-      }
-      if (hasWalk) {
-        return '每一步踩在湿润地砖上的水迹都在慢慢晕开，像日常里被忽略的温度重新回到身体'
-      }
-      return '晨光在肩头铺开一层金色的线条，像迟到已久的自我温柔回来'
-    })()
-
-    const negativeSymbolism = (() => {
-      if (hasRiver) {
-        return '河面映出两道截然不同的色块，一边寒冷一边温暖，像她心里的拉扯'
-      }
-      if (hasWalk) {
-        return '鞋底在石板上的摩擦声像提醒，快乐与自律始终保持着微妙的距离'
-      }
-      return '微凉的空气与胸口的热度交错，像两股情绪正在安静较劲'
-    })()
-
     if (narrative) {
       const englishFallback = `The protagonist maintains outward composure in ${baseSceneInfo?.location || fallbackLocation} while ${emotion.type} ripples beneath the surface. Symbolism highlights ${narrative.psychologicalSymbolism}.`
       return buildScene(
@@ -838,40 +899,174 @@ ${conversationText}
 
     const normalizedEmotionQuote = normalizeEmotionQuote(emotion.quote)
 
-    const fallbackNarrative: PsychodramaNarrative = isPositiveEmotion || isCalmEmotion
-      ? {
-        innerMonologue: normalizedEmotionQuote
-          ? `内心独白："${normalizedEmotionQuote}"，像是给整天定调的暗号。`
-          : '内心独白："竟然真的起床做到了，原来轻盈感可以从早晨开始。"',
-        surfaceVsInner: hasWalk
-          ? `表面上她只是沿着步道慢慢走，内心却因为能够早起而泛起${emotion.type}的涟漪，像是给生活按下一个重启按钮。`
-          : `表面上她整理着呼吸和步伐，内心却因为这份${emotion.type}而悄悄松动，像是替自己争取到专属的清醒时刻。`,
-        consciousnessStream: hasRiver
-          ? '脚步轻踩石板...水汽贴在皮肤...最近的被动与迟到...此刻的自我准时...是不是可以重新开始...'
-          : '鞋底与地面摩擦...心跳变得均匀...今天的快乐要自己把握...别再拖延...握紧这份主动...早起值得...',
-        psychologicalSymbolism: positiveSymbolism,
-        actionHint: hasWalk ? '放慢步伐同步呼吸' : '靠在栏杆调匀呼吸',
-        sceneSummaryEn: 'She moves through the dawn with quiet hope, letting the air loosen the tightness in her chest. The environment glows as a gentle return of warmth.'
+    const buildConsciousnessStreamFromInputs = (text: string, fallbackSegments: string[]) => {
+      const normalized = text.replace(/\s+/g, ' ').trim()
+      if (normalized) {
+        const fragments = normalized
+          .split(/[。！？!?…]/)
+          .map(fragment => fragment.replace(/[,\s]+/g, ' ').trim())
+          .filter(Boolean)
+        const sliced = fragments.slice(0, 4).map(fragment => limitText(fragment, 26))
+        if (sliced.length > 0) {
+          return `${sliced.join('...')}...`
+        }
       }
-      : {
-        innerMonologue: normalizedEmotionQuote
-          ? `内心独白："${normalizedEmotionQuote}"，在清晨的光里听起来更锋利。`
-          : '内心独白："为什么连这样的清晨都留不住？"',
-        surfaceVsInner: `表面上她依旧维持着节奏，内心却被${emotion.type}一次次绷紧，仿佛稍不注意就会回到昨晚的循环。`,
-        consciousnessStream: '晨风掠过耳边...数着呼吸...昨晚未完成的工作...想说却没说出口的话...为什么越想努力越绷得更紧...',
-        psychologicalSymbolism: negativeSymbolism,
-        actionHint: hasWalk ? '步伐僵硬地沿着步道前进' : '紧握栏杆强迫自己站稳',
-        sceneSummaryEn: 'She wrestles with the morning while a knot of emotion tightens behind a composed exterior. Symbols in the scene echo the tug-of-war she cannot ignore.'
+      if (fallbackSegments.length > 0) {
+        return `${fallbackSegments.join('...')}...`
+      }
+      return '思绪在胸口反复回响...温度与怀疑交错...情绪仍未降临终点...'
+    }
+
+    const isPositiveLike = isPositiveEmotion || isCalmEmotion
+    const symbolismPositive = derivedContext.symbolismPositive || '环境里的细节像隐形的符号，把真实的温度照亮。'
+    const symbolismNegative = derivedContext.symbolismNegative || '角落里的暗影像未说出口的情绪，在胸口盘旋。'
+    const surfaceSummaryPositiveCN = derivedContext.surfaceSummaryPositiveCN || `表面上她保持原有姿态，内心却因为${emotion.type}而慢慢松开。`
+    const surfaceSummaryNegativeCN = derivedContext.surfaceSummaryNegativeCN || `表面上她仍维持镇定，内心却被${emotion.type}牢牢牵住。`
+    const innerPositiveAddon = derivedContext.innerPositiveAddon || '她想把这份真实的温度记在心里。'
+    const innerNegativeAddon = derivedContext.innerNegativeAddon || '她提醒自己别再被情绪推着走。'
+    const descriptionCN = derivedContext.descriptionCN || '空气静下来，光线沿着墙面缓慢移动。'
+    const descriptionEN = derivedContext.descriptionEN || 'The air has settled; light slides softly across the wall.'
+    const surfaceActionCN = derivedContext.surfaceActionCN || '她保持着原本的坐姿，让意识追上情绪。'
+    const surfaceActionEN = derivedContext.surfaceActionEN || 'She keeps the same posture, waiting for her mind to catch up.'
+    const innerPositiveCN = derivedContext.innerPositiveCN || `她感到一丝${emotion.type}重新回到身体里。`
+    const innerPositiveEN = derivedContext.innerPositiveEN || `A trace of ${emotion.type} returns to her body.`
+    const innerNegativeCN = derivedContext.innerNegativeCN || `她仍能感觉到${emotion.type}在胸口打圈。`
+    const innerNegativeEN = derivedContext.innerNegativeEN || `${emotion.type} still circles behind her ribs.`
+
+    const innerMonologueBase = normalizedEmotionQuote
+      ? `内心独白："${normalizedEmotionQuote}"`
+      : `内心独白："${limitText(emotion.trigger || emotion.type, 60)}"`
+    const innerMonologue = `${innerMonologueBase}，${isPositiveLike ? innerPositiveAddon : innerNegativeAddon}`
+
+    const surfaceVsInner = isPositiveLike ? surfaceSummaryPositiveCN : surfaceSummaryNegativeCN
+
+    const consciousnessStream = buildConsciousnessStreamFromInputs(combinedInputs, derivedContext.streamFallback || [])
+
+    const psychologicalSymbolism = isPositiveLike ? symbolismPositive : symbolismNegative
+
+    const sceneDescription_CN = [
+      `${fallbackLocation}，${descriptionCN}`,
+      surfaceActionCN,
+      isPositiveLike ? innerPositiveCN : innerNegativeCN,
+      psychologicalSymbolism
+    ]
+      .filter(Boolean)
+      .join('\n')
+
+    const sceneDescription_EN = [
+      `${fallbackLocationEN}, ${descriptionEN}`,
+      surfaceActionEN,
+      isPositiveLike ? innerPositiveEN : innerNegativeEN,
+      psychologicalSymbolism
+    ]
+      .filter(Boolean)
+      .join('\n')
+
+    const behaviorKeywords = [
+      '散步',
+      '走路',
+      '慢跑',
+      '呼吸',
+      '伸展',
+      '早起',
+      '抬头',
+      '喝水',
+      '伸懒腰',
+      '跑步',
+      '行走',
+      '踏步',
+      '停下来',
+      '观察',
+      '吃',
+      '夹起',
+      '烤串',
+      '举杯',
+      '品尝',
+      '回味',
+      '炭火'
+    ]
+
+    const extractBehaviorDescription = () => {
+      const segments = combinedInputs
+        .split(/[\n。！？!?\r]/)
+        .map(segment => segment.trim())
+        .filter(Boolean)
+
+      const matchedSegment = segments.find(segment =>
+        behaviorKeywords.some(keyword => segment.includes(keyword))
+      )
+
+      if (matchedSegment) {
+        return matchedSegment
       }
 
-    const englishFallback = fallbackNarrative.sceneSummaryEn || `The protagonist keeps outward composure while ${emotion.type} churns beneath the surface. Symbolism underscores ${fallbackNarrative.psychologicalSymbolism}.`
+      if (typeof baseScene?.consciousBehavior === 'string' && baseScene.consciousBehavior.trim()) {
+        return baseScene.consciousBehavior
+      }
 
-    return buildScene(
-      fallbackNarrative,
-      fallbackNarrative.psychologicalSymbolism,
-      baseSceneInfo?.location || fallbackLocation,
-      englishFallback
-    )
+      if (derivedContext.consciousBehavior) {
+        return derivedContext.consciousBehavior
+      }
+
+      return '她让手指记住此刻的温度，提醒自己这份感受是真实的'
+    }
+
+    const consciousBehaviorText = extractBehaviorDescription()
+
+    const fallbackSceneInfoForPrompt =
+      baseSceneInfo || {
+        location: derivedContext.locationCN,
+        description: descriptionCN,
+        objects: derivedContext.objects || [],
+        clothing: derivedContext.clothing || clothingHint,
+        peopleCount: baseScene?.peopleCount || 'alone',
+        atmosphere: derivedContext.atmosphere || 'intimate interior'
+      }
+
+    const imagePrompt = createPsychodramaImagePrompt({
+      emotionType: emotion.type,
+      emotionIntensity: emotion.intensity,
+      location: fallbackLocation,
+      baseSceneInfo: fallbackSceneInfoForPrompt,
+      symbolism: psychologicalSymbolism,
+      surfaceVsInner,
+      consciousnessStream,
+      clothingHint,
+      actionHint: derivedContext.actionHint
+    })
+
+    const task = isPositiveLike
+      ? derivedContext.taskPositive || '记录这份真实带来的安全感'
+      : derivedContext.taskNegative || '辨认温度退去后仍在的疑虑'
+
+    const psychologicalMechanism = isPositiveLike
+      ? derivedContext.mechanismPositive || '用真实体验重建对世界的信任'
+      : derivedContext.mechanismNegative || '用理性框住情绪，避免再次受伤'
+
+    const subconsciousDesireText = isPositiveLike
+      ? `保留这份${emotion.type}带来的证据`
+      : `重新整理${emotion.type}背后的故事`
+
+    return {
+      emotionalTrigger: emotion.trigger,
+      emotionalIntensity: emotion.intensity,
+      location: fallbackLocation,
+      task,
+      otherCharacters: baseScene?.otherCharacters || [],
+      innerMonologue,
+      surfaceVsInner,
+      consciousnessStream,
+      psychologicalSymbolism,
+      innerConflict: surfaceVsInner,
+      externalConflict: surfaceVsInner,
+      conflictIntensity: emotion.intensity,
+      subconsciousDesire: subconsciousDesireText,
+      consciousBehavior: consciousBehaviorText,
+      psychologicalMechanism,
+      sceneDescription_CN,
+      sceneDescription_EN,
+      imagePrompt
+    }
   }
 
   private static async generateScene(

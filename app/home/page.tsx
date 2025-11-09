@@ -231,12 +231,14 @@ export default function HomePage() {
   const staticContentData = [
     {
       id: 1,
-      image: '/loneliness.jpeg',
-      title: 'ai current sam altman: The Last Human CEO?',
+      image: '/images/samfeng.webp',
+      moduleLabel: 'CURRENT',
+      title: 'Sam Altman: The Last Human CEO?',
       subtitle: '',
       type: 'article' as const,
       authorInitial: 'A',
-      authorName: 'AI Current'
+      authorName: 'AI Current',
+      href: '/current/sam-altman'
     },
     {
       id: 2,
