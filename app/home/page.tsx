@@ -242,14 +242,12 @@ export default function HomePage() {
     },
     {
       id: 2,
-      image: '/images/weekend.jpeg',
-      moduleLabel: 'WEEKEND',
-      title: 'Weekend Revival Manual',
-      subtitle: 'Shanghai escapes for creative reset',
+      image: '/images/night.jpeg',
+      title: '☕ Moon Milk Foam & 2AM Documents',
+      subtitle: '',
       type: 'article' as const,
       authorInitial: 'A',
-      authorName: 'AI Current',
-      href: '/current/weekend-revival-manual'
+      authorName: 'Alex'
     },
     {
       id: 3,
@@ -282,12 +280,12 @@ export default function HomePage() {
       id: 6,
       title: 'AI Life Suggestions',
       subtitle: 'Click to generate personalized advice',
-      suggestion: '🌿 Weekend Revival Manual - A spiritual escape outlet designed for highly sensitive urban dwellers',
+      suggestion: 'Feeling stuck? Let AI suggest micro habits, social prompts, and reflective cues tailored to your mood.',
       source: 'AI Life Suggestions',
       type: 'ai-suggestion' as const,
       bgColor: 'bg-magazine-light-gray',
-      authorInitial: 'E',
-      authorName: 'Evelyn'
+      authorInitial: 'I',
+      authorName: 'Inflow'
     }
   ]
 
@@ -463,31 +461,6 @@ export default function HomePage() {
               <p className="text-gray-400 text-xs mt-2">发布你的作品，让更多人看到吧！</p>
           </div>
         )}
-        </div>
-
-        {/* 生成类似我的故事 CTA */}
-        <div className="mt-4 bg-white rounded-2xl shadow-sm border border-gray-100 p-4 space-y-3">
-          <h3 className="text-sm font-semibold text-gray-800">Want a story like these?</h3>
-          <p className="text-xs text-gray-500">Describe your mood or moment and we will craft your own life story.</p>
-          <form
-            action="/chat-new"
-            method="get"
-            className="flex flex-col sm:flex-row gap-3"
-          >
-            <input
-              type="text"
-              name="prompt"
-              required
-              placeholder="Tell us what you are feeling right now"
-              className="flex-1 rounded-full border border-gray-200 px-4 py-2 text-sm text-gray-700 placeholder-gray-400 focus:border-magazine-primary focus:ring-2 focus:ring-magazine-primary/40"
-            />
-            <button
-              type="submit"
-              className="inline-flex items-center justify-center rounded-full bg-magazine-primary px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-magazine-secondary transition-colors"
-            >
-              Generate my story
-            </button>
-          </form>
         </div>
 
         {/* 精选内容 */}
