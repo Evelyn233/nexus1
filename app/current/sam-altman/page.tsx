@@ -7,15 +7,15 @@ export default function SamAltmanFeature() {
       <div className="max-w-3xl mx-auto px-4 py-12 space-y-12">
         <div className="space-y-6">
           <Link
-            href="/"
+            href="/home"
             className="inline-flex items-center text-xs uppercase tracking-[0.3em] text-gray-500 hover:text-gray-800 transition-colors"
           >
-            ← Current
+            ← Home
           </Link>
           <div className="relative aspect-[16/9] w-full overflow-hidden rounded-3xl shadow-xl">
             <Image
-              src="/images/sam1.png"
-              alt="Sam Altman standing under a spotlight during a school assembly"
+              src="/images/samfeng.webp"
+              alt="Sam Altman feature cover"
               fill
               className="object-cover"
               priority
@@ -38,6 +38,31 @@ export default function SamAltmanFeature() {
             <span className="h-3 w-px bg-gray-300" />
             <span>AI Current</span>
           </div>
+          <Link
+            href="/chat-new"
+            className="inline-flex items-center text-sm font-semibold text-indigo-600 hover:text-indigo-800 transition-colors"
+          >
+            Generate your own life story →
+          </Link>
+          <form
+            action="/chat-new"
+            method="get"
+            className="mt-2 flex flex-col sm:flex-row gap-3 sm:items-center"
+          >
+            <input
+              type="text"
+              name="prompt"
+              required
+              placeholder="Describe the moment you want to explore"
+              className="flex-1 rounded-full border border-gray-300 bg-white/70 px-4 py-2 text-sm text-gray-700 placeholder-gray-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+            />
+            <button
+              type="submit"
+              className="inline-flex items-center justify-center rounded-full bg-indigo-600 px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-300"
+            >
+              Open Chat
+            </button>
+          </form>
         </div>
 
         <article className="prose prose-sm md:prose-base max-w-none prose-p:text-gray-700 prose-headings:tracking-tight prose-headings:text-gray-900">
@@ -61,7 +86,7 @@ export default function SamAltmanFeature() {
 
           <div className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl shadow-lg my-10">
             <Image
-              src="/images/sam2.jpeg"
+              src="/images/sam1.png"
               alt="Sam Altman speaking confidently on stage in his early years"
               fill
               className="object-cover"
@@ -88,7 +113,7 @@ export default function SamAltmanFeature() {
 
           <div className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl shadow-lg my-10">
             <Image
-              src="/images/sam3.png"
+              src="/images/sam2.jpeg"
               alt="Sam Altman at a poker table with data visualizations overlayed"
               fill
               className="object-cover"
@@ -114,7 +139,7 @@ export default function SamAltmanFeature() {
 
           <div className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl shadow-lg my-10">
             <Image
-              src="/images/sam4.jpg"
+              src="/images/sam3.png"
               alt="Sam Altman at Y Combinator surrounded by illuminated startup models"
               fill
               className="object-cover"
@@ -142,9 +167,9 @@ export default function SamAltmanFeature() {
             </p>
           </section>
 
-          <div className="relative aspect-[16/9] w-full overflow-hidden rounded-2xl shadow-lg my-10">
+          <div className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl shadow-lg my-10">
             <Image
-              src="/images/samfeng.webp"
+              src="/images/sam4.jpg"
               alt="Sam Altman illuminated by a futuristic holographic orb"
               fill
               className="object-cover"

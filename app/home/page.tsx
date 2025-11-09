@@ -463,6 +463,31 @@ export default function HomePage() {
         )}
         </div>
 
+        {/* 生成类似我的故事 CTA */}
+        <div className="mt-4 bg-white rounded-2xl shadow-sm border border-gray-100 p-4 space-y-3">
+          <h3 className="text-sm font-semibold text-gray-800">Want a story like these?</h3>
+          <p className="text-xs text-gray-500">Describe your mood or moment and we will craft your own life story.</p>
+          <form
+            action="/chat-new"
+            method="get"
+            className="flex flex-col sm:flex-row gap-3"
+          >
+            <input
+              type="text"
+              name="prompt"
+              required
+              placeholder="Tell us what you are feeling right now"
+              className="flex-1 rounded-full border border-gray-200 px-4 py-2 text-sm text-gray-700 placeholder-gray-400 focus:border-magazine-primary focus:ring-2 focus:ring-magazine-primary/40"
+            />
+            <button
+              type="submit"
+              className="inline-flex items-center justify-center rounded-full bg-magazine-primary px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-magazine-secondary transition-colors"
+            >
+              Generate my story
+            </button>
+          </form>
+        </div>
+
         {/* 精选内容 */}
         <div className="mb-3">
           <h2 className="text-lg font-bold text-gray-800">📖 精选内容</h2>
