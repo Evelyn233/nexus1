@@ -795,9 +795,11 @@ ${conversationText}
           candidate.psychologicalSymbolism
         ) {
           narrative = candidate
+          console.log('🧠 [PSYCHODRAMA] 叙述生成内容:', candidate)
           console.log('✅ [PSYCHODRAMA] 叙述生成成功')
         } else {
           console.warn('⚠️ [PSYCHODRAMA] 叙述字段不完整，fallback')
+          console.warn('📄 [PSYCHODRAMA] 叙述内容预览:', candidate)
         }
       } else {
         const errorText = await response.text()
@@ -923,6 +925,7 @@ ${conversationText}
 
     if (narrative) {
       const englishFallback = `The protagonist maintains outward composure in ${baseSceneInfo?.location || fallbackLocation} while ${emotion.type} ripples beneath the surface. Symbolism highlights ${narrative.psychologicalSymbolism}.`
+      console.log('🧷 [PSYCHODRAMA] 使用模型叙述构建场景')
       return buildScene(
         narrative,
         narrative.psychologicalSymbolism,
@@ -1070,6 +1073,14 @@ ${conversationText}
         imagePrompt
       }
     }
+
+    console.warn('🧾 [PSYCHODRAMA] fallback叙述详情:', {
+      fallbackLocation,
+      fallbackLocationEN,
+      derivedContext,
+      emotion,
+      combinedInputs
+    })
 
     return buildFallbackScene()
   }
