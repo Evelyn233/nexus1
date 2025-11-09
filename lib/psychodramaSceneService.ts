@@ -527,6 +527,7 @@ ${conversationText}
     questions: string[],
     userInfo: any,
     userMetadata: any,
+    previousMetaphors: string[] = [],
     baseScene?: any
   ): Promise<PsychodramaScene> {
     const safeJsonParse = (data: any, fallback: any = []) => {
@@ -1074,7 +1075,7 @@ ${conversationText}
       }
     }
 
-    console.warn('🧾 [PSYCHODRAMA] fallback叙述详情:', {
+    console.warn('🧾 [PSYCHODRAMA] narrative 缺失，准备回退到 legacy 提示', {
       fallbackLocation,
       fallbackLocationEN,
       derivedContext,
@@ -1082,7 +1083,28 @@ ${conversationText}
       combinedInputs
     })
 
-    return buildFallbackScene()
+    try {
+      return await this.generateSceneLegacy(
+        emotion,
+        initialPrompt,
+        answers,
+        questions,
+        userInfo,
+        userMetadata,
+        previousMetaphors,
+        baseScene
+      )
+    } catch (legacyError) {
+      console.error('❌ [PSYCHODRAMA] legacy 提示也失败，使用模板 fallback:', legacyError)
+      console.warn('🧾 [PSYCHODRAMA] fallback叙述详情:', {
+        fallbackLocation,
+        fallbackLocationEN,
+        derivedContext,
+        emotion,
+        combinedInputs
+      })
+      return buildFallbackScene()
+    }
   }
 
   private static async generateScene(
@@ -1103,6 +1125,7 @@ ${conversationText}
         questions,
         userInfo,
         userMetadata,
+        previousMetaphors,
         baseScene
       )
       if (Array.isArray(previousMetaphors)) {
