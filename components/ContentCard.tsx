@@ -24,7 +24,7 @@ interface ContentCardProps {
 
 export default function ContentCard({ data }: ContentCardProps) {
   if (data.type === 'ai-suggestion') {
-    return (
+    const content = (
       <div className={`magazine-card ${data.bgColor} p-4 h-full flex flex-col justify-between`}>
         {data.generatedImage && (
           <div className="relative h-32 w-full mb-4 rounded-lg overflow-hidden">
@@ -61,6 +61,17 @@ export default function ContentCard({ data }: ContentCardProps) {
         </div>
       </div>
     )
+    if (data.href) {
+      return (
+        <Link
+          href={data.href}
+          className="block h-full hover:-translate-y-1 hover:shadow-xl transition-all duration-200"
+        >
+          {content}
+        </Link>
+      )
+    }
+    return content
   }
 
   if (data.moduleLabel && ['CURRENT', 'WEEKEND'].includes(data.moduleLabel)) {

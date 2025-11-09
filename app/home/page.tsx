@@ -285,7 +285,8 @@ export default function HomePage() {
       type: 'ai-suggestion' as const,
       bgColor: 'bg-magazine-light-gray',
       authorInitial: 'I',
-      authorName: 'Inflow'
+      authorName: 'Inflow',
+      href: '/chat-new'
     }
   ]
 
