@@ -72,7 +72,8 @@ function createPsychodramaImagePrompt({
   surfaceVsInner,
   consciousnessStream,
   clothingHint,
-  actionHint
+  actionHint,
+  protagonistName
 }: {
   emotionType: string
   emotionIntensity: number
@@ -90,8 +91,15 @@ function createPsychodramaImagePrompt({
   consciousnessStream: string
   clothingHint: string
   actionHint?: string
+  protagonistName?: string
 }) {
   const narrativeSegments: string[] = []
+
+  if (protagonistName) {
+    narrativeSegments.push(`主角：${protagonistName}（请以第一人称呈现她的神态）`)
+  } else {
+    narrativeSegments.push('主角：用户本人（保持第一人称神态）')
+  }
 
   if (location) {
     narrativeSegments.push(`场景地点：${location}`)
@@ -860,6 +868,7 @@ ${conversationText}
     }
 
     const clothingHint = clothingHintBase || baseSceneInfo?.clothing || 'textured attire with muted tones echoing inner tension'
+    const protagonistName = typeof userInfo?.name === 'string' ? userInfo.name.trim() : ''
 
     const buildScene = (
       narr: PsychodramaNarrative,
@@ -876,6 +885,15 @@ ${conversationText}
 
       const sceneDescriptionEN = narr.sceneSummaryEn?.trim() || englishFallback
 
+      console.log('📝 [PSYCHODRAMA] 最终叙述（模型）:', {
+        innerMonologue: narr.innerMonologue,
+        surfaceVsInner: narr.surfaceVsInner,
+        consciousnessStream: narr.consciousnessStream,
+        psychologicalSymbolism: symbolismText,
+        actionHint: narr.actionHint,
+        sceneSummaryEn: narr.sceneSummaryEn
+      })
+
       const imagePrompt = createPsychodramaImagePrompt({
         emotionType: emotion.type,
         emotionIntensity: emotion.intensity,
@@ -885,7 +903,8 @@ ${conversationText}
         surfaceVsInner: narr.surfaceVsInner,
         consciousnessStream: narr.consciousnessStream,
         clothingHint,
-        actionHint: narr.actionHint
+        actionHint: narr.actionHint,
+        protagonistName
       })
 
       const baseOtherCharacters = (baseScene as any)?.otherCharacters
@@ -993,7 +1012,8 @@ ${conversationText}
       const quoteForMonologue = normalizedEmotionQuote || limitText(emotion.trigger || emotion.type, 60)
       const addonText = toFirstPerson(isPositiveLike ? innerPositiveAddon : innerNegativeAddon) ||
         (isPositiveLike ? '我想把这份真实的温度牢牢记住。' : '我提醒自己保持锋利，不让警觉松动。')
-      const innerMonologue = `我心里反复响着：“${quoteForMonologue}”。${addonText}`
+      const nameIntro = protagonistName ? `我是${protagonistName}，` : ''
+      const innerMonologue = `${nameIntro}我心里反复响着：“${quoteForMonologue}”。${addonText}`
 
       const surfaceVsInnerTemplate = isPositiveLike ? surfaceSummaryPositiveCN : surfaceSummaryNegativeCN
       const surfaceVsInner = toFirstPerson(surfaceVsInnerTemplate) ||
@@ -1022,8 +1042,8 @@ ${conversationText}
         .join('\n')
 
       const englishSurface = isPositiveLike
-        ? 'Outwardly I keep my movements measured so the moment stays gentle.'
-        : 'Outwardly I can still laugh, letting the scene look harmless.'
+        ? `Outwardly I keep my movements measured so the moment stays gentle${protagonistName ? ` — this is ${protagonistName}` : ''}.`
+        : `Outwardly I can still laugh, letting the scene look harmless${protagonistName ? ` — this is ${protagonistName}` : ''}.`
       const englishInner = isPositiveLike
         ? `Inside, the ${emotion.type} eases the knot I grip so tightly.`
         : `Inside, the ${emotion.type} sharpens like wire, auditing every motive.`
@@ -1061,7 +1081,17 @@ ${conversationText}
         surfaceVsInner,
         consciousnessStream,
         clothingHint,
-        actionHint: derivedContext.actionHint
+        actionHint: derivedContext.actionHint,
+        protagonistName
+      })
+
+      console.log('📝 [PSYCHODRAMA] 最终叙述（fallback）:', {
+        innerMonologue,
+        surfaceVsInner,
+        consciousnessStream,
+        psychologicalSymbolism,
+        sceneDescriptionCN: sceneDescription_CN,
+        sceneDescriptionEN: sceneDescription_EN
       })
 
       const task = isPositiveLike
