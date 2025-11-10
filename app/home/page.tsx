@@ -278,17 +278,11 @@ export default function HomePage() {
     },
     {
       id: 6,
-      title: 'AI Life Suggestions',
-      subtitle: 'Click to generate personalized advice',
-      suggestion:
-        'Feeling stuck? Let AI suggest micro habits, social prompts, and reflective cues tailored to your mood — start with the Weekend Revival Manual for a sensory reset.',
-      source: 'AI Life Suggestions',
-      type: 'ai-suggestion' as const,
-      bgColor: 'bg-magazine-light-gray',
       image: '/images/weekend.jpeg',
-      generatedImage: '/images/weekend.jpeg',
-      authorInitial: 'I',
-      authorName: 'Inflow',
+      moduleLabel: 'LIFEPULSE',
+      title: 'Weekend Revival Manual',
+      subtitle: 'Click to generate personalized advice',
+      type: 'article' as const,
       href: '/current/weekend-revival-manual'
     }
   ]
