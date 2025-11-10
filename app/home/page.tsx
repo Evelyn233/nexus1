@@ -281,6 +281,7 @@ export default function HomePage() {
       image: '/images/weekend.jpeg',
       moduleLabel: 'LIFEPULSE',
       title: 'Weekend Revival Manual',
+      tagline: 'Shanghai Escapes · A Guide to Creative Reset and Spiritual Recalibration',
       subtitle: 'Click to generate personalized advice',
       type: 'article' as const,
       href: '/current/weekend-revival-manual'

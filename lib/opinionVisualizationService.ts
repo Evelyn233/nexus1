@@ -6,6 +6,7 @@
  */
 
 import { getUserInfo, getUserMetadata } from './userDataApi'
+import { jsonrepair } from 'jsonrepair'
 
 export interface OpinionScene {
   sceneIndex: number
@@ -338,8 +339,12 @@ export class OpinionVisualizationService {
         content = content.replace(/```/g, '').trim()
       }
       
-      // 清理可能的中文标点
-      content = content.replace(/，/g, ',').replace(/：/g, ':').replace(/"/g, '"').replace(/"/g, '"')
+      // 清理可能的中文标点和引号
+      content = content
+        .replace(/，/g, ',')
+        .replace(/：/g, ':')
+        .replace(/[“”]/g, '"')
+        .replace(/[‘’]/g, "'")
       
       console.log('🔍 [OPINION] 清理后的内容:', content.substring(0, 200) + '...')
       
@@ -358,18 +363,29 @@ export class OpinionVisualizationService {
       } catch (parseError) {
         console.warn('⚠️ [OPINION] 第一次JSON解析失败，尝试修复...')
         
-        // 尝试修复常见的JSON问题
-        let fixedContent = content
-          .replace(/,(\s*[}\]])/g, '$1') // 移除多余的逗号
-          .replace(/([{\[,])\s*([}\]])/g, '$1$2') // 移除空值
-          .replace(/(\w+):/g, '"$1":') // 确保键被引号包围
-          .replace(/'/g, '"') // 替换单引号为双引号
-        
-        console.log('🔧 [OPINION] 修复后的内容:', fixedContent.substring(0, 200) + '...')
-        
-        const analysis = JSON.parse(fixedContent)
-        console.log('✅ [OPINION] 观点检测完成（修复后）:', analysis)
-        return analysis
+        try {
+          const repaired = jsonrepair(content)
+          console.log('🔧 [OPINION] jsonrepair 修复后的内容:', repaired.substring(0, 200) + '...')
+          
+          const analysis = JSON.parse(repaired)
+          console.log('✅ [OPINION] 观点检测完成（jsonrepair后）:', analysis)
+          return analysis
+        } catch (repairError) {
+          console.warn('⚠️ [OPINION] jsonrepair 修复失败，尝试正则修复...', repairError)
+          
+          // 最后再尝试一次手动修复
+          let fixedContent = content
+            .replace(/,(\s*[}\]])/g, '$1') // 移除多余的逗号
+            .replace(/([{\[,])\s*([}\]])/g, '$1$2') // 移除空值
+            .replace(/(\w+):/g, '"$1":') // 确保键被引号包围
+            .replace(/'/g, '"') // 替换单引号为双引号
+          
+          console.log('🔧 [OPINION] 修复后的内容:', fixedContent.substring(0, 200) + '...')
+          
+          const analysis = JSON.parse(fixedContent)
+          console.log('✅ [OPINION] 观点检测完成（最终修复）:', analysis)
+          return analysis
+        }
       }
       
     } catch (error) {

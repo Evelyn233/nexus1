@@ -11,6 +11,7 @@ interface ContentCardProps {
     title: string
     subtitle: string
     moduleLabel?: string
+    tagline?: string
     quote?: string
     suggestion?: string
     source?: string
@@ -95,6 +96,11 @@ export default function ContentCard({ data }: ContentCardProps) {
           <h3 className="text-base font-semibold leading-tight text-white drop-shadow-md">
             {data.title}
           </h3>
+          {data.tagline && (
+            <p className="mt-1 text-[11px] leading-snug text-white/80 drop-shadow">
+              {data.tagline}
+            </p>
+          )}
         </div>
       </div>
     )

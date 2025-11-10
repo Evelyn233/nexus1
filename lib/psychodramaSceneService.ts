@@ -958,13 +958,13 @@ ${conversationText}
             .filter(Boolean)
           const sliced = fragments.slice(0, 4).map(fragment => limitText(fragment, 26))
           if (sliced.length > 0) {
-            return `${sliced.join('...')}...`
+            return `${sliced.join(' … ')} …`
           }
         }
         if (fallbackSegments.length > 0) {
-          return `${fallbackSegments.join('...')}...`
+          return `${fallbackSegments.join(' … ')} …`
         }
-        return '思绪在胸口反复回响...温度与怀疑交错...情绪仍未降临终点...'
+        return '思绪在胸口反复回响 … 温度与怀疑交错 … 情绪仍未降临终点 …'
       }
 
       const isPositiveLike = isPositiveEmotion || isCalmEmotion
@@ -985,37 +985,60 @@ ${conversationText}
       const innerNegativeCN = derivedContext.innerNegativeCN || `她仍能感觉到${emotion.type}在胸口打圈。`
       const innerNegativeEN = derivedContext.innerNegativeEN || `${emotion.type} still circles behind her ribs.`
 
-      const innerMonologueBase = normalizedEmotionQuote
-        ? `内心独白:"${normalizedEmotionQuote}"`
-        : `内心独白:"${limitText(emotion.trigger || emotion.type, 60)}"`
-      const innerMonologue = `${innerMonologueBase}，${isPositiveLike ? innerPositiveAddon : innerNegativeAddon}`
+      const toFirstPerson = (text?: string) => {
+        if (!text) return ''
+        return text.replace(/她/g, '我').replace(/他/g, '我')
+      }
 
-      const surfaceVsInner = isPositiveLike ? surfaceSummaryPositiveCN : surfaceSummaryNegativeCN
+      const quoteForMonologue = normalizedEmotionQuote || limitText(emotion.trigger || emotion.type, 60)
+      const addonText = toFirstPerson(isPositiveLike ? innerPositiveAddon : innerNegativeAddon) ||
+        (isPositiveLike ? '我想把这份真实的温度牢牢记住。' : '我提醒自己保持锋利，不让警觉松动。')
+      const innerMonologue = `我心里反复响着：“${quoteForMonologue}”。${addonText}`
+
+      const surfaceVsInnerTemplate = isPositiveLike ? surfaceSummaryPositiveCN : surfaceSummaryNegativeCN
+      const surfaceVsInner = toFirstPerson(surfaceVsInnerTemplate) ||
+        (isPositiveLike
+          ? '表面上我让自己显得从容，内心却被突如其来的温度慢慢松开。'
+          : '表面上我能笑着应对，内心却把所有细节一一记账。')
 
       const consciousnessStream = buildConsciousnessStreamFromInputs(
         combinedInputs,
         derivedContext.streamFallback || []
       )
 
-      const psychologicalSymbolism = isPositiveLike ? symbolismPositive : symbolismNegative
+      const symbolismTemplate = isPositiveLike ? symbolismPositive : symbolismNegative
+      const psychologicalSymbolism = toFirstPerson(symbolismTemplate) ||
+        (isPositiveLike
+          ? '周围的细节像小小的光点，让我相信温度还能留下。'
+          : '阴影里潜伏着一只冷静的猫，我在暗处打量每一处虚伪。')
 
       const sceneDescription_CN = [
         `${fallbackLocation}，${descriptionCN}`,
-        surfaceActionCN,
-        isPositiveLike ? innerPositiveCN : innerNegativeCN,
+        toFirstPerson(surfaceActionCN),
+        toFirstPerson(isPositiveLike ? innerPositiveCN : innerNegativeCN),
         psychologicalSymbolism
       ]
         .filter(Boolean)
         .join('\n')
 
+      const englishSurface = isPositiveLike
+        ? 'Outwardly I keep my movements measured so the moment stays gentle.'
+        : 'Outwardly I can still laugh, letting the scene look harmless.'
+      const englishInner = isPositiveLike
+        ? `Inside, the ${emotion.type} eases the knot I grip so tightly.`
+        : `Inside, the ${emotion.type} sharpens like wire, auditing every motive.`
+      const englishSymbolism = isPositiveLike
+        ? 'Every small object glows like proof that warmth can survive my skepticism.'
+        : 'The space morphs into a poised cat in shadow, claws ready to tear through pretense.'
       const sceneDescription_EN = [
-        `${fallbackLocationEN}, ${descriptionEN}`,
-        surfaceActionEN,
-        isPositiveLike ? innerPositiveEN : innerNegativeEN,
-        psychologicalSymbolism
+        `${fallbackLocationEN || 'An interior'} under muted light.`,
+        descriptionEN,
+        englishSurface,
+        englishInner,
+        englishSymbolism
       ]
         .filter(Boolean)
-        .join('\n')
+        .join(' ')
 
       const consciousBehaviorText = extractBehaviorDescription()
 
@@ -1049,9 +1072,9 @@ ${conversationText}
         ? derivedContext.mechanismPositive || '用真实体验重建对世界的信任'
         : derivedContext.mechanismNegative || '用理性框住情绪，避免再次受伤'
 
-      const subconsciousDesireText = isPositiveLike
+      const subconsciousDesireText = toFirstPerson(isPositiveLike
         ? `保留这份${emotion.type}带来的证据`
-        : `重新整理${emotion.type}背后的故事`
+        : `重新整理${emotion.type}背后的故事`)
 
       return {
         emotionalTrigger: emotion.trigger,
@@ -1067,7 +1090,7 @@ ${conversationText}
         externalConflict: surfaceVsInner,
         conflictIntensity: emotion.intensity,
         subconsciousDesire: subconsciousDesireText,
-        consciousBehavior: consciousBehaviorText,
+        consciousBehavior: toFirstPerson(consciousBehaviorText),
         psychologicalMechanism,
         sceneDescription_CN,
         sceneDescription_EN,
