@@ -145,6 +145,68 @@ export default function LandingPage() {
           </div>
         </div>
 
+        {/* Signature Capsules */}
+        <section className="mb-20">
+          <h3 className="text-3xl font-bold text-center text-gray-900 mb-12">
+            Explore Our Signature Capsules
+          </h3>
+          <div className="grid gap-8 md:grid-cols-2">
+            <Link
+              href="/current/sam-altman"
+              className="group relative overflow-hidden rounded-3xl bg-black text-white shadow-xl transition-all duration-200 hover:-translate-y-1 hover:shadow-2xl"
+            >
+              <img
+                src="/images/samfeng.webp"
+                alt="Sam Altman feature"
+                className="absolute inset-0 h-full w-full object-cover opacity-80 transition-opacity duration-200 group-hover:opacity-90"
+                loading="lazy"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent" />
+              <div className="relative flex h-full flex-col justify-end gap-4 p-8">
+                <span className="inline-flex items-center rounded-full bg-white/10 px-4 py-1 text-[10px] uppercase tracking-[0.4em] text-white/80">
+                  INCURRENT
+                </span>
+                <div>
+                  <h4 className="text-2xl font-semibold leading-tight">
+                    Sam Altman: The Last Human CEO?
+                  </h4>
+                  <p className="mt-3 text-sm text-white/80">
+                    Our marquee reportage stream. Orbital profiles, Big Tech weather reports, and culture-shifting timelines for the intellectually restless.
+                  </p>
+                </div>
+                <span className="text-sm font-medium text-white/80">→ Dive into INCURRENT</span>
+              </div>
+            </Link>
+
+            <Link
+              href="/current/weekend-revival-manual"
+              className="group relative overflow-hidden rounded-3xl bg-white text-gray-900 shadow-xl transition-all duration-200 hover:-translate-y-1 hover:shadow-2xl"
+            >
+              <img
+                src="/images/weekend.jpeg"
+                alt="Weekend Revival Manual"
+                className="absolute inset-0 h-full w-full object-cover opacity-80 transition-opacity duration-200 group-hover:opacity-90"
+                loading="lazy"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-white via-white/70 to-transparent" />
+              <div className="relative flex h-full flex-col justify-end gap-4 p-8">
+                <span className="inline-flex items-center rounded-full bg-black/70 px-4 py-1 text-[10px] uppercase tracking-[0.4em] text-white">
+                  INLIFE
+                </span>
+                <div>
+                  <h4 className="text-2xl font-semibold leading-tight">
+                    Weekend Revival Manual
+                  </h4>
+                  <p className="mt-3 text-sm text-gray-700">
+                    Micro rituals, sensory resets, and mood-specific prompts for people who want practical recovery, not generic self-help.
+                  </p>
+                </div>
+                <span className="text-sm font-medium text-gray-800">→ Step into INLIFE</span>
+              </div>
+            </Link>
+          </div>
+        </section>
+
         {/* Feature Highlights */}
         <div className="grid md:grid-cols-3 gap-8 mb-20">
           <div className="bg-white p-8 rounded-2xl shadow-lg">
