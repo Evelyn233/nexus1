@@ -208,7 +208,7 @@ export default function LandingPage() {
         </section>
 
         {/* Feature Highlights */}
-        <div className="grid md:grid-cols-3 gap-8 mb-20">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5 mb-20">
           <div className="bg-white p-8 rounded-2xl shadow-lg">
             <div className="w-12 h-12 bg-teal-100 rounded-lg flex items-center justify-center mb-4">
               <svg className="w-6 h-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -229,7 +229,7 @@ export default function LandingPage() {
             </div>
             <h3 className="text-xl font-semibold text-gray-900 mb-2">Scene Generation</h3>
             <p className="text-gray-600">
-              Based on your input, AI generates logically coherent scene sequences and transforms them into beautiful visual images.
+              Based on your intent and language, AI generates logically coherent scene sequences and transforms them into beautiful visual images.
             </p>
           </div>
 
@@ -242,6 +242,18 @@ export default function LandingPage() {
             <h3 className="text-xl font-semibold text-gray-900 mb-2">Psychodrama Presentation</h3>
             <p className="text-gray-600">
               Dramatize your emotions and inner world, expressing subconscious through symbolic visual elements.
+            </p>
+          </div>
+
+          <div className="bg-white p-8 rounded-2xl shadow-lg">
+            <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-4">
+              <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7h2l1 3m1 4l1 3h12l1-3M7 7h7l1 3m-9 4h9l1 3M12 5V3m0 18v-2" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">Opinion Visualization</h3>
+            <p className="text-gray-600">
+              Translate your sharp takes into cinematic scenes, illustrating social critiques and cultural commentary with symbolic staging.
             </p>
           </div>
         </div>
