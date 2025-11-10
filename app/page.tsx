@@ -52,7 +52,7 @@ export default function LandingPage() {
           {/* Example Prompts */}
           <div className="mb-12">
             <p className="text-sm text-gray-500 mb-4">Try these examples:</p>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 max-w-5xl mx-auto">
+            <div className="flex flex-wrap justify-center gap-3 max-w-5xl mx-auto">
               {[
                 "I feel disconnected from my team at work",
                 "My boyfriend only takes, never gives back",
@@ -70,7 +70,7 @@ export default function LandingPage() {
                 <Link
                   key={index}
                   href={`/auth/signup?prompt=${encodeURIComponent(prompt)}`}
-                  className="block w-full px-4 py-3 bg-white/80 backdrop-blur-sm border border-gray-200 rounded-full text-sm text-gray-700 hover:bg-teal-50 hover:border-teal-300 hover:text-teal-700 transition-all cursor-pointer shadow-sm text-left"
+                  className="px-5 py-2 bg-white/80 backdrop-blur-sm border border-gray-200 rounded-full text-sm text-gray-700 hover:bg-teal-50 hover:border-teal-300 hover:text-teal-700 transition-all cursor-pointer shadow-sm whitespace-nowrap"
                 >
                   {prompt}
                 </Link>
