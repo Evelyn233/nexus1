@@ -42,11 +42,24 @@ export default function HistoryPage() {
             imageCount: result.contents[0].imageCount
           })
         }
-        
-        setContents(result.contents)
-        setTotal(result.total || 0)
-        setHasMore(result.hasMore || false)
-        console.log('✅ [HISTORY] 加载历史记录成功:', result.contents.length)
+
+        const chatContents = result.contents.filter((content: any) => {
+          const hasAnswers = Array.isArray(content.answers) &&
+            content.answers.some((answer: any) => typeof answer === 'string' && answer.trim().length > 0)
+          const hasQuestions = Array.isArray(content.questions) &&
+            content.questions.some((question: any) => typeof question === 'string' && question.trim().length > 0)
+          return hasAnswers || hasQuestions
+        })
+
+        setContents(chatContents)
+        setTotal(chatContents.length)
+        const originalTotal = result.total || result.contents.length
+        setHasMore((result.hasMore || false) && chatContents.length < originalTotal)
+        console.log('✅ [HISTORY] 加载聊天记录成功:', {
+          originalCount: result.contents.length,
+          chatCount: chatContents.length,
+          filteredOut: result.contents.length - chatContents.length
+        })
       } else {
         console.error('❌ [HISTORY] 加载历史记录失败:', result.error)
         // 显示错误信息给用户

@@ -647,7 +647,7 @@ export default function ProfilePage() {
                 )}
                 {activeTab === 'all' && (
                   <button
-                    onClick={() => router.push('/home?openHistory=true')}
+                    onClick={() => router.push('/profile?tab=completed')}
                     className="text-sm text-magazine-primary hover:text-magazine-secondary"
                   >
                     查看全部 →
