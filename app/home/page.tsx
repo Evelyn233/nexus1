@@ -232,7 +232,7 @@ export default function HomePage() {
     {
       id: 1,
       image: '/images/samfeng.webp',
-      moduleLabel: 'CURRENT',
+      moduleLabel: 'INCURRENT',
       title: 'Sam Altman: The Last Human CEO?',
       subtitle: '',
       type: 'article' as const,
@@ -279,7 +279,7 @@ export default function HomePage() {
     {
       id: 6,
       image: '/images/weekend.jpeg',
-      moduleLabel: 'LIFEPULSE',
+      moduleLabel: 'INLIFE',
       title: 'Weekend Revival Manual',
       tagline: 'Shanghai Escapes · A Guide to Creative Reset and Spiritual Recalibration',
       subtitle: 'Click to generate personalized advice',

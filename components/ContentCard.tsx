@@ -76,7 +76,7 @@ export default function ContentCard({ data }: ContentCardProps) {
     return content
   }
 
-  if (data.moduleLabel && ['CURRENT', 'WEEKEND', 'LIFEPULSE'].includes(data.moduleLabel)) {
+  if (data.moduleLabel && ['INCURRENT', 'INLIFE', 'WEEKEND'].includes(data.moduleLabel)) {
     const currentCard = (
       <div className="magazine-card relative h-full overflow-hidden text-white">
         {data.image && (
