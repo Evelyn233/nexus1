@@ -870,20 +870,42 @@ ${conversationText}
     const clothingHint = clothingHintBase || baseSceneInfo?.clothing || 'textured attire with muted tones echoing inner tension'
     const protagonistName = typeof userInfo?.name === 'string' ? userInfo.name.trim() : ''
 
+    const buildCombinedNarrativeCN = (narr: PsychodramaNarrative) => {
+      const stream = narr.consciousnessStream
+        ? narr.consciousnessStream.replace(/\.\.\./g, '…')
+        : ''
+      const segments = [
+        narr.innerMonologue,
+        narr.surfaceVsInner,
+        stream ? `念头像弹幕一样掠过：${stream}` : '',
+        narr.psychologicalSymbolism
+      ].filter(Boolean)
+      return segments.join(' ')
+    }
+
+    const buildCombinedNarrativeEN = (narr: PsychodramaNarrative, fallback: string) => {
+      if (narr.sceneSummaryEn && narr.sceneSummaryEn.trim().length > 0) {
+        const summary = narr.sceneSummaryEn.trim()
+        const inner = narr.consciousnessStream
+          ? `Her rapid-fire thoughts whisper "${narr.consciousnessStream.replace(/\.\.\./g, ' … ')}".`
+          : ''
+        const symbolism = narr.psychologicalSymbolism
+          ? `Symbolism: ${narr.psychologicalSymbolism}`
+          : ''
+        return [summary, inner, symbolism].filter(Boolean).join(' ')
+      }
+      return fallback
+    }
+
     const buildScene = (
       narr: PsychodramaNarrative,
       symbolismText: string,
       sceneLocation: string,
       englishFallback: string
     ): PsychodramaScene => {
-      const sceneDescriptionCN = [
-        narr.innerMonologue,
-        narr.surfaceVsInner,
-        narr.consciousnessStream,
-        narr.psychologicalSymbolism
-      ].filter(Boolean).join('\n')
+      const sceneDescriptionCN = buildCombinedNarrativeCN(narr)
 
-      const sceneDescriptionEN = narr.sceneSummaryEn?.trim() || englishFallback
+      const sceneDescriptionEN = buildCombinedNarrativeEN(narr, englishFallback)
 
       console.log('📝 [PSYCHODRAMA] 最终叙述（模型）:', {
         innerMonologue: narr.innerMonologue,
