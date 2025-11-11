@@ -1931,6 +1931,7 @@ ${aiPrompt}`
         
         // 🔥 后台并行生成观点和心理剧（不阻塞基础场景生图）
         console.log('🚀 [CHAT-NEW] 开始调用 generateAdditionalContent...')
+        let detectionMessageId: string | undefined
         ContentGenerationService.generateAdditionalContent(
           actualPrompt,  // 🔥 基于用户键入检测
           answersWithContext,
@@ -1968,7 +1969,6 @@ ${aiPrompt}`
           // 🔥 收集新增场景和所有生成Promise
           const newScenes: any[] = []
           const generationPromises: Promise<void>[] = [] // 🔥 收集所有生成Promise
-          let detectionMessageId: string | undefined
           let detectionMessageShown = false
           const updateDetectionMessage = (content: string) => {
             if (!detectionMessageId) return
@@ -2215,6 +2215,7 @@ ${aiPrompt}`
                   content: completionMessage
                 }]
               })
+              detectionMessageId = undefined
             }, 3000)
           } else {
             // 移除检测提示
@@ -2224,6 +2225,7 @@ ${aiPrompt}`
                 ? prev.filter(msg => msg.id !== messageIdToRemove)
                 : prev
             )
+            detectionMessageId = undefined
           }
         }).catch((error) => {
           console.error('❌ [CHAT-NEW] 后台生成失败:', error)
@@ -2234,6 +2236,7 @@ ${aiPrompt}`
               ? prev.filter(msg => msg.id !== messageIdToRemove)
               : prev
           )
+          detectionMessageId = undefined
         })
       }
       
