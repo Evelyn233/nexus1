@@ -1983,9 +1983,10 @@ ${aiPrompt}`
           const ensureDetectionMessage = () => {
             if (!detectionMessageShown) {
               detectionMessageShown = true
-              detectionMessageId = `detection-${Date.now()}`
+              const messageId = `detection-${Date.now()}`
+              detectionMessageId = messageId
               setMessages(prev => [...prev, {
-                id: detectionMessageId,
+                id: messageId,
                 type: 'system',
                 content: '🔍 正在检测您的观点和情绪，为您生成专属心理场景...'
               }])
