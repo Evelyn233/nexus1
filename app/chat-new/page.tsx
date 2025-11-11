@@ -2246,26 +2246,30 @@ ${aiPrompt}`
           const primaryBlock = scene.narrativeBlock?.trim()
           const translationBlock = scene.narrativeBlockTranslation?.trim()
           const hasChinese = (text?: string) => !!text && /[\u4e00-\u9fff]/.test(text)
+          const fragments: string[] = []
 
-          if (primaryBlock || translationBlock) {
-            const fragments = [primaryBlock, translationBlock].filter(Boolean)
-            scene.storyFragment = fragments.join('\n\n')
-
-            if (primaryBlock && hasChinese(primaryBlock)) {
+          if (primaryBlock) {
+            fragments.push(primaryBlock)
+            if (hasChinese(primaryBlock)) {
               scene.sceneDescription_CN = primaryBlock
-            } else if (translationBlock && hasChinese(translationBlock)) {
-              scene.sceneDescription_CN = translationBlock
-            }
-
-            if (translationBlock && !hasChinese(translationBlock)) {
-              scene.sceneDescription_EN = translationBlock
-            } else if (primaryBlock && !hasChinese(primaryBlock)) {
+            } else {
               scene.sceneDescription_EN = primaryBlock
             }
-          } else {
+          }
+
+          if (translationBlock) {
+            fragments.push(translationBlock)
+            if (hasChinese(translationBlock)) {
+              scene.sceneDescription_CN = translationBlock
+            } else {
+              scene.sceneDescription_EN = translationBlock
+            }
+          }
+
+          if (fragments.length === 0) {
             const narrative = scene.sceneDescription_CN?.trim()
             if (narrative) {
-              scene.storyFragment = narrative
+              fragments.push(narrative)
             } else {
               const parts: string[] = []
               if (scene.innerMonologue) {
@@ -2280,9 +2284,28 @@ ${aiPrompt}`
               if (scene.psychologicalSymbolism) {
                 parts.push(scene.psychologicalSymbolism)
               }
-              scene.storyFragment = parts.join('\n')
+              fragments.push(parts.join('\n'))
             }
           }
+
+          if (scene.psychologicalSymbolism) {
+            fragments.forEach((fragment, index) => {
+              if (!fragment) return
+              const label = hasChinese(fragment) ? '心理象征：' : 'Symbolism: '
+              if (!fragment.includes(scene.psychologicalSymbolism)) {
+                fragments[index] = `${fragment}\n\n${label}${scene.psychologicalSymbolism}`
+              }
+            })
+          }
+
+          scene.storyFragment = fragments.filter(Boolean).join('\n\n').trim()
+          if (!scene.sceneDescription_CN && hasChinese(scene.storyFragment)) {
+            scene.sceneDescription_CN = scene.storyFragment
+          }
+          if (!scene.sceneDescription_EN && !hasChinese(scene.storyFragment)) {
+            scene.sceneDescription_EN = scene.storyFragment
+          }
+        }
 
           console.log('🎭 [PSYCHODRAMA] 心理剧文字内容:', {
             innerMonologue: scene.innerMonologue,

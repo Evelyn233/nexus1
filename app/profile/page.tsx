@@ -628,7 +628,7 @@ export default function ProfilePage() {
                       onClick={() => router.push('/home')}
                       className="px-6 py-2 bg-magazine-primary text-white rounded-lg hover:bg-magazine-secondary transition-colors text-sm font-medium"
                     >
-                      去首页发布新作品 →
+                      查看全部已发布 →
                     </button>
                   </div>
                 </div>
