@@ -75,9 +75,9 @@ export default function LandingPage() {
                   {prompt}
                 </Link>
               ))}
-            </div>
-          </div>
-          
+                  </div>
+                </div>
+                
           {/* Beautiful Image Display */}
           <div className="mb-12">
             <div className="relative mx-auto w-full px-4 sm:px-0">
@@ -116,7 +116,7 @@ export default function LandingPage() {
                     path: 'M3 7h2l1 3m1 4l1 3h12l1-3M7 7h7l1 3m-9 4h9l1 3M12 5V3m0 18v-2'
                   },
                   {
-                    title: '假想人生',
+                    title: 'Hypothetical Life',
                     description:
                       'Explore alternate life paths and simulate pivotal choices with AI-crafted storylines that mirror your intentions.',
                     gradient: 'from-orange-100 to-yellow-100',
@@ -277,7 +277,7 @@ export default function LandingPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6l4 2m-4 6a9 9 0 110-18 9 9 0 010 18z" />
               </svg>
             </div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">假想人生</h3>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">Hypothetical Life</h3>
             <p className="text-gray-600">
               Explore alternate choices and simulate different life trajectories with guided, narrative-rich scenarios.
             </p>
