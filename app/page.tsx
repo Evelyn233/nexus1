@@ -81,7 +81,7 @@ export default function LandingPage() {
           {/* Beautiful Image Display */}
           <div className="mb-12">
             <div className="relative mx-auto w-full px-4 sm:px-0">
-              <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-5">
                 {[
                   {
                     title: 'Smart Conversation',
@@ -114,6 +114,14 @@ export default function LandingPage() {
                     gradient: 'from-purple-100 via-pink-100 to-orange-100',
                     iconGradient: 'from-purple-500 to-pink-500',
                     path: 'M3 7h2l1 3m1 4l1 3h12l1-3M7 7h7l1 3m-9 4h9l1 3M12 5V3m0 18v-2'
+                  },
+                  {
+                    title: '假想人生',
+                    description:
+                      'Explore alternate life paths and simulate pivotal choices with AI-crafted storylines that mirror your intentions.',
+                    gradient: 'from-orange-100 to-yellow-100',
+                    iconGradient: 'from-orange-500 to-yellow-500',
+                    path: 'M12 6v6l4 2m-4 6a9 9 0 110-18 9 9 0 010 18z'
                   }
                 ].map((item) => (
                   <div
@@ -260,6 +268,18 @@ export default function LandingPage() {
             <h3 className="text-xl font-semibold text-gray-900 mb-2">Opinion Visualization</h3>
             <p className="text-gray-600">
               Translate your sharp takes into cinematic scenes, illustrating social critiques and cultural commentary with symbolic staging.
+            </p>
+          </div>
+
+          <div className="bg-white p-8 rounded-2xl shadow-lg">
+            <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center mb-4">
+              <svg className="w-6 h-6 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6l4 2m-4 6a9 9 0 110-18 9 9 0 010 18z" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">假想人生</h3>
+            <p className="text-gray-600">
+              Explore alternate choices and simulate different life trajectories with guided, narrative-rich scenarios.
             </p>
           </div>
         </div>
