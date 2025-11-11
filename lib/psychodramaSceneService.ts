@@ -63,7 +63,39 @@ function limitText(text: string, maxLength: number) {
   return trimmed.length <= maxLength ? trimmed : `${trimmed.slice(0, maxLength - 1)}…`
 }
 
-function buildProtagonistAppearance(userInfo?: any) {
+function normalizeArrayField(field: any, limit = 4): string[] {
+  if (!field) return []
+  if (Array.isArray(field)) {
+    return field
+      .map(item => (typeof item === 'string' ? item.trim() : ''))
+      .filter(Boolean)
+      .slice(0, limit)
+  }
+  if (typeof field === 'string') {
+    try {
+      const parsed = JSON.parse(field)
+      if (Array.isArray(parsed)) {
+        return parsed
+          .map(item => (typeof item === 'string' ? item.trim() : ''))
+          .filter(Boolean)
+          .slice(0, limit)
+      }
+      if (typeof parsed === 'string') {
+        return [parsed.trim()].filter(Boolean)
+      }
+    } catch {
+      // treat as comma separated
+      return field
+        .split(/[，,、;]/)
+        .map(item => item.trim())
+        .filter(Boolean)
+        .slice(0, limit)
+    }
+  }
+  return []
+}
+
+function buildProtagonistAppearance(userInfo?: any, userMetadata?: any) {
   if (!userInfo) {
     return null
   }
@@ -103,21 +135,41 @@ function buildProtagonistAppearance(userInfo?: any) {
 
   const hairResult = normalizeHair(userInfo.hairLength)
 
+  const metadataTraits = normalizeArrayField(userMetadata?.corePersonalityTraits, 3)
+  const metadataStyle = normalizeArrayField(
+    userMetadata?.styleInsights?.length ? userMetadata.styleInsights : userMetadata?.aestheticPreferences,
+    3
+  )
+
   const buildCN = () => {
     const locationCN = typeof userInfo.location === 'string' && userInfo.location.trim()
       ? `${userInfo.location.trim()}`
       : '中国'
-    const temperamentCN = typeof userInfo.personality === 'string' && userInfo.personality.trim()
-      ? `，气质带着${userInfo.personality.replace(/。$/,'')}`
-      : '，带着理性与情绪交织的气质'
-    return `主角外观：${ageCN}的${locationCN}${genderCN}，${hairResult.cn}，肤色自然偏暖，眼神里有倦意与坚持${temperamentCN}。`
+    const temperamentCN = (() => {
+      const personality = typeof userInfo.personality === 'string' ? userInfo.personality.trim() : ''
+      const traitText = metadataTraits.length > 0 ? metadataTraits.join('、') : personality.replace(/。$/, '')
+      if (traitText) {
+        return `，气质带着${traitText}`
+      }
+      return '，带着理性与情绪交织的气质'
+    })()
+    const styleCN = metadataStyle.length > 0 ? `，风格偏向${metadataStyle.join('、')}` : ''
+    return `主角外观：${ageCN}的${locationCN}${genderCN}，${hairResult.cn}，肤色自然偏暖，眼神里有倦意与坚持${temperamentCN}${styleCN}。`
   }
 
   const buildEN = () => {
     const locationEN = typeof userInfo.location === 'string' && userInfo.location.trim()
       ? `${userInfo.location.trim()}`
       : 'China'
-    return `Protagonist appearance: ${ageEN} Chinese ${genderEN} from ${locationEN}, ${hairResult.en}, warm beige skin, traces of exhaustion yet determined focus.`
+    const traitEN = (() => {
+      if (metadataTraits.length > 0) {
+        return metadataTraits.join(', ')
+      }
+      const personality = typeof userInfo.personality === 'string' ? userInfo.personality.trim() : ''
+      return personality || 'rational yet deeply feeling'
+    })()
+    const styleEN = metadataStyle.length > 0 ? `Style cues: ${metadataStyle.join(', ')}.` : ''
+    return `Protagonist appearance: ${ageEN} Chinese ${genderEN} from ${locationEN}, ${hairResult.en}, warm beige skin, eyes carrying exhaustion yet resolve. Personality keywords: ${traitEN}. ${styleEN}`.trim()
   }
 
   return {
@@ -137,7 +189,8 @@ function createPsychodramaImagePrompt({
   clothingHint,
   actionHint,
   protagonistName,
-  userProfile
+  userProfile,
+  userMetadata
 }: {
   emotionType: string
   emotionIntensity: number
@@ -157,6 +210,7 @@ function createPsychodramaImagePrompt({
   actionHint?: string
   protagonistName?: string
   userProfile?: any
+  userMetadata?: any
 }) {
   const narrativeSegments: string[] = []
 
@@ -170,10 +224,30 @@ function createPsychodramaImagePrompt({
     narrativeSegments.push(`场景地点：${location}`)
   }
 
-  const appearance = buildProtagonistAppearance(userProfile)
+  const appearance = buildProtagonistAppearance(userProfile, userMetadata)
   if (appearance) {
     narrativeSegments.push(appearance.cn)
     narrativeSegments.push(appearance.en)
+  }
+
+  const traitSummaryCN = normalizeArrayField(userMetadata?.corePersonalityTraits, 3)
+  const emotionSummaryCN = normalizeArrayField(userMetadata?.emotionalPattern, 2)
+  const behaviorSummaryCN = normalizeArrayField(userMetadata?.behaviorPatterns, 2)
+  const metadataSummaryCN = [
+    traitSummaryCN.length > 0 ? `心理特质：${traitSummaryCN.join('、')}` : '',
+    emotionSummaryCN.length > 0 ? `情绪模式：${emotionSummaryCN.join('、')}` : '',
+    behaviorSummaryCN.length > 0 ? `行为习惯：${behaviorSummaryCN.join('、')}` : ''
+  ].filter(Boolean)
+  if (metadataSummaryCN.length > 0) {
+    narrativeSegments.push(metadataSummaryCN.join('；'))
+  }
+
+  const traitSummaryEN = normalizeArrayField(userMetadata?.corePersonalityTraits, 3)
+  const styleSummaryEN = normalizeArrayField(userMetadata?.styleInsights || userMetadata?.aestheticPreferences, 2)
+  if (traitSummaryEN.length > 0 || styleSummaryEN.length > 0) {
+    const traitText = traitSummaryEN.length > 0 ? `Personality traits: ${traitSummaryEN.join(', ')}.` : ''
+    const styleText = styleSummaryEN.length > 0 ? `Style or aesthetic leanings: ${styleSummaryEN.join(', ')}.` : ''
+    narrativeSegments.push(`${traitText} ${styleText}`.trim())
   }
 
   if (baseSceneInfo?.description) {
