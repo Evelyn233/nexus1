@@ -173,7 +173,7 @@ export default function HomePage() {
     try {
       setPublishedLoading(true)
       console.log('🔍 [HOME] 加载已发布内容...')
-      const response = await fetch('/api/published-content?limit=8')
+      const response = await fetch('/api/published-content?limit=2')
       console.log('🔍 [HOME] API响应状态:', response.status)
       
       if (response.ok) {

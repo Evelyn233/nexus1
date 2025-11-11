@@ -244,14 +244,13 @@ export default function ProfilePage() {
   }
 
   const publishedContents = recentContents.filter(content => content.status === 'published')
-  const publishedPreview = publishedContents.slice(0, 4)
   
   // 获取当前tab的标题
   const getTabTitle = () => {
     switch (activeTab) {
       case 'completed': return '已创作'
       case 'private': return '🔒 私密内容'
-      case 'published': return '已发布（在首页查看）'
+      case 'published': return '已发布作品'
       default: return '最近创作'
     }
   }
@@ -562,7 +561,7 @@ export default function ProfilePage() {
                 
                 <div className="bg-white/80 rounded-lg p-4">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {publishedPreview.map((content) => {
+                    {publishedContents.map((content) => {
                       const images = parseImages(content)
                       const firstImageUrl = getFirstImageUrl(images)
 
@@ -608,19 +607,14 @@ export default function ProfilePage() {
                         )
                       })}
                   </div>
-                  {publishedContents.length > publishedPreview.length && (
-                    <p className="mt-4 text-xs text-gray-500 text-center">
-                      还有 {publishedContents.length - publishedPreview.length} 个作品已发布，快去首页查看全部 →
-                    </p>
-                  )}
                   <div className="mt-6 flex flex-col sm:flex-row sm:items-center sm:justify-end gap-3">
-                      <button
-                        onClick={() => router.push('/home')}
+                    <button
+                      onClick={() => router.push('/home')}
                       className="px-6 py-2 bg-magazine-primary text-white rounded-lg hover:bg-magazine-secondary transition-colors text-sm font-medium"
-                      >
-                      去首页查看全部 →
-                      </button>
-                    </div>
+                    >
+                      去首页发布新作品 →
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
