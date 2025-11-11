@@ -870,11 +870,73 @@ ${conversationText}
     const clothingHint = clothingHintBase || baseSceneInfo?.clothing || 'textured attire with muted tones echoing inner tension'
     const protagonistName = typeof userInfo?.name === 'string' ? userInfo.name.trim() : ''
 
+    const toFirstPersonChinese = (text?: string) => {
+      if (!text) return ''
+      let result = text
+        .replace(/她们/g, '我们')
+        .replace(/他们/g, '我们')
+      result = result.replace(/(?<![其那这])她的/g, '我的')
+      result = result.replace(/(?<![其那这])他的/g, '我的')
+      result = result.replace(/(?<![其那这])她/g, '我')
+      result = result.replace(/(?<![其那这])他/g, '我')
+      return result
+    }
+
+    const ensureInnerIntroduction = (text: string) => {
+      if (!text) return ''
+      const trimmed = text.trim()
+      const intro = protagonistName
+        ? `我是${protagonistName}`
+        : '我是这场心理剧的主角'
+      if (/^["“”'（(【《]*(我|我是)/.test(trimmed)) {
+        return trimmed
+      }
+      return `${intro}，${trimmed}`
+    }
+
+    const normalizeNarrative = (narr: PsychodramaNarrative): PsychodramaNarrative => {
+      const normalizedInner = ensureInnerIntroduction(toFirstPersonChinese(narr.innerMonologue))
+
+      let normalizedSurface = toFirstPersonChinese(narr.surfaceVsInner)
+      if (normalizedSurface) {
+        normalizedSurface = normalizedSurface
+          .replace(/表面上(?!我)/, '表面上我')
+          .replace(/内心却(?!我)/, '内心却我')
+      }
+
+      const normalizedStream = toFirstPersonChinese(narr.consciousnessStream)
+      const normalizedSymbolism = toFirstPersonChinese(narr.psychologicalSymbolism)
+      const normalizedAction = toFirstPersonChinese(narr.actionHint)
+
+      let normalizedSummary = narr.sceneSummaryEn || ''
+      if (normalizedSummary) {
+        normalizedSummary = normalizedSummary
+          .replace(/\bThe protagonist\b/gi, protagonistName ? `${protagonistName}` : 'I')
+          .replace(/\bShe\b/g, 'I')
+          .replace(/\bHe\b/g, 'I')
+          .replace(/\bHer\b/g, 'My')
+          .replace(/\bHis\b/g, 'My')
+      }
+
+      return {
+        ...narr,
+        innerMonologue: normalizedInner,
+        surfaceVsInner: normalizedSurface,
+        consciousnessStream: normalizedStream,
+        psychologicalSymbolism: normalizedSymbolism,
+        actionHint: normalizedAction,
+        sceneSummaryEn: normalizedSummary
+      }
+    }
+
     const buildCombinedNarrativeCN = (narr: PsychodramaNarrative) => {
       const stream = narr.consciousnessStream
         ? narr.consciousnessStream.replace(/\.\.\./g, '…')
         : ''
       const segments = [
+        protagonistName
+          ? `我是${protagonistName}，这整个场景发生在我身上。`
+          : '我是这场心理剧里体验一切的用户本人。',
         narr.innerMonologue,
         narr.surfaceVsInner,
         stream ? `念头像弹幕一样掠过：${stream}` : '',
@@ -966,11 +1028,12 @@ ${conversationText}
     const isCalmEmotion = calmKeywords.some(k => emotion.type.includes(k))
 
     if (narrative) {
+      const normalizedNarrative = normalizeNarrative(narrative)
       const englishFallback = `The protagonist maintains outward composure in ${baseSceneInfo?.location || fallbackLocation} while ${emotion.type} ripples beneath the surface. Symbolism highlights ${narrative.psychologicalSymbolism}.`
       console.log('🧷 [PSYCHODRAMA] 使用模型叙述构建场景')
       return buildScene(
-        narrative,
-        narrative.psychologicalSymbolism,
+        normalizedNarrative,
+        normalizedNarrative.psychologicalSymbolism,
         baseSceneInfo?.location || fallbackLocation,
         englishFallback
       )
