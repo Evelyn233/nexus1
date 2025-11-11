@@ -244,8 +244,7 @@ export default function HomePage() {
       id: 2,
       image: '/images/instyle.jpeg',
       moduleLabel: 'INSTYLE',
-      title: 'Moon Milk Foam & 2AM Documents',
-      tagline: '“I believe style is not about decoration — it’s about clarity.\nAutumn teaches me to slow down, to refine, and to express warmth through restraint.”',
+      title: 'InStyle: Autumn in Shanghai',
       subtitle: '',
       type: 'article' as const,
       href: '/current/instyle'
