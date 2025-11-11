@@ -1970,6 +1970,15 @@ ${aiPrompt}`
           const generationPromises: Promise<void>[] = [] // 🔥 收集所有生成Promise
           const detectionMessageId = `detection-${Date.now()}`
           let detectionMessageShown = false
+          const updateDetectionMessage = (content: string) => {
+            setMessages(prev =>
+              prev.map(msg =>
+                msg.id === detectionMessageId
+                  ? { ...msg, content }
+                  : msg
+              )
+            )
+          }
           const ensureDetectionMessage = () => {
             if (!detectionMessageShown) {
               detectionMessageShown = true
@@ -2093,6 +2102,25 @@ ${aiPrompt}`
             }
           }
           
+          if (detectionMessageShown) {
+            const psychodramaCount = newScenes.filter(scene => scene.isPsychodrama).length
+            const hypotheticalCount = newScenes.filter(scene => scene.isHypothetical).length
+            const opinionCount = newScenes.filter(scene => scene.isOpinionScene).length
+            const summaryParts: string[] = []
+            if (psychodramaCount > 0) summaryParts.push(`心理剧 ${psychodramaCount} 个`)
+            if (hypotheticalCount > 0) summaryParts.push(`假想场景 ${hypotheticalCount} 个`)
+            if (opinionCount > 0) summaryParts.push(`观点场景 ${opinionCount} 个`)
+            const summaryText = summaryParts.length > 0
+              ? `🎯 情绪与观点检测完成：${summaryParts.join('、')}，正在生成图像...`
+              : '🎯 情绪与观点检测完成：未检测到额外场景'
+            console.log('🎯 [CHAT-NEW] 检测结果摘要:', {
+              psychodramaCount,
+              hypotheticalCount,
+              opinionCount
+            })
+            updateDetectionMessage(summaryText)
+          }
+          
           // 🔥 等待所有批次生成完成，然后保存和重置状态
           if (generationPromises.length > 0) {
             Promise.allSettled(generationPromises).then(async () => {
@@ -2170,9 +2198,7 @@ ${aiPrompt}`
             // 延迟3秒显示完成消息（等待大部分图片生成完成）
             setTimeout(() => {
               setMessages(prev => {
-                // 移除检测提示
-                const filtered = prev.filter(msg => !msg.content.includes('正在检测您的观点和情绪'))
-                // 添加最终完成消息
+                const filtered = prev.filter(msg => msg.id !== detectionMessageId)
                 return [...filtered, {
                   id: `final-completion-${Date.now()}`,
                   type: 'system',
@@ -2182,12 +2208,12 @@ ${aiPrompt}`
             }, 3000)
           } else {
             // 移除检测提示
-            setMessages(prev => prev.filter(msg => !msg.content.includes('正在检测您的观点和情绪')))
+            setMessages(prev => prev.filter(msg => msg.id !== detectionMessageId))
           }
         }).catch((error) => {
           console.error('❌ [CHAT-NEW] 后台生成失败:', error)
           // 移除检测提示
-          setMessages(prev => prev.filter(msg => !msg.content.includes('正在检测您的观点和情绪')))
+          setMessages(prev => prev.filter(msg => msg.id !== detectionMessageId))
         })
       }
       
