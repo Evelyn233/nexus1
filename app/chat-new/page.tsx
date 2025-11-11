@@ -1968,9 +1968,10 @@ ${aiPrompt}`
           // 🔥 收集新增场景和所有生成Promise
           const newScenes: any[] = []
           const generationPromises: Promise<void>[] = [] // 🔥 收集所有生成Promise
-          const detectionMessageId = `detection-${Date.now()}`
+          let detectionMessageId: string | null = null
           let detectionMessageShown = false
           const updateDetectionMessage = (content: string) => {
+            if (!detectionMessageId) return
             setMessages(prev =>
               prev.map(msg =>
                 msg.id === detectionMessageId
@@ -1982,6 +1983,7 @@ ${aiPrompt}`
           const ensureDetectionMessage = () => {
             if (!detectionMessageShown) {
               detectionMessageShown = true
+              detectionMessageId = `detection-${Date.now()}`
               setMessages(prev => [...prev, {
                 id: detectionMessageId,
                 type: 'system',
@@ -2202,7 +2204,9 @@ ${aiPrompt}`
             // 延迟3秒显示完成消息（等待大部分图片生成完成）
             setTimeout(() => {
               setMessages(prev => {
-                const filtered = prev.filter(msg => msg.id !== detectionMessageId)
+                const filtered = detectionMessageId
+                  ? prev.filter(msg => msg.id !== detectionMessageId)
+                  : prev
                 return [...filtered, {
                   id: `final-completion-${Date.now()}`,
                   type: 'system',
@@ -2212,12 +2216,20 @@ ${aiPrompt}`
             }, 3000)
           } else {
             // 移除检测提示
-            setMessages(prev => prev.filter(msg => msg.id !== detectionMessageId))
+            setMessages(prev =>
+              detectionMessageId
+                ? prev.filter(msg => msg.id !== detectionMessageId)
+                : prev
+            )
           }
         }).catch((error) => {
           console.error('❌ [CHAT-NEW] 后台生成失败:', error)
           // 移除检测提示
-          setMessages(prev => prev.filter(msg => msg.id !== detectionMessageId))
+          setMessages(prev =>
+            detectionMessageId
+              ? prev.filter(msg => msg.id !== detectionMessageId)
+              : prev
+          )
         })
       }
       
