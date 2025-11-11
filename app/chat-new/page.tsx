@@ -61,7 +61,7 @@ export default function ChatNewPage() {
   const [generatedImagesCount, setGeneratedImagesCount] = useState(0) // 生图次数计数
   const [isGenerating, setIsGenerating] = useState(false) // 是否正在生成图片
   const abortControllerRef = useRef<AbortController | null>(null) // 用于中止生成
-  const MAX_GENERATED_IMAGES = 15 // 最多生成15张图（免费额度）
+const MAX_GENERATED_IMAGES = 20 // 最多生成20张图（免费额度）
   const [isNewSession, setIsNewSession] = useState(true) // 是否是新会话
   const [generatedImagesData, setGeneratedImagesData] = useState<Array<{ 
     imageUrl: string; 
