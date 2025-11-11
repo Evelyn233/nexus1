@@ -63,6 +63,69 @@ function limitText(text: string, maxLength: number) {
   return trimmed.length <= maxLength ? trimmed : `${trimmed.slice(0, maxLength - 1)}…`
 }
 
+function buildProtagonistAppearance(userInfo?: any) {
+  if (!userInfo) {
+    return null
+  }
+
+  const gender = typeof userInfo.gender === 'string' ? userInfo.gender.toLowerCase() : 'female'
+  const isMale = gender === 'male' || gender === 'man' || gender === 'm'
+  const genderCN = isMale ? '男性' : '女性'
+  const genderEN = isMale ? 'male' : 'female'
+
+  let ageNumber: number | null = null
+  if (typeof userInfo.age === 'number') {
+    ageNumber = userInfo.age
+  } else if (typeof userInfo.age === 'string') {
+    const parsed = parseInt(userInfo.age, 10)
+    if (!Number.isNaN(parsed)) {
+      ageNumber = parsed
+    }
+  }
+  const ageCN = ageNumber ? `${ageNumber}岁` : '二十多岁'
+  const ageEN = ageNumber ? `${ageNumber}-year-old` : 'mid-twenties'
+
+  const normalizeHair = (hair?: string) => {
+    if (!hair) return { cn: '黑色长发', en: 'long black hair' }
+    const trimmed = hair.trim()
+    if (!trimmed) return { cn: '黑色长发', en: 'long black hair' }
+    if (/短|短发/.test(trimmed)) {
+      return { cn: '黑色短发', en: 'short black hair' }
+    }
+    if (/中长|及肩/.test(trimmed)) {
+      return { cn: '黑色及肩发', en: 'shoulder-length black hair' }
+    }
+    if (/卷|波浪/.test(trimmed)) {
+      return { cn: '黑色微卷长发', en: 'long wavy black hair' }
+    }
+    return { cn: '黑色长发', en: 'long black hair' }
+  }
+
+  const hairResult = normalizeHair(userInfo.hairLength)
+
+  const buildCN = () => {
+    const locationCN = typeof userInfo.location === 'string' && userInfo.location.trim()
+      ? `${userInfo.location.trim()}`
+      : '中国'
+    const temperamentCN = typeof userInfo.personality === 'string' && userInfo.personality.trim()
+      ? `，气质带着${userInfo.personality.replace(/。$/,'')}`
+      : '，带着理性与情绪交织的气质'
+    return `主角外观：${ageCN}的${locationCN}${genderCN}，${hairResult.cn}，肤色自然偏暖，眼神里有倦意与坚持${temperamentCN}。`
+  }
+
+  const buildEN = () => {
+    const locationEN = typeof userInfo.location === 'string' && userInfo.location.trim()
+      ? `${userInfo.location.trim()}`
+      : 'China'
+    return `Protagonist appearance: ${ageEN} Chinese ${genderEN} from ${locationEN}, ${hairResult.en}, warm beige skin, traces of exhaustion yet determined focus.`
+  }
+
+  return {
+    cn: buildCN(),
+    en: buildEN()
+  }
+}
+
 function createPsychodramaImagePrompt({
   emotionType,
   emotionIntensity,
@@ -73,7 +136,8 @@ function createPsychodramaImagePrompt({
   consciousnessStream,
   clothingHint,
   actionHint,
-  protagonistName
+  protagonistName,
+  userProfile
 }: {
   emotionType: string
   emotionIntensity: number
@@ -92,6 +156,7 @@ function createPsychodramaImagePrompt({
   clothingHint: string
   actionHint?: string
   protagonistName?: string
+  userProfile?: any
 }) {
   const narrativeSegments: string[] = []
 
@@ -103,6 +168,12 @@ function createPsychodramaImagePrompt({
 
   if (location) {
     narrativeSegments.push(`场景地点：${location}`)
+  }
+
+  const appearance = buildProtagonistAppearance(userProfile)
+  if (appearance) {
+    narrativeSegments.push(appearance.cn)
+    narrativeSegments.push(appearance.en)
   }
 
   if (baseSceneInfo?.description) {
@@ -988,7 +1059,8 @@ ${conversationText}
         consciousnessStream: narr.consciousnessStream,
         clothingHint,
         actionHint: narr.actionHint,
-        protagonistName
+        protagonistName,
+        userProfile: userInfo
       })
 
       const baseOtherCharacters = (baseScene as any)?.otherCharacters
@@ -1167,7 +1239,8 @@ ${conversationText}
         consciousnessStream,
         clothingHint,
         actionHint: derivedContext.actionHint,
-        protagonistName
+        protagonistName,
+        userProfile: userInfo
       })
 
       console.log('📝 [PSYCHODRAMA] 最终叙述（fallback）:', {
