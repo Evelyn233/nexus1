@@ -342,6 +342,7 @@ function buildPsychodramaNarrativePrompt({
 3. priority：使用元输入的关键情绪和观点，其次才是深层特质做点缀。
 4. 如果用户表达讽刺/愤怒/失望，文本里要保留这种锋芒，不能柔化。
 5. sceneSummaryEn 仅需两句英文，准确描述场景与内心张力。
+6. 任何字段都必须以第一人称“我”自然展开，不要出现姓名、"我是Evelyn"、"我是这场心理剧的主角"等自我介绍句式。
 
 关键信息：
 - 情绪类型：${emotion.type}（强度 ${emotion.intensity}/10）
@@ -1027,20 +1028,8 @@ ${conversationText}
       return result
     }
 
-    const ensureInnerIntroduction = (text: string) => {
-      if (!text) return ''
-      const trimmed = text.trim()
-      const intro = protagonistName
-        ? `我是${protagonistName}`
-        : '我是这场心理剧的主角'
-      if (/^["“”'（(【《]*(我|我是)/.test(trimmed)) {
-        return trimmed
-      }
-      return `${intro}，${trimmed}`
-    }
-
     const normalizeNarrative = (narr: PsychodramaNarrative): PsychodramaNarrative => {
-      const normalizedInner = ensureInnerIntroduction(toFirstPersonChinese(narr.innerMonologue))
+      const normalizedInner = toFirstPersonChinese(narr.innerMonologue)
 
       let normalizedSurface = toFirstPersonChinese(narr.surfaceVsInner)
       if (normalizedSurface) {
