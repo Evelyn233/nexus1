@@ -2244,7 +2244,6 @@ ${aiPrompt}`
       scenes.forEach((scene: any) => {
         if (scene.isPsychodrama && !scene.storyFragment) {
           const primaryBlock = scene.narrativeBlock?.trim()
-          const translationBlock = scene.narrativeBlockTranslation?.trim()
           const hasChinese = (text?: string) => !!text && /[\u4e00-\u9fff]/.test(text)
           const fragments: string[] = []
 
@@ -2254,15 +2253,6 @@ ${aiPrompt}`
               scene.sceneDescription_CN = primaryBlock
             } else {
               scene.sceneDescription_EN = primaryBlock
-            }
-          }
-
-          if (translationBlock) {
-            fragments.push(translationBlock)
-            if (hasChinese(translationBlock)) {
-              scene.sceneDescription_CN = translationBlock
-            } else {
-              scene.sceneDescription_EN = translationBlock
             }
           }
 
@@ -2288,16 +2278,6 @@ ${aiPrompt}`
             }
           }
 
-          if (scene.psychologicalSymbolism) {
-            fragments.forEach((fragment, index) => {
-              if (!fragment) return
-              const label = hasChinese(fragment) ? '心理象征：' : 'Symbolism: '
-              if (!fragment.includes(scene.psychologicalSymbolism)) {
-                fragments[index] = `${fragment}\n\n${label}${scene.psychologicalSymbolism}`
-              }
-            })
-          }
-
           scene.storyFragment = fragments.filter(Boolean).join('\n\n').trim()
           if (!scene.sceneDescription_CN && hasChinese(scene.storyFragment)) {
             scene.sceneDescription_CN = scene.storyFragment
@@ -2307,16 +2287,15 @@ ${aiPrompt}`
           }
         }
 
-          console.log('🎭 [PSYCHODRAMA] 心理剧文字内容:', {
-            innerMonologue: scene.innerMonologue,
-            surfaceVsInner: scene.surfaceVsInner,
-            consciousnessStream: scene.consciousnessStream,
-            psychologicalSymbolism: scene.psychologicalSymbolism,
-            finalText: scene.storyFragment
-          })
-        }
-        // 普通场景的storyFragment已经由场景生成时生成了，直接用
+        console.log('🎭 [PSYCHODRAMA] 心理剧文字内容:', {
+          innerMonologue: scene.innerMonologue,
+          surfaceVsInner: scene.surfaceVsInner,
+          consciousnessStream: scene.consciousnessStream,
+          psychologicalSymbolism: scene.psychologicalSymbolism,
+          finalText: scene.storyFragment
+        })
       })
+      // 普通场景的storyFragment已经由场景生成时生成了，直接用
       
       const storyPromise = Promise.resolve()
       

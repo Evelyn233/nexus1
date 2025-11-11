@@ -44,7 +44,6 @@ export interface PsychodramaScene {
   sceneDescription_CN: string         // 中文场景描述
   sceneDescription_EN: string         // 英文场景描述（用于生图）
   narrativeBlock?: string             // 完整叙述（用户语言）
-  narrativeBlockTranslation?: string  // 翻译叙述（另一种语言）
   
   // 提示词
   imagePrompt: string                 // 图像生成提示词
@@ -56,7 +55,6 @@ interface PsychodramaNarrative {
   consciousnessStream: string
   psychologicalSymbolism: string
   narrativeBlock?: string
-  narrativeBlockTranslation?: string
   actionHint?: string
   sceneSummaryEn?: string
 }
@@ -338,8 +336,7 @@ function buildPsychodramaNarrativePrompt({
   "psychologicalSymbolism": "40-60字中文，给出一个贴合场景的象征或隐喻，不能照抄模板。",
   "actionHint": "10-20字中文，概括此刻身体动作或姿态，可选字段。",
   "sceneSummaryEn": "2 sentences in English summarising the moment and its emotional tension.",
-  "narrativeBlock": "120-160字，使用用户主要语言第一人称自然串联整个心理剧，把情绪、动作和象征织成完整叙述，保持情绪锋利",
-  "narrativeBlockTranslation": "120-160字，使用另一种语言（若用户输入以中文为主则用英文，若输入以英文为主则用中文）精准翻译 narrativeBlock 的情绪与意象"
+  "narrativeBlock": "120-160字，严格使用用户主要语言，以第一人称“我”自然串联整个心理剧，把情绪、动作和象征织成完整叙述，保持情绪锋利"
 }
 
 写作要求：
@@ -349,7 +346,7 @@ function buildPsychodramaNarrativePrompt({
 4. 如果用户表达讽刺/愤怒/失望，文本里要保留这种锋芒，不能柔化。
 5. sceneSummaryEn 仅需两句英文，准确描述场景与内心张力。
 6. 任何字段都必须以第一人称“我”自然展开，不要出现姓名、"我是Evelyn"、"我是这场心理剧的主角"等自我介绍句式。
-7. narrativeBlock 要与用户主要语言一致，narrativeBlockTranslation 必须完整准确地转换为另一种语言，两段都要情绪饱满且不可逐句拼贴。
+7. narrativeBlock 只能使用用户主要语言（用户输入多为中文就写中文，反之写英文），保持自然完整，不可逐句拼贴。
 
 关键信息：
 - 情绪类型：${emotion.type}（强度 ${emotion.intensity}/10）
@@ -1068,7 +1065,6 @@ ${conversationText}
         consciousnessStream: normalizedStream,
         psychologicalSymbolism: normalizedSymbolism,
         narrativeBlock: narr.narrativeBlock,
-        narrativeBlockTranslation: narr.narrativeBlockTranslation,
         actionHint: normalizedAction,
         sceneSummaryEn: normalizedSummary
       }
@@ -1114,7 +1110,6 @@ ${conversationText}
 
       let sceneDescriptionEN = buildCombinedNarrativeEN(narr, englishFallback)
       const primaryBlock = narr.narrativeBlock?.trim()
-      const translationBlock = narr.narrativeBlockTranslation?.trim()
       const containsChinese = (text?: string) => !!text && /[\u4e00-\u9fff]/.test(text)
 
       if (primaryBlock) {
@@ -1125,16 +1120,7 @@ ${conversationText}
         }
       }
 
-      if (translationBlock) {
-        if (containsChinese(translationBlock)) {
-          sceneDescriptionCN = translationBlock
-        } else {
-          sceneDescriptionEN = translationBlock
-        }
-      }
-
       const finalNarrativeBlock = primaryBlock || (userPrimaryIsChinese ? sceneDescriptionCN : sceneDescriptionEN)
-      const finalNarrativeTranslation = translationBlock || (userPrimaryIsChinese ? sceneDescriptionEN : sceneDescriptionCN)
 
       console.log('📝 [PSYCHODRAMA] 最终叙述（模型）:', {
         innerMonologue: narr.innerMonologue,
@@ -1143,8 +1129,7 @@ ${conversationText}
         psychologicalSymbolism: symbolismText,
         actionHint: narr.actionHint,
         sceneSummaryEn: narr.sceneSummaryEn,
-        narrativeBlock: finalNarrativeBlock,
-        narrativeBlockTranslation: finalNarrativeTranslation
+        narrativeBlock: finalNarrativeBlock
       })
 
       const imagePrompt = createPsychodramaImagePrompt({
@@ -1189,7 +1174,6 @@ ${conversationText}
         sceneDescription_CN: sceneDescriptionCN,
         sceneDescription_EN: sceneDescriptionEN,
         narrativeBlock: finalNarrativeBlock || undefined,
-        narrativeBlockTranslation: finalNarrativeTranslation || undefined,
         imagePrompt
       }
     }
@@ -1344,7 +1328,6 @@ ${conversationText}
       })
 
       const fallbackNarrativePrimary = userPrimaryIsChinese ? sceneDescription_CN : sceneDescription_EN
-      const fallbackNarrativeTranslation = userPrimaryIsChinese ? sceneDescription_EN : sceneDescription_CN
 
       console.log('📝 [PSYCHODRAMA] 最终叙述（fallback）:', {
         innerMonologue,
@@ -1353,8 +1336,7 @@ ${conversationText}
         psychologicalSymbolism,
         sceneDescriptionCN: sceneDescription_CN,
         sceneDescriptionEN: sceneDescription_EN,
-        narrativeBlock: fallbackNarrativePrimary,
-        narrativeBlockTranslation: fallbackNarrativeTranslation
+        narrativeBlock: fallbackNarrativePrimary
       })
 
       const task = isPositiveLike
@@ -1388,7 +1370,6 @@ ${conversationText}
         sceneDescription_CN,
         sceneDescription_EN,
         narrativeBlock: fallbackNarrativePrimary,
-        narrativeBlockTranslation: fallbackNarrativeTranslation,
         imagePrompt
       }
     }
