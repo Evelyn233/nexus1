@@ -243,7 +243,16 @@ export default function ProfilePage() {
     )
   }
 
-  const publishedContents = recentContents.filter(content => content.status === 'published')
+  const publishedContents = recentContents
+    .filter(content => content.status === 'published')
+    .map(content => ({
+      ...content,
+      moduleLabel:
+        content.moduleLabel === 'INCURRENT' ? 'INCURRENT' :
+        content.moduleLabel === 'INLIFE' ? 'INLIFE' :
+        content.moduleLabel === 'INSTYLE' ? 'INSTYLE' :
+        content.moduleLabel || 'INCURRENT'
+    }))
   
   // 获取当前tab的标题
   const getTabTitle = () => {
@@ -587,12 +596,19 @@ export default function ProfilePage() {
                             )}
                           </div>
                           <div className="p-3 bg-white">
-                            <h4 className="text-sm font-semibold text-gray-900 line-clamp-1 group-hover:text-magazine-primary transition-colors">
-                              {content.title || content.initialPrompt || '已发布作品'}
-                            </h4>
-                            <p className="text-xs text-gray-500 mt-2 line-clamp-2">
-                              {content.storyNarrative || '暂无描述'}
-                            </p>
+                            <div className="flex items-center justify-between">
+                              <h4 className="text-sm font-semibold text-gray-900 line-clamp-1 group-hover:text-magazine-primary transition-colors">
+                                {content.title || content.initialPrompt || '已发布作品'}
+                              </h4>
+                              <span className="text-[10px] font-medium tracking-[0.3em] text-magazine-primary/70">
+                                {content.moduleLabel}
+                              </span>
+                            </div>
+                            {content.storyNarrative && (
+                              <p className="text-xs text-gray-500 mt-2 line-clamp-2 whitespace-pre-line">
+                                {content.storyNarrative}
+                              </p>
+                            )}
                             <div className="mt-2 flex items-center justify-between text-xs text-gray-400">
                               <span className="flex items-center gap-1">
                                 <ImageIcon className="w-3 h-3" />

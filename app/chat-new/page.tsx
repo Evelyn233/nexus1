@@ -2243,26 +2243,47 @@ ${aiPrompt}`
       // 3. ✅ 场景对象已经有storyFragment了，直接用（心理剧补充）
       scenes.forEach((scene: any) => {
         if (scene.isPsychodrama && !scene.storyFragment) {
-          const narrative = scene.sceneDescription_CN?.trim()
-          if (narrative) {
-            scene.storyFragment = narrative
+          const primaryBlock = scene.narrativeBlock?.trim()
+          const translationBlock = scene.narrativeBlockTranslation?.trim()
+          const hasChinese = (text?: string) => !!text && /[\u4e00-\u9fff]/.test(text)
+
+          if (primaryBlock || translationBlock) {
+            const fragments = [primaryBlock, translationBlock].filter(Boolean)
+            scene.storyFragment = fragments.join('\n\n')
+
+            if (primaryBlock && hasChinese(primaryBlock)) {
+              scene.sceneDescription_CN = primaryBlock
+            } else if (translationBlock && hasChinese(translationBlock)) {
+              scene.sceneDescription_CN = translationBlock
+            }
+
+            if (translationBlock && !hasChinese(translationBlock)) {
+              scene.sceneDescription_EN = translationBlock
+            } else if (primaryBlock && !hasChinese(primaryBlock)) {
+              scene.sceneDescription_EN = primaryBlock
+            }
           } else {
-            const parts: string[] = []
-            if (scene.innerMonologue) {
-              parts.push(scene.innerMonologue)
+            const narrative = scene.sceneDescription_CN?.trim()
+            if (narrative) {
+              scene.storyFragment = narrative
+            } else {
+              const parts: string[] = []
+              if (scene.innerMonologue) {
+                parts.push(scene.innerMonologue)
+              }
+              if (scene.surfaceVsInner) {
+                parts.push(scene.surfaceVsInner)
+              }
+              if (scene.consciousnessStream) {
+                parts.push(scene.consciousnessStream)
+              }
+              if (scene.psychologicalSymbolism) {
+                parts.push(scene.psychologicalSymbolism)
+              }
+              scene.storyFragment = parts.join('\n')
             }
-            if (scene.surfaceVsInner) {
-              parts.push(scene.surfaceVsInner)
-            }
-            if (scene.consciousnessStream) {
-              parts.push(scene.consciousnessStream)
-            }
-            if (scene.psychologicalSymbolism) {
-              parts.push(scene.psychologicalSymbolism)
-            }
-            scene.storyFragment = parts.join('\n')
           }
-          
+
           console.log('🎭 [PSYCHODRAMA] 心理剧文字内容:', {
             innerMonologue: scene.innerMonologue,
             surfaceVsInner: scene.surfaceVsInner,

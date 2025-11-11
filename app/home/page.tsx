@@ -285,6 +285,16 @@ export default function HomePage() {
       subtitle: 'Click to generate personalized advice',
       type: 'article' as const,
       href: '/current/weekend-revival-manual'
+    },
+    {
+      id: 7,
+      image: '/images/instyle.jpeg',
+      moduleLabel: 'INSTYLE',
+      title: '☕ Moon Milk Foam & 2AM Documents',
+      tagline: '“I believe style is not about decoration — it’s about clarity.\nAutumn teaches me to slow down, to refine, and to express warmth through restraint.”\n\n“我相信风格不是装饰，而是清晰。\n秋天提醒我放慢脚步、打磨锋利，用克制表达温度。”',
+      subtitle: '',
+      type: 'article' as const,
+      href: '/current/instyle'
     }
   ]
 

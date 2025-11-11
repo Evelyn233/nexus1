@@ -43,6 +43,8 @@ export interface PsychodramaScene {
   // 场景描述
   sceneDescription_CN: string         // 中文场景描述
   sceneDescription_EN: string         // 英文场景描述（用于生图）
+  narrativeBlock?: string             // 完整叙述（用户语言）
+  narrativeBlockTranslation?: string  // 翻译叙述（另一种语言）
   
   // 提示词
   imagePrompt: string                 // 图像生成提示词
@@ -53,6 +55,8 @@ interface PsychodramaNarrative {
   surfaceVsInner: string
   consciousnessStream: string
   psychologicalSymbolism: string
+  narrativeBlock?: string
+  narrativeBlockTranslation?: string
   actionHint?: string
   sceneSummaryEn?: string
 }
@@ -333,7 +337,9 @@ function buildPsychodramaNarrativePrompt({
   "consciousnessStream": "50-70字中文，用"..."连接的片段，保留关键词和语气词，像快速闪过的念头。",
   "psychologicalSymbolism": "40-60字中文，给出一个贴合场景的象征或隐喻，不能照抄模板。",
   "actionHint": "10-20字中文，概括此刻身体动作或姿态，可选字段。",
-  "sceneSummaryEn": "2 sentences in English summarising the moment and its emotional tension."
+  "sceneSummaryEn": "2 sentences in English summarising the moment and its emotional tension.",
+  "narrativeBlock": "120-160字，使用用户主要语言第一人称自然串联整个心理剧，把情绪、动作和象征织成完整叙述，保持情绪锋利",
+  "narrativeBlockTranslation": "120-160字，使用另一种语言（若用户输入以中文为主则用英文，若输入以英文为主则用中文）精准翻译 narrativeBlock 的情绪与意象"
 }
 
 写作要求：
@@ -343,6 +349,7 @@ function buildPsychodramaNarrativePrompt({
 4. 如果用户表达讽刺/愤怒/失望，文本里要保留这种锋芒，不能柔化。
 5. sceneSummaryEn 仅需两句英文，准确描述场景与内心张力。
 6. 任何字段都必须以第一人称“我”自然展开，不要出现姓名、"我是Evelyn"、"我是这场心理剧的主角"等自我介绍句式。
+7. narrativeBlock 要与用户主要语言一致，narrativeBlockTranslation 必须完整准确地转换为另一种语言，两段都要情绪饱满且不可逐句拼贴。
 
 关键信息：
 - 情绪类型：${emotion.type}（强度 ${emotion.intensity}/10）
@@ -754,6 +761,7 @@ ${conversationText}
     
     const combinedInputs = allInputs.join(' ')
     const combinedInputsLower = combinedInputs.toLowerCase()
+    const userPrimaryIsChinese = /[\u4e00-\u9fff]/.test(combinedInputs)
 
     const hasRiver = combinedInputs.includes('河') || combinedInputsLower.includes('river')
     const hasMorning =
@@ -941,7 +949,8 @@ ${conversationText}
           consciousnessStream: (parsed.consciousnessStream || '').trim(),
           psychologicalSymbolism: (parsed.psychologicalSymbolism || '').trim(),
           actionHint: (parsed.actionHint || '').trim(),
-          sceneSummaryEn: (parsed.sceneSummaryEn || '').trim()
+          sceneSummaryEn: (parsed.sceneSummaryEn || '').trim(),
+          narrativeBlock: (parsed.narrativeBlock || '').trim()
         }
         if (
           candidate.innerMonologue &&
@@ -1058,6 +1067,8 @@ ${conversationText}
         surfaceVsInner: normalizedSurface,
         consciousnessStream: normalizedStream,
         psychologicalSymbolism: normalizedSymbolism,
+        narrativeBlock: narr.narrativeBlock,
+        narrativeBlockTranslation: narr.narrativeBlockTranslation,
         actionHint: normalizedAction,
         sceneSummaryEn: normalizedSummary
       }
@@ -1099,9 +1110,31 @@ ${conversationText}
       sceneLocation: string,
       englishFallback: string
     ): PsychodramaScene => {
-      const sceneDescriptionCN = buildCombinedNarrativeCN(narr)
+      let sceneDescriptionCN = buildCombinedNarrativeCN(narr)
 
-      const sceneDescriptionEN = buildCombinedNarrativeEN(narr, englishFallback)
+      let sceneDescriptionEN = buildCombinedNarrativeEN(narr, englishFallback)
+      const primaryBlock = narr.narrativeBlock?.trim()
+      const translationBlock = narr.narrativeBlockTranslation?.trim()
+      const containsChinese = (text?: string) => !!text && /[\u4e00-\u9fff]/.test(text)
+
+      if (primaryBlock) {
+        if (containsChinese(primaryBlock)) {
+          sceneDescriptionCN = primaryBlock
+        } else {
+          sceneDescriptionEN = primaryBlock
+        }
+      }
+
+      if (translationBlock) {
+        if (containsChinese(translationBlock)) {
+          sceneDescriptionCN = translationBlock
+        } else {
+          sceneDescriptionEN = translationBlock
+        }
+      }
+
+      const finalNarrativeBlock = primaryBlock || (userPrimaryIsChinese ? sceneDescriptionCN : sceneDescriptionEN)
+      const finalNarrativeTranslation = translationBlock || (userPrimaryIsChinese ? sceneDescriptionEN : sceneDescriptionCN)
 
       console.log('📝 [PSYCHODRAMA] 最终叙述（模型）:', {
         innerMonologue: narr.innerMonologue,
@@ -1109,7 +1142,9 @@ ${conversationText}
         consciousnessStream: narr.consciousnessStream,
         psychologicalSymbolism: symbolismText,
         actionHint: narr.actionHint,
-        sceneSummaryEn: narr.sceneSummaryEn
+        sceneSummaryEn: narr.sceneSummaryEn,
+        narrativeBlock: finalNarrativeBlock,
+        narrativeBlockTranslation: finalNarrativeTranslation
       })
 
       const imagePrompt = createPsychodramaImagePrompt({
@@ -1153,6 +1188,8 @@ ${conversationText}
         psychologicalMechanism: `通过觉察与表达调节${emotion.type}`,
         sceneDescription_CN: sceneDescriptionCN,
         sceneDescription_EN: sceneDescriptionEN,
+        narrativeBlock: finalNarrativeBlock || undefined,
+        narrativeBlockTranslation: finalNarrativeTranslation || undefined,
         imagePrompt
       }
     }
@@ -1306,13 +1343,18 @@ ${conversationText}
         userProfile: userInfo
       })
 
+      const fallbackNarrativePrimary = userPrimaryIsChinese ? sceneDescription_CN : sceneDescription_EN
+      const fallbackNarrativeTranslation = userPrimaryIsChinese ? sceneDescription_EN : sceneDescription_CN
+
       console.log('📝 [PSYCHODRAMA] 最终叙述（fallback）:', {
         innerMonologue,
         surfaceVsInner,
         consciousnessStream,
         psychologicalSymbolism,
         sceneDescriptionCN: sceneDescription_CN,
-        sceneDescriptionEN: sceneDescription_EN
+        sceneDescriptionEN: sceneDescription_EN,
+        narrativeBlock: fallbackNarrativePrimary,
+        narrativeBlockTranslation: fallbackNarrativeTranslation
       })
 
       const task = isPositiveLike
@@ -1345,6 +1387,8 @@ ${conversationText}
         psychologicalMechanism,
         sceneDescription_CN,
         sceneDescription_EN,
+        narrativeBlock: fallbackNarrativePrimary,
+        narrativeBlockTranslation: fallbackNarrativeTranslation,
         imagePrompt
       }
     }
