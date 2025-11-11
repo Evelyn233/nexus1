@@ -1968,7 +1968,7 @@ ${aiPrompt}`
           // 🔥 收集新增场景和所有生成Promise
           const newScenes: any[] = []
           const generationPromises: Promise<void>[] = [] // 🔥 收集所有生成Promise
-          let detectionMessageId: string | null = null
+          let detectionMessageId: string | undefined
           let detectionMessageShown = false
           const updateDetectionMessage = (content: string) => {
             if (!detectionMessageId) return
@@ -2204,9 +2204,10 @@ ${aiPrompt}`
             
             // 延迟3秒显示完成消息（等待大部分图片生成完成）
             setTimeout(() => {
+              const messageIdToRemove = detectionMessageId
               setMessages(prev => {
-                const filtered = detectionMessageId
-                  ? prev.filter(msg => msg.id !== detectionMessageId)
+                const filtered = messageIdToRemove
+                  ? prev.filter(msg => msg.id !== messageIdToRemove)
                   : prev
                 return [...filtered, {
                   id: `final-completion-${Date.now()}`,
@@ -2217,18 +2218,20 @@ ${aiPrompt}`
             }, 3000)
           } else {
             // 移除检测提示
+            const messageIdToRemove = detectionMessageId
             setMessages(prev =>
-              detectionMessageId
-                ? prev.filter(msg => msg.id !== detectionMessageId)
+              messageIdToRemove
+                ? prev.filter(msg => msg.id !== messageIdToRemove)
                 : prev
             )
           }
         }).catch((error) => {
           console.error('❌ [CHAT-NEW] 后台生成失败:', error)
           // 移除检测提示
+          const messageIdToRemove = detectionMessageId
           setMessages(prev =>
-            detectionMessageId
-              ? prev.filter(msg => msg.id !== detectionMessageId)
+            messageIdToRemove
+              ? prev.filter(msg => msg.id !== messageIdToRemove)
               : prev
           )
         })
