@@ -45,23 +45,23 @@ export const PROMPT_TEMPLATES = {
   CASUAL: '休闲日常风格，{prompt}，轻松自然，生活化场景，高质量'
 }
 
-// 快速生成选项 - 精简版（6个核心场景，涵盖所有类型）
+// Quick Generate Options - Streamlined (6 core scenarios covering all types)
 export const QUICK_GENERATE_OPTIONS = [
-  // 😊 情绪/日常场景
-  '今天上班很开心 项目顺利完成了',
+  // 😊 Emotion/Daily Scene
+  'I had a great day at work today, the project was completed successfully',
   
-  // 💡 观点表达场景
-  '中国缺乏高端杂志市场',
+  // 💡 Opinion Expression Scene
+  'China lacks a high-end magazine market',
   
-  // 🎬 假想场景（如果...）
-  '如果我当年没有出国 现在会是什么样',
+  // 🎬 Hypothetical Scene (What if...)
+  'If I hadn\'t gone abroad back then, what would I be like now',
   
-  // 🎭 角色扮演场景
-  '我觉得自己像个反社会女反派',
+  // 🎭 Role-Playing Scene
+  'I feel like an antisocial female villain',
   
-  // 🏢 工作/社交场景
-  '今天和老板开会 讨论了新项目',
+  // 🏢 Work/Social Scene
+  'Had a meeting with my boss today, discussed the new project',
   
-  // 💭 自我反思场景
-  '最近在想要不要换个工作'
+  // 💭 Self-Reflection Scene
+  'Recently thinking about whether to change jobs'
 ]
