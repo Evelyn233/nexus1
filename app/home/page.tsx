@@ -376,21 +376,21 @@ export default function HomePage() {
           <button
             onClick={() => setIsSidebarOpen(true)}
             className="text-magazine-gray hover:text-magazine-primary transition-colors"
-            title="历史记录"
+            title="History"
           >
             <History className="w-6 h-6" />
           </button>
           <button
             onClick={() => router.push('/profile')}
             className="text-magazine-gray hover:text-magazine-primary transition-colors"
-            title="我的主页"
+            title="My Profile"
           >
             👤
           </button>
           <button
             onClick={() => router.push('/gallery')}
             className="text-magazine-gray hover:text-magazine-primary transition-colors"
-            title="图片画廊"
+            title="Gallery"
           >
             🖼️
           </button>
@@ -399,12 +399,12 @@ export default function HomePage() {
 
       {/* Main Content */}
       <main className="p-4 pb-40 max-w-md mx-auto">
-        {/* 社区作品区域 */}
+        {/* Community Works */}
           <div className="mb-6">
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-lg font-bold text-gray-800">🌟 社区作品</h2>
+              <h2 className="text-lg font-bold text-gray-800">🌟 Community Works</h2>
             {!publishedLoading && (
-              <span className="text-xs text-gray-500">{publishedContent.length} 个作品</span>
+              <span className="text-xs text-gray-500">{publishedContent.length} works</span>
             )}
             </div>
           
@@ -439,15 +439,15 @@ export default function HomePage() {
                       <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
                       <div className="absolute bottom-0 left-0 right-0 p-3">
                         <p className="text-white text-sm font-medium line-clamp-2 mb-1">
-                          {content.title || content.initialPrompt || '已发布作品'}
+                          {content.title || content.initialPrompt || 'Published Work'}
                         </p>
                         <div className="flex items-center justify-between text-xs">
-                          <span className="text-white/80">{content.author?.name || '匿名用户'}</span>
-                          <span className="text-white/60">{content.imageCount || 0} 张</span>
+                          <span className="text-white/80">{content.author?.name || 'Anonymous'}</span>
+                          <span className="text-white/60">{content.imageCount || 0} images</span>
                         </div>
                       </div>
                       <div className="absolute top-2 right-2 bg-teal-500 text-white text-xs px-2 py-1 rounded-full">
-                        已发布
+                        Published
                       </div>
                     </div>
                   </div>
@@ -456,15 +456,15 @@ export default function HomePage() {
             </div>
           ) : (
             <div className="text-center py-8 bg-gray-50 rounded-2xl">
-              <p className="text-gray-500 text-sm">暂无已发布的作品</p>
-              <p className="text-gray-400 text-xs mt-2">发布你的作品，让更多人看到吧！</p>
+              <p className="text-gray-500 text-sm">No published works yet</p>
+              <p className="text-gray-400 text-xs mt-2">Publish your work to share with others!</p>
           </div>
         )}
         </div>
 
-        {/* 精选内容 */}
+        {/* Featured Content */}
         <div className="mb-3">
-          <h2 className="text-lg font-bold text-gray-800">📖 精选内容</h2>
+          <h2 className="text-lg font-bold text-gray-800">📖 Featured Content</h2>
         </div>
         <div className="grid grid-cols-2 gap-4">
           {staticContentData.map((item) => (
@@ -475,17 +475,17 @@ export default function HomePage() {
         </div>
       </main>
 
-      {/* Quick Generate Buttons - 横向滚动 */}
+      {/* Quick Generate Buttons - Horizontal Scroll */}
       <div className="fixed bottom-16 left-0 right-0 p-3 bg-white max-w-md mx-auto">
         <div className="mb-0">
           <div className="flex items-center justify-between mb-1">
-            <h2 className="text-xs font-medium text-gray-500">快速生成</h2>
+            <h2 className="text-xs font-medium text-gray-500">Quick Generate</h2>
             <button
               onClick={() => router.push('/profile')}
               className="text-xs text-magazine-primary hover:text-magazine-secondary flex items-center space-x-1"
             >
               <span>👤</span>
-              <span>我的信息</span>
+              <span>My Info</span>
             </button>
           </div>
           {/* 🔥 横向滚动容器 */}
@@ -540,7 +540,7 @@ export default function HomePage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 max-h-[80vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-gray-900">我的信息</h2>
+              <h2 className="text-xl font-semibold text-gray-900">My Info</h2>
               <button
                 onClick={() => setShowUserProfile(false)}
                 className="text-gray-400 hover:text-gray-600"
@@ -561,7 +561,7 @@ export default function HomePage() {
                 }}
                 className="flex-1 bg-magazine-primary text-white py-2 px-4 rounded-lg hover:bg-magazine-secondary transition-colors"
               >
-                编辑信息
+                Edit Info
               </button>
               <button
                 onClick={() => {
@@ -570,7 +570,7 @@ export default function HomePage() {
                 }}
                 className="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors"
               >
-                重新设置用户
+                Reset User
               </button>
             </div>
           </div>

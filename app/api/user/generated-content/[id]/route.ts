@@ -144,16 +144,103 @@ export async function PATCH(
     // 更新内容
     const updateData: any = {}
     if (body.images) {
-      // 🔥 确保图片按sceneIndex排序后再保存
-      const sortedImages = Array.isArray(body.images) 
-        ? [...body.images].sort((a: any, b: any) => (a.sceneIndex || 0) - (b.sceneIndex || 0))
-        : body.images
+      // 🔥 确保图片按sceneIndex排序后再保存，并在保存前下载为持久化的 data URL
+      let sortedImages: any[] = []
+
+      if (Array.isArray(body.images)) {
+        const imagesByOrder = [...body.images].sort(
+          (a: any, b: any) => (a?.sceneIndex || 0) - (b?.sceneIndex || 0)
+        )
+
+        sortedImages = (
+          await Promise.all(
+            imagesByOrder.map(async (img: any, index: number) => {
+              if (!img) {
+                return null
+              }
+
+              const baseObject =
+                typeof img === 'object'
+                  ? { ...img }
+                  : {
+                      sceneTitle: `场景 ${index + 1}`,
+                      prompt: '',
+                      story: '',
+                    }
+
+              const sceneIndex =
+                typeof baseObject.sceneIndex === 'number'
+                  ? baseObject.sceneIndex
+                  : index
+
+              const candidateUrl =
+                typeof img === 'string'
+                  ? img
+                  : img?.imageUrl ||
+                    img?.url ||
+                    img?.src ||
+                    img?.image_path ||
+                    img?.imageURI ||
+                    img?.uri ||
+                    ''
+
+              const existingDataUrl =
+                typeof img === 'string' && img.startsWith('data:')
+                  ? img
+                  : baseObject.imageDataUrl && typeof baseObject.imageDataUrl === 'string'
+                    ? baseObject.imageDataUrl
+                    : candidateUrl.startsWith('data:')
+                      ? candidateUrl
+                      : ''
+
+              let imageDataUrl = existingDataUrl
+
+              // 🔥 如果没有 imageDataUrl，尝试从远程URL下载并转换为 base64
+              if (!imageDataUrl && candidateUrl && !candidateUrl.startsWith('data:')) {
+                try {
+                  console.log('🖼️ [CONTENT-UPDATE-API] 下载远程图片以持久化:', candidateUrl)
+                  const imageResponse = await fetch(candidateUrl, {
+                    cache: 'no-store'
+                  })
+
+                  if (imageResponse.ok) {
+                    const arrayBuffer = await imageResponse.arrayBuffer()
+                    const buffer = Buffer.from(arrayBuffer)
+                    const contentType =
+                      imageResponse.headers.get('content-type') || 'image/jpeg'
+                    imageDataUrl = `data:${contentType};base64,${buffer.toString('base64')}`
+                    console.log('✅ [CONTENT-UPDATE-API] 图片持久化成功')
+                  } else {
+                    console.warn(
+                      '⚠️ [CONTENT-UPDATE-API] 下载图片失败，状态码:',
+                      imageResponse.status
+                    )
+                  }
+                } catch (downloadError) {
+                  console.error('❌ [CONTENT-UPDATE-API] 图片下载异常:', downloadError)
+                }
+              }
+
+              return {
+                ...baseObject,
+                sceneIndex,
+                imageUrl: candidateUrl,
+                imageDataUrl: imageDataUrl || null
+              }
+            })
+          )
+        ).filter(Boolean) as any[]
+      } else {
+        sortedImages = body.images
+      }
+
       const imagesJson = JSON.stringify(sortedImages)
       updateData.images = imagesJson
-      console.log('💾 [CONTENT-UPDATE-API] 准备更新图片数据（已排序）:', {
+      console.log('💾 [CONTENT-UPDATE-API] 准备更新图片数据（已排序并持久化）:', {
         imagesJsonLength: imagesJson.length,
         imageCount: sortedImages.length,
-        sceneIndices: Array.isArray(sortedImages) ? sortedImages.map((img: any) => img.sceneIndex) : []
+        sceneIndices: Array.isArray(sortedImages) ? sortedImages.map((img: any) => img.sceneIndex) : [],
+        hasDataUrls: Array.isArray(sortedImages) ? sortedImages.filter((img: any) => img.imageDataUrl).length : 0
       })
     }
     if (body.imageCount !== undefined) {
