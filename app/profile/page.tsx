@@ -259,10 +259,10 @@ export default function ProfilePage() {
   // 获取当前tab的标题
   const getTabTitle = () => {
     switch (activeTab) {
-      case 'completed': return '已创作'
-      case 'private': return '🔒 私密内容'
-      case 'published': return '已发布作品'
-      default: return '最近创作'
+      case 'completed': return 'Created'
+      case 'private': return '🔒 Private'
+      case 'published': return 'Published Works'
+      default: return 'Recent Creations'
     }
   }
 
@@ -271,7 +271,7 @@ export default function ProfilePage() {
       <div className="min-h-screen bg-gradient-to-br from-teal-50 via-cyan-50 to-blue-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-magazine-primary mx-auto"></div>
-          <p className="text-gray-600 mt-4">加载中...</p>
+          <p className="text-gray-600 mt-4">Loading...</p>
         </div>
       </div>
     )
@@ -281,12 +281,12 @@ export default function ProfilePage() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-teal-50 via-cyan-50 to-blue-50 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-gray-600 mb-4">请先登录</p>
+          <p className="text-gray-600 mb-4">Please login first</p>
           <button
             onClick={() => router.push('/auth/signin')}
             className="px-6 py-2 bg-magazine-primary text-white rounded-lg hover:bg-magazine-secondary"
           >
-            去登录
+            Go to Login
           </button>
         </div>
       </div>
@@ -310,16 +310,16 @@ export default function ProfilePage() {
               className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
             >
               <ArrowLeft className="w-5 h-5" />
-              <span>返回主页</span>
+              <span>Back to Home</span>
             </button>
           </div>
-          <h1 className="text-xl font-bold text-gray-900">我的主页</h1>
+          <h1 className="text-xl font-bold text-gray-900">My Profile</h1>
           <button
             onClick={handleLogout}
             className="flex items-center gap-2 text-red-600 hover:text-red-700 transition-colors"
           >
             <LogOut className="w-5 h-5" />
-            <span>退出</span>
+            <span>Logout</span>
           </button>
         </div>
       </div>
@@ -338,7 +338,7 @@ export default function ProfilePage() {
                   {session?.user?.name?.charAt(0).toUpperCase() || '?'}
                 </div>
                 <h2 className="mt-4 text-2xl font-bold text-gray-900">
-                  {session?.user?.name || '未设置姓名'}
+                  {session?.user?.name || 'Name Not Set'}
                 </h2>
                 <p className="text-sm text-gray-500 mt-1">
                   {session?.user?.email}
@@ -348,41 +348,41 @@ export default function ProfilePage() {
                   className="mt-4 px-4 py-2 bg-magazine-primary text-white rounded-lg hover:bg-magazine-secondary transition-colors flex items-center gap-2"
                 >
                   <Edit className="w-4 h-4" />
-                  编辑资料
+                  Edit Profile
                 </button>
               </div>
 
-              {/* 用户详细信息 */}
+              {/* User Details */}
               {userInfo && (
                 <div className="mt-6 space-y-3 border-t pt-4">
                   <div className="flex items-center gap-3 text-sm">
                     <User className="w-4 h-4 text-gray-400" />
-                    <span className="text-gray-600">性别：</span>
-                    <span className="text-gray-900">{userInfo.gender === 'male' ? '男' : userInfo.gender === 'female' ? '女' : '未设置'}</span>
+                    <span className="text-gray-600">Gender:</span>
+                    <span className="text-gray-900">{userInfo.gender === 'male' ? 'Male' : userInfo.gender === 'female' ? 'Female' : 'Not Set'}</span>
                   </div>
                   <div className="flex items-center gap-3 text-sm">
                     <Calendar className="w-4 h-4 text-gray-400" />
-                    <span className="text-gray-600">生日：</span>
+                    <span className="text-gray-600">Birthday:</span>
                     <span className="text-gray-900">
                       {userInfo.birthDate ? (() => {
                         try {
                           const birth = JSON.parse(userInfo.birthDate)
-                          return `${birth.year}年${birth.month}月${birth.day}日`
+                          return `${birth.month}/${birth.day}/${birth.year}`
                         } catch {
-                          return '未设置'
+                          return 'Not Set'
                         }
-                      })() : '未设置'}
+                      })() : 'Not Set'}
                     </span>
                   </div>
                   {userInfo.height && (
                     <div className="flex items-center gap-3 text-sm">
-                      <span className="text-gray-600">身高：</span>
+                      <span className="text-gray-600">Height:</span>
                       <span className="text-gray-900">{userInfo.height}cm</span>
                     </div>
                   )}
                   {userInfo.hairLength && (
                     <div className="flex items-center gap-3 text-sm">
-                      <span className="text-gray-600">发型：</span>
+                      <span className="text-gray-600">Hair:</span>
                       <span className="text-gray-900">{userInfo.hairLength}</span>
                     </div>
                   )}
@@ -395,20 +395,20 @@ export default function ProfilePage() {
               <div className="bg-gradient-to-br from-magazine-primary to-magazine-secondary rounded-xl shadow-sm p-6 text-white">
                 <h3 className="font-semibold mb-4 flex items-center gap-2">
                   <span className="text-2xl">💰</span>
-                  我的钱包
+                  My Wallet
                 </h3>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm opacity-90">账户余额</span>
+                    <span className="text-sm opacity-90">Balance</span>
                     <span className="text-2xl font-bold">${walletData.balance.toFixed(2)}</span>
                   </div>
                   <div className="border-t border-white/20 pt-3 grid grid-cols-2 gap-4 text-xs">
                     <div>
-                      <p className="opacity-75">总充值</p>
+                      <p className="opacity-75">Total Earned</p>
                       <p className="text-lg font-semibold">${walletData.totalEarned.toFixed(2)}</p>
                     </div>
                     <div>
-                      <p className="opacity-75">总消费</p>
+                      <p className="opacity-75">Total Spent</p>
                       <p className="text-lg font-semibold">${walletData.totalSpent.toFixed(2)}</p>
                     </div>
                   </div>
@@ -416,41 +416,41 @@ export default function ProfilePage() {
                     onClick={() => router.push('/wallet')}
                     className="w-full mt-3 px-4 py-2 bg-white text-magazine-primary rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium"
                   >
-                    充值 / 查看详情
+                    Recharge / View Details
                   </button>
                 </div>
               </div>
             )}
 
-            {/* 统计卡片 */}
+            {/* Statistics Card */}
             <div className="bg-white rounded-xl shadow-sm p-6">
               <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
                 <BarChart3 className="w-5 h-5 text-magazine-primary" />
-                创作统计
+                Creation Stats
               </h3>
               <div className="space-y-4">
-                {/* 生成图片 - 可点击 */}
+                {/* Generated Images - Clickable */}
                 <div 
                   onClick={() => router.push('/profile?tab=all')}
                   className="flex items-center justify-between cursor-pointer hover:bg-gray-50 rounded-lg p-2 -m-2 transition-colors"
                 >
                   <div className="flex items-center gap-2 text-sm text-gray-600">
                     <ImageIcon className="w-4 h-4" />
-                    生成图片
+                    Generated Images
                   </div>
                   <div className="text-2xl font-bold text-magazine-primary">
                     {userStats.totalImages}
                   </div>
                 </div>
                 
-                {/* 总创作次数 - 可点击 */}
+                {/* Total Creations - Clickable */}
                 <div 
                   onClick={() => router.push('/profile?tab=all')}
                   className="flex items-center justify-between cursor-pointer hover:bg-gray-50 rounded-lg p-2 -m-2 transition-colors"
                 >
                   <div className="flex items-center gap-2 text-sm text-gray-600">
                     <FileText className="w-4 h-4" />
-                    创作次数
+                    Total Creations
                   </div>
                   <div className="text-2xl font-bold text-magazine-secondary">
                     {userStats.totalContents}
@@ -459,42 +459,42 @@ export default function ProfilePage() {
                 
                 {/* 状态统计 - 分隔线 */}
                 <div className="border-t border-gray-200 pt-3 space-y-3">
-                  {/* 已创作（completed） - 可点击 */}
+                  {/* Created (completed) - Clickable */}
                   <div 
                     onClick={() => router.push('/profile?tab=completed')}
                     className="flex items-center justify-between cursor-pointer hover:bg-gray-50 rounded-lg p-2 -m-2 transition-colors"
                   >
                     <div className="flex items-center gap-2 text-sm text-gray-600">
                       <span className="w-2 h-2 rounded-full bg-yellow-500"></span>
-                      已创作
+                      Created
                     </div>
                     <div className="text-lg font-semibold text-yellow-600">
                       {userStats.draftContents}
                     </div>
                   </div>
                   
-                  {/* 锁着的（私密） - 可点击 */}
+                  {/* Private - Clickable */}
                   <div 
                     onClick={() => router.push('/profile?tab=private')}
                     className="flex items-center justify-between cursor-pointer hover:bg-gray-50 rounded-lg p-2 -m-2 transition-colors"
                   >
                     <div className="flex items-center gap-2 text-sm text-gray-600">
                       <span className="w-2 h-2 rounded-full bg-gray-500"></span>
-                      🔒 锁着的
+                      🔒 Private
                     </div>
                     <div className="text-lg font-semibold text-gray-600">
                       {userStats.privateContents}
                     </div>
                   </div>
                   
-                  {/* 已发布（公开） - 可点击 */}
+                  {/* Published - Clickable */}
                   <div 
                     onClick={() => router.push('/profile?tab=published')}
                     className="flex items-center justify-between cursor-pointer hover:bg-gray-50 rounded-lg p-2 -m-2 transition-colors"
                   >
                     <div className="flex items-center gap-2 text-sm text-gray-600">
                       <span className="w-2 h-2 rounded-full bg-green-500"></span>
-                      已发布
+                      Published
                     </div>
                     <div className="text-lg font-semibold text-green-600">
                       {userStats.publishedContents}
@@ -502,47 +502,47 @@ export default function ProfilePage() {
                   </div>
                 </div>
                 
-                {/* 加入时间 */}
+                {/* Join Date */}
                 <div className="border-t border-gray-200 pt-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 text-sm text-gray-600">
                       <Clock className="w-4 h-4" />
-                      加入时间
+                      Join Date
                     </div>
                     <div className="text-sm text-gray-900">
-                      {userStats.joinDate ? new Date(userStats.joinDate).toLocaleDateString('zh-CN') : ''}
+                      {userStats.joinDate ? new Date(userStats.joinDate).toLocaleDateString('en-US') : ''}
                     </div>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* 快捷操作 */}
+            {/* Quick Actions */}
             <div className="bg-white rounded-xl shadow-sm p-6">
               <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
                 <Settings className="w-5 h-5 text-gray-600" />
-                快捷操作
+                Quick Actions
               </h3>
               <div className="space-y-2">
                 <button
                   onClick={() => router.push('/user-info')}
                   className="w-full px-4 py-3 text-left text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors flex items-center justify-between"
                 >
-                  <span>完善个人资料</span>
+                  <span>Edit Profile</span>
                   <span className="text-gray-400">→</span>
                 </button>
                 <button
                   onClick={() => router.push('/home')}
                   className="w-full px-4 py-3 text-left text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors flex items-center justify-between"
                 >
-                  <span>开始创作</span>
+                  <span>Start Creating</span>
                   <span className="text-gray-400">→</span>
                 </button>
                 <button
                   onClick={() => router.push('/gallery')}
                   className="w-full px-4 py-3 text-left text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors flex items-center justify-between"
                 >
-                  <span>浏览图库</span>
+                  <span>Browse Gallery</span>
                   <span className="text-gray-400">→</span>
                 </button>
               </div>
@@ -559,14 +559,14 @@ export default function ProfilePage() {
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
                     <span className="text-2xl">🌟</span>
-                    已发布作品
+                    Published Works
                     <span className="text-sm font-normal text-magazine-primary">({userStats.publishedContents})</span>
                   </h3>
                   <button
                     onClick={() => router.push('/home')}
                     className="text-sm text-magazine-primary hover:text-magazine-secondary font-medium"
                   >
-                    在社区查看 →
+                    View in Community →
                   </button>
                 </div>
                 
@@ -587,20 +587,20 @@ export default function ProfilePage() {
                               // eslint-disable-next-line @next/next/no-img-element
                               <img
                                 src={firstImageUrl}
-                                alt={content.title || '已发布作品封面'}
+                                alt={content.title || 'Published Work Cover'}
                                 className="w-full h-full object-cover"
                               />
                             ) : (
                               <div className="flex flex-col items-center justify-center text-magazine-primary">
                                 <ImageIcon className="w-8 h-8 mb-2" />
-                                <span className="text-xs text-gray-500">暂无封面图</span>
+                                <span className="text-xs text-gray-500">No Cover Image</span>
                               </div>
                             )}
                           </div>
                           <div className="p-3 bg-white">
                             <div className="flex items-center justify-between">
                               <h4 className="text-sm font-semibold text-gray-900 line-clamp-1 group-hover:text-magazine-primary transition-colors">
-                                {content.title || content.initialPrompt || '已发布作品'}
+                                {content.title || content.initialPrompt || 'Published Work'}
                               </h4>
                               {content.moduleLabel && (
                                 <span className="text-[10px] font-medium tracking-[0.3em] text-magazine-primary/70">
@@ -616,10 +616,10 @@ export default function ProfilePage() {
                             <div className="mt-2 flex items-center justify-between text-xs text-gray-400">
                               <span className="flex items-center gap-1">
                                 <ImageIcon className="w-3 h-3" />
-                                {content.imageCount || 0} 张
+                                {content.imageCount || 0} images
                               </span>
                               <span>
-                                {new Date(content.publishedAt || content.createdAt).toLocaleDateString('zh-CN')}
+                                {new Date(content.publishedAt || content.createdAt).toLocaleDateString('en-US')}
                               </span>
                             </div>
                             </div>
@@ -632,14 +632,14 @@ export default function ProfilePage() {
                       onClick={() => router.push('/home')}
                       className="px-6 py-2 bg-magazine-primary text-white rounded-lg hover:bg-magazine-secondary transition-colors text-sm font-medium"
                     >
-                      查看全部已发布 →
+                      View All Published →
                     </button>
                   </div>
                 </div>
               </div>
             )}
             
-            {/* 最近创作 */}
+            {/* Recent Creations */}
             <div className="bg-white rounded-xl shadow-sm p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
@@ -656,7 +656,7 @@ export default function ProfilePage() {
                     onClick={() => router.push('/profile')}
                     className="text-sm text-magazine-primary hover:text-magazine-secondary"
                   >
-                    返回全部 →
+                    Back to All →
                   </button>
                 )}
                 {activeTab === 'all' && (
@@ -664,17 +664,17 @@ export default function ProfilePage() {
                     onClick={() => router.push('/profile?tab=completed')}
                     className="text-sm text-magazine-primary hover:text-magazine-secondary"
                   >
-                    查看全部 →
+                    View All →
                   </button>
                 )}
               </div>
 
-              {/* 搜索框 */}
+              {/* Search Box */}
               <div className="relative mb-4">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input
                   type="text"
-                  placeholder="搜索你的创作..."
+                  placeholder="Search your creations..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full pl-10 pr-10 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-magazine-primary focus:border-transparent"
@@ -694,32 +694,32 @@ export default function ProfilePage() {
                   <FileText className="w-12 h-12 mx-auto mb-3 opacity-30" />
                   {activeTab === 'published' ? (
                     <>
-                      <p className="mb-3">已发布的作品在首页"社区作品"信息流中显示</p>
+                      <p className="mb-3">Published works are displayed in the "Community Works" feed on the home page</p>
                       <button
                         onClick={() => router.push('/home')}
                         className="mt-4 px-6 py-2 bg-magazine-primary text-white rounded-lg hover:bg-magazine-secondary"
                       >
-                        去首页查看已发布作品 →
+                        View Published Works on Home →
                       </button>
                     </>
                   ) : searchQuery ? (
                     <>
-                      <p>未找到匹配的创作</p>
+                      <p>No matching creations found</p>
                     <button
                       onClick={() => setSearchQuery('')}
                       className="mt-4 px-6 py-2 text-magazine-primary hover:text-magazine-secondary"
                     >
-                      清除搜索
+                      Clear Search
                     </button>
                     </>
                   ) : (
                     <>
-                      <p>还没有创作记录</p>
+                      <p>No creation records yet</p>
                     <button
                       onClick={() => router.push('/home')}
                       className="mt-4 px-6 py-2 bg-magazine-primary text-white rounded-lg hover:bg-magazine-secondary"
                     >
-                      开始创作
+                      Start Creating
                     </button>
                     </>
                   )}
@@ -735,18 +735,18 @@ export default function ProfilePage() {
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <h4 className="font-medium text-gray-900 group-hover:text-magazine-primary transition-colors line-clamp-1">
-                            {content.title || content.initialPrompt || '创作记录'}
+                            {content.title || content.initialPrompt || 'Creation Record'}
                           </h4>
                           <p className="text-sm text-gray-500 mt-1 line-clamp-2">
-                            {content.storyNarrative || '暂无描述'}
+                            {content.storyNarrative || 'No description'}
                           </p>
                           <div className="flex items-center gap-4 mt-3 text-xs text-gray-400">
                             <span className="flex items-center gap-1">
                               <ImageIcon className="w-3 h-3" />
-                              {content.imageCount || 0} 张图片
+                              {content.imageCount || 0} images
                             </span>
                             <span>
-                              {new Date(content.createdAt).toLocaleDateString('zh-CN')}
+                              {new Date(content.createdAt).toLocaleDateString('en-US')}
                             </span>
                           </div>
                         </div>

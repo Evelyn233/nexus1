@@ -798,7 +798,7 @@ const MAX_GENERATED_IMAGES = 20 // 最多生成20张图（免费额度）
       setMessages(prev => [...prev, {
         id: 'assistant-thinking',
         type: 'assistant',
-        content: '正在分析...'
+        content: 'Analyzing...'
       }])
       
       setTimeout(async () => {

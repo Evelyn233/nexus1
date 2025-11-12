@@ -708,7 +708,7 @@ function UserProfileContent() {
   
   // 删除用户
   const deleteUser = (name: string) => {
-    if (confirm(`确定要删除用户 "${name}" 的所有信息吗？`)) {
+    if (confirm(`Are you sure you want to delete all information for user "${name}"?`)) {
       removeUserFromList(name)
       setUserListState(getUserList())
       if (currentUserName === name) {
@@ -724,13 +724,13 @@ function UserProfileContent() {
       <div className="space-y-4">
         <div className="text-center py-4">
           <div className="text-4xl mb-2">👥</div>
-          <p className="text-lg font-medium text-gray-600">选择或创建用户</p>
+          <p className="text-lg font-medium text-gray-600">Select or Create User</p>
         </div>
         
-        {/* 用户列表 */}
+        {/* User List */}
         {userList.length > 0 && (
           <div className="bg-gray-50 p-4 rounded-lg">
-            <h3 className="font-medium text-gray-900 mb-3">已有用户</h3>
+            <h3 className="font-medium text-gray-900 mb-3">Existing Users</h3>
             <div className="space-y-2">
               {userList.map((name) => (
                 <div key={name} className="flex items-center justify-between p-2 bg-white rounded border">
@@ -740,13 +740,13 @@ function UserProfileContent() {
                       onClick={() => switchUser(name)}
                       className="px-3 py-1 bg-magazine-primary text-white text-sm rounded hover:bg-magazine-secondary"
                     >
-                      选择
+                      Select
                     </button>
                     <button
                       onClick={() => deleteUser(name)}
                       className="px-3 py-1 bg-red-500 text-white text-sm rounded hover:bg-red-600"
                     >
-                      删除
+                      Delete
                     </button>
                   </div>
                 </div>
@@ -757,13 +757,13 @@ function UserProfileContent() {
         
         {/* 创建新用户 */}
         <div className="bg-magazine-light-gray p-4 rounded-lg">
-          <h3 className="font-medium text-magazine-dark mb-3">创建新用户</h3>
+          <h3 className="font-medium text-magazine-dark mb-3">Create New User</h3>
           <div className="flex space-x-2">
             <input
               type="text"
               value={newUserName}
               onChange={(e) => setNewUserName(e.target.value)}
-              placeholder="输入用户名字"
+              placeholder="Enter user name"
               className="flex-1 px-3 py-2 border border-magazine-accent rounded-lg focus:outline-none focus:ring-2 focus:ring-magazine-primary"
               onKeyPress={(e) => e.key === 'Enter' && addNewUser()}
             />
@@ -772,7 +772,7 @@ function UserProfileContent() {
               disabled={!newUserName.trim()}
               className="px-4 py-2 bg-magazine-primary text-white rounded-lg hover:bg-magazine-secondary disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              创建
+              Create
             </button>
           </div>
         </div>
@@ -786,8 +786,8 @@ function UserProfileContent() {
       <div className="text-center py-8">
         <div className="text-gray-400 mb-4">
           <div className="text-6xl mb-2">👤</div>
-          <p className="text-lg font-medium text-gray-600">用户 "{currentUserName}" 还没有设置信息</p>
-          <p className="text-sm text-gray-500 mt-2">点击"编辑信息"开始设置个人信息</p>
+          <p className="text-lg font-medium text-gray-600">User "{currentUserName}" has not set information yet</p>
+          <p className="text-sm text-gray-500 mt-2">Click "Edit Info" to start setting up personal information</p>
         </div>
         
         {/* 用户切换按钮 */}
@@ -796,7 +796,7 @@ function UserProfileContent() {
             onClick={() => setShowUserSelector(true)}
             className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors text-sm mr-2"
           >
-            切换用户
+            Switch User
           </button>
           <button
             onClick={() => {
@@ -806,7 +806,7 @@ function UserProfileContent() {
             }}
             className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm"
           >
-            退出登录
+            Logout
           </button>
         </div>
       </div>
@@ -819,7 +819,7 @@ function UserProfileContent() {
       <div className="bg-magazine-light-gray p-4 rounded-lg">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="font-medium text-magazine-dark">当前用户</h3>
+            <h3 className="font-medium text-magazine-dark">Current User</h3>
             <p className="text-lg font-semibold text-magazine-primary">{currentUserName}</p>
           </div>
           <div className="flex space-x-2">
@@ -827,7 +827,7 @@ function UserProfileContent() {
               onClick={() => setShowUserSelector(true)}
               className="px-3 py-1 bg-magazine-primary text-white text-sm rounded hover:bg-magazine-secondary"
             >
-              切换用户
+              Switch User
             </button>
             <button
               onClick={() => {
@@ -837,54 +837,54 @@ function UserProfileContent() {
               }}
               className="px-3 py-1 bg-red-500 text-white text-sm rounded hover:bg-red-600"
             >
-              退出
+              Logout
             </button>
           </div>
         </div>
       </div>
       
-      {/* 基本信息 - 紧凑显示 */}
+      {/* Basic Info - Compact Display */}
       <div className="bg-gray-50 p-3 rounded-lg mt-2">
-        <h3 className="font-medium text-gray-900 mb-2 text-sm">基本信息</h3>
+        <h3 className="font-medium text-gray-900 mb-2 text-sm">Basic Info</h3>
         <div className="space-y-1 text-xs">
           <div className="flex justify-between">
-            <span className="text-gray-600">性别：</span>
-            <span className="text-gray-900">{userInfo.gender === 'male' ? '男' : userInfo.gender === 'female' ? '女' : '未设置'}</span>
+            <span className="text-gray-600">Gender:</span>
+            <span className="text-gray-900">{userInfo.gender === 'male' ? 'Male' : userInfo.gender === 'female' ? 'Female' : 'Not Set'}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-600">年龄：</span>
-            <span className="text-gray-900">{userInfo.age ? `${userInfo.age}岁` : '未设置'}</span>
+            <span className="text-gray-600">Age:</span>
+            <span className="text-gray-900">{userInfo.age ? `${userInfo.age} years` : 'Not Set'}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-600">身高：</span>
-            <span className="text-gray-900">{userInfo.height ? `${userInfo.height}cm` : '未设置'}</span>
+            <span className="text-gray-600">Height:</span>
+            <span className="text-gray-900">{userInfo.height ? `${userInfo.height}cm` : 'Not Set'}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-600">体重：</span>
-            <span className="text-gray-900">{userInfo.weight ? `${userInfo.weight}kg` : '未设置'}</span>
+            <span className="text-gray-600">Weight:</span>
+            <span className="text-gray-900">{userInfo.weight ? `${userInfo.weight}kg` : 'Not Set'}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-600">所在地：</span>
-            <span className="text-gray-900">{userInfo.location || '未设置'}</span>
+            <span className="text-gray-600">Location:</span>
+            <span className="text-gray-900">{userInfo.location || 'Not Set'}</span>
           </div>
         </div>
       </div>
 
-      {/* 生日信息 */}
+      {/* Birthday Info */}
       {userInfo.birthDate.year && (
         <div className="bg-gray-50 p-3 rounded-lg">
-          <h3 className="font-medium text-gray-900 mb-2 text-sm">生日信息</h3>
+          <h3 className="font-medium text-gray-900 mb-2 text-sm">Birthday</h3>
           <div className="text-xs text-gray-600">
-            {userInfo.birthDate.year}年{userInfo.birthDate.month}月{userInfo.birthDate.day}日
-            {userInfo.birthDate.hour && ` ${userInfo.birthDate.hour}时`}
+            {userInfo.birthDate.month}/{userInfo.birthDate.day}/{userInfo.birthDate.year}
+            {userInfo.birthDate.hour && ` ${userInfo.birthDate.hour}:00`}
           </div>
         </div>
       )}
 
-      {/* 性格描述 */}
+      {/* Personality Description */}
       {userInfo.personality && (
         <div className="bg-gray-50 p-3 rounded-lg">
-          <h3 className="font-medium text-gray-900 mb-2 text-sm">性格描述</h3>
+          <h3 className="font-medium text-gray-900 mb-2 text-sm">Personality</h3>
           <div className="text-xs text-gray-600">{userInfo.personality}</div>
         </div>
       )}
@@ -900,19 +900,19 @@ function UserProfileContent() {
       {/* 用户简介报告 */}
       {latestReport && (
         <div className="bg-blue-50 p-4 rounded-lg">
-          <h3 className="font-medium text-blue-900 mb-2">最新对话报告</h3>
+          <h3 className="font-medium text-blue-900 mb-2">Latest Conversation Report</h3>
           <div className="text-sm text-blue-700 space-y-2">
             <div>
-              <span className="font-medium">对话总结：</span>
+              <span className="font-medium">Conversation Summary: </span>
               <span>{latestReport.conversationSummary}</span>
             </div>
             <div>
-              <span className="font-medium">情感状态：</span>
+              <span className="font-medium">Emotional State: </span>
               <span>{latestReport.emotionalState}</span>
             </div>
             {latestReport.personalityInsights.length > 0 && (
               <div>
-                <span className="font-medium">性格洞察：</span>
+                <span className="font-medium">Personality Insights: </span>
                 <div className="mt-1">
                   {latestReport.personalityInsights.map((insight: string, index: number) => (
                     <div key={index} className="text-xs bg-blue-100 px-2 py-1 rounded mr-1 mb-1 inline-block">
@@ -924,7 +924,7 @@ function UserProfileContent() {
             )}
             {latestReport.recommendations.length > 0 && (
               <div>
-                <span className="font-medium">建议：</span>
+                <span className="font-medium">Recommendations: </span>
                 <div className="mt-1">
                   {latestReport.recommendations.map((rec: string, index: number) => (
                     <div key={index} className="text-xs bg-green-100 px-2 py-1 rounded mr-1 mb-1 inline-block">
@@ -935,7 +935,7 @@ function UserProfileContent() {
               </div>
             )}
             <div className="text-xs text-blue-600 mt-2">
-              对话次数：{latestReport.conversationCount} | 总对话时间：{latestReport.totalConversationTime}
+              Conversations: {latestReport.conversationCount} | Total Time: {latestReport.totalConversationTime}
             </div>
           </div>
         </div>
@@ -944,7 +944,7 @@ function UserProfileContent() {
       {/* 报告历史 */}
       {allReports.length > 1 && (
         <div className="bg-gray-50 p-4 rounded-lg">
-          <h3 className="font-medium text-gray-900 mb-2">报告历史</h3>
+          <h3 className="font-medium text-gray-900 mb-2">Report History</h3>
           <div className="text-sm text-gray-600 space-y-1">
             {allReports.slice(-5).reverse().map((report, index) => (
               <div key={index} className="flex justify-between items-center">
@@ -963,7 +963,7 @@ function UserProfileContent() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 max-h-[80vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-gray-900">选择用户</h2>
+              <h2 className="text-xl font-semibold text-gray-900">Select User</h2>
               <button
                 onClick={() => setShowUserSelector(false)}
                 className="text-gray-400 hover:text-gray-600"
@@ -976,7 +976,7 @@ function UserProfileContent() {
               {/* 用户列表 */}
               {userList.length > 0 && (
                 <div className="bg-gray-50 p-4 rounded-lg">
-                  <h3 className="font-medium text-gray-900 mb-3">已有用户</h3>
+                  <h3 className="font-medium text-gray-900 mb-3">Existing Users</h3>
                   <div className="space-y-2">
                     {userList.map((name) => (
                       <div key={name} className="flex items-center justify-between p-2 bg-white rounded border">
@@ -986,13 +986,13 @@ function UserProfileContent() {
                             onClick={() => switchUser(name)}
                             className="px-3 py-1 bg-magazine-primary text-white text-sm rounded hover:bg-magazine-secondary"
                           >
-                            选择
+                            Select
                           </button>
                           <button
                             onClick={() => deleteUser(name)}
                             className="px-3 py-1 bg-red-500 text-white text-sm rounded hover:bg-red-600"
                           >
-                            删除
+                            Delete
                           </button>
                         </div>
                       </div>
@@ -1003,13 +1003,13 @@ function UserProfileContent() {
               
               {/* 创建新用户 */}
               <div className="bg-magazine-light-gray p-4 rounded-lg">
-                <h3 className="font-medium text-magazine-dark mb-3">创建新用户</h3>
+                <h3 className="font-medium text-magazine-dark mb-3">Create New User</h3>
                 <div className="flex space-x-2">
                   <input
                     type="text"
                     value={newUserName}
                     onChange={(e) => setNewUserName(e.target.value)}
-                    placeholder="输入用户名字"
+                    placeholder="Enter user name"
                     className="flex-1 px-3 py-2 border border-magazine-accent rounded-lg focus:outline-none focus:ring-2 focus:ring-magazine-primary"
                     onKeyPress={(e) => e.key === 'Enter' && addNewUser()}
                   />
@@ -1018,7 +1018,7 @@ function UserProfileContent() {
                     disabled={!newUserName.trim()}
                     className="px-4 py-2 bg-magazine-primary text-white rounded-lg hover:bg-magazine-secondary disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    创建
+                    Create
                   </button>
                 </div>
               </div>

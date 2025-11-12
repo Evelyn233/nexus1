@@ -97,21 +97,21 @@ export default function InputSection({ value, onChange, onSend, onAdd, onImageUp
               className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg flex items-center space-x-2"
             >
               <span>✏️</span>
-              <span>写文字</span>
+              <span>Add Text</span>
             </button>
             <button
               onClick={() => fileInputRef.current?.click()}
               className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg flex items-center space-x-2"
             >
               <span>🖼️</span>
-              <span>添加本地图片</span>
+              <span>Add Local Image</span>
             </button>
             <button
               onClick={() => cameraInputRef.current?.click()}
               className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg flex items-center space-x-2"
             >
               <span>📷</span>
-              <span>相机拍照</span>
+              <span>Take Photo</span>
             </button>
             <button
               onClick={() => {
@@ -130,7 +130,7 @@ export default function InputSection({ value, onChange, onSend, onAdd, onImageUp
               className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg flex items-center space-x-2"
             >
               <span>🤖</span>
-              <span>传图片给AI</span>
+              <span>Send Image to AI</span>
             </button>
           </div>
         </div>
@@ -144,7 +144,7 @@ export default function InputSection({ value, onChange, onSend, onAdd, onImageUp
               type="text"
               value={addValue}
               onChange={(e) => setAddValue(e.target.value)}
-              placeholder="输入要添加的内容..."
+              placeholder="Enter content to add..."
               className="flex-1 px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-magazine-primary"
               onKeyPress={(e) => e.key === 'Enter' && handleAddText()}
               autoFocus
@@ -154,7 +154,7 @@ export default function InputSection({ value, onChange, onSend, onAdd, onImageUp
               disabled={!addValue.trim()}
               className="px-3 py-1.5 text-sm bg-magazine-primary text-white rounded-lg hover:bg-magazine-secondary disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              确认
+              Confirm
             </button>
             <button
               onClick={() => {
@@ -163,7 +163,7 @@ export default function InputSection({ value, onChange, onSend, onAdd, onImageUp
               }}
               className="px-3 py-1.5 text-sm text-gray-500 hover:text-gray-700"
             >
-              取消
+              Cancel
             </button>
           </div>
         </div>
@@ -191,15 +191,15 @@ export default function InputSection({ value, onChange, onSend, onAdd, onImageUp
           type="button"
           onClick={() => setShowAddMenu(!showAddMenu)}
           className="px-3 py-2 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors whitespace-nowrap relative"
-          title="添加内容"
+          title="Add Content"
         >
-          ➕ 添加
+          ➕ Add
         </button>
       <input
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        placeholder="分享你的想法、情绪或生活..."
+        placeholder="Share your thoughts, emotions, or life..."
         className="magazine-input flex-1"
       />
       <button
@@ -207,7 +207,7 @@ export default function InputSection({ value, onChange, onSend, onAdd, onImageUp
         disabled={!value.trim()}
         className="magazine-button whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        发送
+        Send
       </button>
     </form>
     </div>
