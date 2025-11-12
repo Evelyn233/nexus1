@@ -240,16 +240,24 @@ export default function HistoryPage() {
 
                 {/* 操作按钮 */}
                 <div className="flex gap-2">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      router.push(`/chat-new?continue=${content.id}`)
-                    }}
-                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-magazine-primary text-white text-sm rounded-lg hover:bg-magazine-secondary transition-colors"
-                  >
-                    <Play className="w-4 h-4" />
-                    继续创作
-                  </button>
+                  {/* 🔥 已发布的内容不能继续创作 */}
+                  {content.status !== 'published' && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        router.push(`/chat-new?continue=${content.id}`)
+                      }}
+                      className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-magazine-primary text-white text-sm rounded-lg hover:bg-magazine-secondary transition-colors"
+                    >
+                      <Play className="w-4 h-4" />
+                      继续创作
+                    </button>
+                  )}
+                  {content.status === 'published' && (
+                    <div className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-teal-100 text-teal-700 text-sm rounded-lg">
+                      ✓ 已发布
+                    </div>
+                  )}
                   <button
                     onClick={(e) => {
                       e.stopPropagation()

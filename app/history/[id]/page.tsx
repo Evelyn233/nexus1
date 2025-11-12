@@ -338,55 +338,53 @@ export default function HistoryDetailPage() {
         <div className="bg-white rounded-xl shadow-sm p-6">
           <div className="space-y-6">
             
-            {/* 🔥 已发布的作品：只显示标题，不显示聊天记录 */}
+            {/* 🔥 已发布的作品：显示标题和聊天记录，但不允许继续创作 */}
             {content.status === 'published' && content.title && (
               <div className="mb-6">
                 <h2 className="text-2xl font-bold text-gray-900">{content.title}</h2>
               </div>
             )}
             
-            {/* 🔥 未发布的作品：显示完整的聊天记录 */}
-            {content.status !== 'published' && (
-              <>
-                {/* 用户初始输入 */}
-                <div className="flex justify-end">
-                  <div className="max-w-[80%] bg-magazine-primary text-white rounded-2xl px-4 py-3">
-                    <p className="text-sm leading-relaxed">{content.initialPrompt}</p>
+            {/* 🔥 所有作品都显示聊天记录（包括已发布的） */}
+            <>
+              {/* 用户初始输入 */}
+              <div className="flex justify-end">
+                <div className="max-w-[80%] bg-magazine-primary text-white rounded-2xl px-4 py-3">
+                  <p className="text-sm leading-relaxed">{content.initialPrompt}</p>
+                </div>
+              </div>
+              
+              {/* 问答对话 */}
+              {content.questions && content.questions.map((question, index) => (
+                <div key={index} className="space-y-4">
+                  {/* AI问题 */}
+                  <div className="flex justify-start">
+                    <div className="max-w-[80%] bg-white text-gray-800 rounded-2xl px-4 py-3 shadow-sm border">
+                      <p className="text-sm leading-relaxed">{question}</p>
+                    </div>
+                  </div>
+                  
+                  {/* 用户回答 */}
+                  {content.answers[index] && (
+                    <div className="flex justify-end">
+                      <div className="max-w-[80%] bg-magazine-primary text-white rounded-2xl px-4 py-3">
+                        <p className="text-sm leading-relaxed">{content.answers[index]}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+              
+              {/* AI生成的故事叙述 */}
+              {content.storyNarrative && (
+                <div className="flex justify-start">
+                  <div className="max-w-[80%] bg-gradient-to-r from-blue-50 to-indigo-50 text-gray-800 rounded-2xl px-4 py-3 shadow-sm border">
+                    <div className="text-xs text-gray-500 mb-2">📖 故事叙述</div>
+                    <p className="text-sm leading-relaxed whitespace-pre-wrap">{content.storyNarrative}</p>
                   </div>
                 </div>
-                
-                {/* 问答对话 */}
-                {content.questions && content.questions.map((question, index) => (
-                  <div key={index} className="space-y-4">
-                    {/* AI问题 */}
-                    <div className="flex justify-start">
-                      <div className="max-w-[80%] bg-white text-gray-800 rounded-2xl px-4 py-3 shadow-sm border">
-                        <p className="text-sm leading-relaxed">{question}</p>
-                      </div>
-                    </div>
-                    
-                    {/* 用户回答 */}
-                    {content.answers[index] && (
-                      <div className="flex justify-end">
-                        <div className="max-w-[80%] bg-magazine-primary text-white rounded-2xl px-4 py-3">
-                          <p className="text-sm leading-relaxed">{content.answers[index]}</p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
-                
-                {/* AI生成的故事叙述 */}
-                {content.storyNarrative && (
-                  <div className="flex justify-start">
-                    <div className="max-w-[80%] bg-gradient-to-r from-blue-50 to-indigo-50 text-gray-800 rounded-2xl px-4 py-3 shadow-sm border">
-                      <div className="text-xs text-gray-500 mb-2">📖 故事叙述</div>
-                      <p className="text-sm leading-relaxed whitespace-pre-wrap">{content.storyNarrative}</p>
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
+              )}
+            </>
             
             {/* 生成的图片 - 按逻辑顺序（sceneIndex）排序显示 */}
             {content.images && Array.isArray(content.images) && content.images.length > 0 ? (

@@ -251,11 +251,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: '用户不存在' }, { status: 404 })
     }
 
-    // 构建查询条件
+    // 🔥 构建查询条件
+    // 🔥 重要：不过滤已发布的内容，所有内容（包括已发布的 INLIFE 和 INSTYLE）都应该返回
     const where: any = { userId: user.id }
     if (category) {
       where.category = category
     }
+    // 🔥 不添加 status 过滤，确保已发布的内容也包含在结果中
 
     // 获取内容列表
     const contents = await prisma.userGeneratedContent.findMany({

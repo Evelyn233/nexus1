@@ -247,12 +247,14 @@ export default function ProfilePage() {
     .filter(content => content.status === 'published')
     .map(content => ({
       ...content,
+      // 🔥 已发布内容不显示INCURRENT标签，但保留其他标签
       moduleLabel:
-        content.moduleLabel === 'INCURRENT' ? 'INCURRENT' :
         content.moduleLabel === 'INLIFE' ? 'INLIFE' :
         content.moduleLabel === 'INSTYLE' ? 'INSTYLE' :
-        content.moduleLabel || 'INCURRENT'
+        content.moduleLabel === 'INCURRENT' ? undefined : // 已发布内容不显示INCURRENT
+        content.moduleLabel || undefined
     }))
+    // 不过滤，保留所有已发布内容，只是不显示INCURRENT标签
   
   // 获取当前tab的标题
   const getTabTitle = () => {
@@ -600,9 +602,11 @@ export default function ProfilePage() {
                               <h4 className="text-sm font-semibold text-gray-900 line-clamp-1 group-hover:text-magazine-primary transition-colors">
                                 {content.title || content.initialPrompt || '已发布作品'}
                               </h4>
-                              <span className="text-[10px] font-medium tracking-[0.3em] text-magazine-primary/70">
-                                {content.moduleLabel}
-                              </span>
+                              {content.moduleLabel && (
+                                <span className="text-[10px] font-medium tracking-[0.3em] text-magazine-primary/70">
+                                  {content.moduleLabel}
+                                </span>
+                              )}
                             </div>
                             {content.storyNarrative && (
                               <p className="text-xs text-gray-500 mt-2 line-clamp-2 whitespace-pre-line">

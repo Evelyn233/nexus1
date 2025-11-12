@@ -192,7 +192,8 @@ function createPsychodramaImagePrompt({
   actionHint,
   protagonistName,
   userProfile,
-  userMetadata
+  userMetadata,
+  otherCharacters
 }: {
   emotionType: string
   emotionIntensity: number
@@ -213,6 +214,7 @@ function createPsychodramaImagePrompt({
   protagonistName?: string
   userProfile?: any
   userMetadata?: any
+  otherCharacters?: string[]
 }) {
   const narrativeSegments: string[] = []
 
@@ -224,6 +226,28 @@ function createPsychodramaImagePrompt({
 
   if (location) {
     narrativeSegments.push(`场景地点：${location}`)
+  }
+
+  // 🔥 添加其他角色的描述
+  if (Array.isArray(otherCharacters) && otherCharacters.length > 0) {
+    const charactersDesc = otherCharacters.map(char => {
+      // 根据角色类型生成描述
+      if (char.includes('老板') || char.includes('boss')) {
+        return `其他角色：${char}（中年男性，约40-50岁，穿着商务装，男性特征明显）`
+      } else if (char.includes('同事') || char.includes('colleague')) {
+        return `其他角色：${char}（30-45岁，穿着商务休闲装）`
+      } else if (char.includes('顾问') || char.includes('consultant')) {
+        return `其他角色：${char}（30-45岁，穿着商务装）`
+      } else if (char.includes('朋友') || char.includes('friend')) {
+        return `其他角色：${char}（同龄人，穿着休闲装）`
+      } else if (char.includes('父母') || char.includes('parent')) {
+        return `其他角色：${char}（50-60岁，穿着居家服）`
+      } else {
+        return `其他角色：${char}（需要出现在场景中）`
+      }
+    }).join('；')
+    narrativeSegments.push(charactersDesc)
+    narrativeSegments.push(`Other characters in scene: ${otherCharacters.join(', ')}. They must be visible in the image, with clear appearance descriptions.`)
   }
 
   const appearance = buildProtagonistAppearance(userProfile, userMetadata)
@@ -719,6 +743,40 @@ ${conversationText}
     const allInputs = [initialPrompt, ...answers].filter(input => input && input.trim())
     console.log('🔄 [PSYCHODRAMA] 叙述输入汇总:', allInputs)
 
+    // 🔥 从用户输入中提取提到的人物
+    const extractOtherCharacters = (inputs: string[]): string[] => {
+      const allText = inputs.join(' ')
+      const characters: string[] = []
+      
+      // 提取常见人物关键词
+      if (allText.includes('老板') || allText.includes('boss')) {
+        characters.push('老板')
+      }
+      if (allText.includes('同事') || allText.includes('colleague')) {
+        characters.push('同事')
+      }
+      if (allText.includes('顾问') || allText.includes('consultant')) {
+        characters.push('顾问')
+      }
+      if (allText.includes('朋友') || allText.includes('friend')) {
+        characters.push('朋友')
+      }
+      if (allText.includes('父母') || allText.includes('parent')) {
+        characters.push('父母')
+      }
+      if (allText.includes('男朋友') || allText.includes('boyfriend')) {
+        characters.push('男朋友')
+      }
+      if (allText.includes('女朋友') || allText.includes('girlfriend')) {
+        characters.push('女朋友')
+      }
+      
+      return Array.from(new Set(characters)) // 去重
+    }
+
+    const extractedOtherCharacters = extractOtherCharacters(allInputs)
+    console.log('👥 [PSYCHODRAMA] 从用户输入提取的人物:', extractedOtherCharacters)
+
     const extractedLocation = (() => {
       const allText = allInputs.join(' ')
       if (allText.includes('淞虹路') || allText.includes('淞沪路')) {
@@ -1132,6 +1190,15 @@ ${conversationText}
         narrativeBlock: finalNarrativeBlock
       })
 
+      const baseOtherCharacters = (baseScene as any)?.otherCharacters
+      // 🔥 合并基础场景中的人物和从用户输入提取的人物
+      const otherCharacters = [
+        ...(Array.isArray(baseOtherCharacters) ? baseOtherCharacters : []),
+        ...extractedOtherCharacters
+      ].filter((char, index, arr) => arr.indexOf(char) === index) // 去重
+      
+      console.log('👥 [PSYCHODRAMA] 最终人物列表:', otherCharacters)
+
       const imagePrompt = createPsychodramaImagePrompt({
         emotionType: emotion.type,
         emotionIntensity: emotion.intensity,
@@ -1143,11 +1210,9 @@ ${conversationText}
         clothingHint,
         actionHint: narr.actionHint,
         protagonistName,
-        userProfile: userInfo
+        userProfile: userInfo,
+        otherCharacters
       })
-
-      const baseOtherCharacters = (baseScene as any)?.otherCharacters
-      const otherCharacters = Array.isArray(baseOtherCharacters) ? baseOtherCharacters : []
 
       const subconsciousDesireText = Array.isArray(subconsciousTraits) && subconsciousTraits.length > 0
         ? subconsciousTraits.slice(0, 2).join('、')
@@ -1313,6 +1378,14 @@ ${conversationText}
           atmosphere: derivedContext.atmosphere || 'intimate interior'
         }
 
+      // 🔥 合并基础场景中的人物和从用户输入提取的人物
+      const fallbackOtherCharacters = [
+        ...(Array.isArray(baseScene?.otherCharacters) ? baseScene.otherCharacters : []),
+        ...extractedOtherCharacters
+      ].filter((char, index, arr) => arr.indexOf(char) === index) // 去重
+      
+      console.log('👥 [PSYCHODRAMA] Fallback场景人物列表:', fallbackOtherCharacters)
+      
       const imagePrompt = createPsychodramaImagePrompt({
         emotionType: emotion.type,
         emotionIntensity: emotion.intensity,
@@ -1324,7 +1397,8 @@ ${conversationText}
         clothingHint,
         actionHint: derivedContext.actionHint,
         protagonistName,
-        userProfile: userInfo
+        userProfile: userInfo,
+        otherCharacters: fallbackOtherCharacters
       })
 
       const fallbackNarrativePrimary = userPrimaryIsChinese ? sceneDescription_CN : sceneDescription_EN
@@ -1356,7 +1430,7 @@ ${conversationText}
         emotionalIntensity: emotion.intensity,
         location: fallbackLocation,
         task,
-        otherCharacters: baseScene?.otherCharacters || [],
+        otherCharacters: fallbackOtherCharacters,
         innerMonologue,
         surfaceVsInner,
         consciousnessStream,

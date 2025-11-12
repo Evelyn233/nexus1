@@ -230,6 +230,27 @@ export class SceneGenerationService {
               role: 'system',
               content: `你是场景生成专家。任务：基于用户真实输入，生成具体场景。
 
+**🚨🚨🚨 【最高优先级】必须生成具体、生动的场景！🚨🚨🚨**
+
+**❌ 禁止生成概括性、空泛的场景描述：**
+- ❌ "她感到很开心"、"她觉得很无奈"、"内心感到无力感"（太抽象！）
+- ❌ "办公室环境明亮整洁"、"同事们看起来都很友好"（太普通！）
+- ❌ "工作氛围应该会很不错"、"整个系统却像陷入了泥潭"（太概括！）
+
+**✅ 必须生成具体、可视觉化的场景描述：**
+- ✅ 具体动作："她推开玻璃门，走进办公室，看到落地窗外的城市天际线"
+- ✅ 具体对话："她听到同事说'这个项目我们按老流程做'"
+- ✅ 具体物品："MacBook Pro屏幕上显示着Excel表格，旁边放着印有公司logo的咖啡杯"
+- ✅ 具体环境："落地窗高3米，阳光从左侧洒入，在白色办公桌上形成光影，窗外的绿植在微风中轻摆"
+- ✅ 具体行为："她坐在工位上，手指在键盘上快速敲击，偶尔停下来看向窗外的城市，然后继续打字"
+
+**🎯 场景描述必须包含：**
+1. **具体动作**：推门、坐下、打字、看向、说话等具体行为
+2. **具体物品**：MacBook、咖啡杯、白板、文件等具体物品及其细节
+3. **具体对话**：如果场景中有对话，必须写出具体内容（如"老板说'我们要做AI产品'"）
+4. **具体环境**：落地窗、绿植、灯光、桌椅等环境细节
+5. **具体表情/姿态**：皱眉、微笑、前倾、后靠等具体表情和身体姿态
+
 **🚨🚨🚨 【最高优先级】本次对话主题 🚨🚨🚨**
 
 **📌 用户本次对话的完整输入（按时间顺序 - 这是场景生成的唯一依据！）：**
@@ -2005,16 +2026,27 @@ description格式（双主角）："26-year-old Chinese female [user's actual ac
       - 只写这个场景发生的事
       - 场景1写场景1的事，场景2写场景2的事
       - 不要把所有场景的事都写进来！
+      - 🚨🚨🚨 必须包含具体细节：具体动作、具体对话、具体物品、具体环境细节
+      - ❌ 禁止使用概括性描述（如'感到开心'、'觉得无奈'、'内心感到'）
+      - ✅ 必须写具体行为（如'她推开玻璃门，看到落地窗外的城市'、'她听到同事说'XX'、'她打开电脑，屏幕上显示着XX'）
       示例：
         场景1'午夜惊醒' → '午夜时分，雷声把她惊醒。她猛地坐起，心跳加速...'（只写惊醒）
         场景2'检查窗户' → '她起身走到窗边，检查窗户是否关好...'（只写检查窗户）
-      ❌ 不要写性格标签！不要哲学总结！",
+      ❌ 不要写性格标签！不要哲学总结！不要概括性描述！",
       
       "description": "English scene description for image - ⚠️⚠️⚠️ 根据输入类型灵活生成：
       
+      **🚨🚨🚨 最高优先级：必须包含具体细节！🚨🚨🚨**
+      - ✅ 具体动作：'pushing open the glass door', 'tapping fingers on keyboard', 'leaning forward to read screen'
+      - ✅ 具体物品：'MacBook Pro on desk', 'coffee cup with logo', 'whiteboard with diagrams'
+      - ✅ 具体对话内容：'hearing colleague say \"XX\"', 'boss announcing \"XX\"'
+      - ✅ 具体环境：'floor-to-ceiling windows showing city skyline', 'green plants on desk', 'fluorescent lights reflecting on glass'
+      - ❌ 禁止概括：'feeling happy', 'feeling disappointed', 'working environment'（太抽象！）
+      - ❌ 禁止空泛：'nice office', 'friendly colleagues', 'good atmosphere'（太普通！）
+      
       **类型1-具体事件**（有明确地点、人物、动作）：
       写实场景描述，格式：主角在句首 + 性别年龄外貌 + 具体动作 + 环境细节
-      示例：'MALE BOSS (middle-aged, wearing expensive suit) gesturing... User (26-year-old Chinese female, 165cm, long hair) observing...'
+      示例：'MALE BOSS (middle-aged, wearing expensive suit) standing at whiteboard, pointing at charts, saying \"We need to...\". User (26-year-old Chinese female, 165cm, long hair) sitting at conference table, laptop open showing spreadsheet, taking notes with pen, floor-to-ceiling windows behind showing city skyline.'
       
       **类型2-情绪表达**（如'i feel lonely'）：
       情绪可视化场景，不需要具体地点，重点是视觉化情绪

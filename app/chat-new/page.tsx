@@ -70,6 +70,9 @@ const MAX_GENERATED_IMAGES = 20 // 最多生成20张图（免费额度）
     sceneTitle: string;
     sceneIndex: number;
     prompt: string;
+    isPsychodrama?: boolean;
+    isHypothetical?: boolean;
+    isOpinionScene?: boolean;
   }>>([]) // 🔥 收集所有生成的图片数据
   const generatedImagesDataRef = useRef<Array<{ 
     imageUrl: string; 
@@ -78,6 +81,9 @@ const MAX_GENERATED_IMAGES = 20 // 最多生成20张图（免费额度）
     sceneTitle: string;
     sceneIndex: number;
     prompt: string;
+    isPsychodrama?: boolean;
+    isHypothetical?: boolean;
+    isOpinionScene?: boolean;
   }>>([]) // 🔥 ref用于获取最新的图片数据
   
   // 🔥 辅助函数：同时更新state和ref
@@ -179,6 +185,7 @@ const MAX_GENERATED_IMAGES = 20 // 最多生成20张图（免费额度）
           prompt: string
           isPsychodrama?: boolean
           isHypothetical?: boolean
+          isOpinionScene?: boolean
         }
 
         const isHistoryImage = (img: HistoryImage | null): img is HistoryImage => Boolean(img)
@@ -229,7 +236,8 @@ const MAX_GENERATED_IMAGES = 20 // 最多生成20张图（免费额度）
                 sceneIndex: resolvedIndex,
                 prompt: typeof img.prompt === 'string' ? img.prompt : '',
                 isPsychodrama: Boolean(img.isPsychodrama),
-                isHypothetical: Boolean(img.isHypothetical)
+                isHypothetical: Boolean(img.isHypothetical),
+                isOpinionScene: Boolean(img.isOpinionScene)
               }
             })
             .filter(isHistoryImage)
@@ -261,7 +269,10 @@ const MAX_GENERATED_IMAGES = 20 // 最多生成20张图（免费额度）
               story: img.story,
               sceneTitle: img.sceneTitle,
               sceneIndex: img.sceneIndex,
-              prompt: img.prompt
+              prompt: img.prompt,
+              isPsychodrama: img.isPsychodrama || false,
+              isHypothetical: img.isHypothetical || false,
+              isOpinionScene: img.isOpinionScene || false
             }))
           )
 
@@ -1648,7 +1659,10 @@ ${aiPrompt}`
               story: sceneStory,
               sceneTitle: sceneTitle,
               sceneIndex: globalIndex, // 🔥 使用globalIndex而不是newIndex，保持逻辑顺序
-              prompt: sceneStory
+              prompt: sceneStory,
+              isPsychodrama: scene.isPsychodrama || false,
+              isHypothetical: scene.isHypothetical || false,
+              isOpinionScene: scene.isOpinionScene || false
             }]
           })
           
@@ -2438,7 +2452,10 @@ ${aiPrompt}`
               story: sceneStory || '',
               sceneTitle: scene.title || `场景 ${i + 1}`,
               sceneIndex: i,
-              prompt: sceneStory || ''
+              prompt: sceneStory || '',
+              isPsychodrama: scene.isPsychodrama || false,
+              isHypothetical: scene.isHypothetical || false,
+              isOpinionScene: scene.isOpinionScene || false
             }])
             
             // 更新进度

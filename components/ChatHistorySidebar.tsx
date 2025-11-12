@@ -59,7 +59,8 @@ export default function ChatHistorySidebar({ isOpen, onClose, onSessionSelect }:
         const data = await response.json()
         setSessions(data.sessions || [])
       } else {
-        // 使用新的用户生成内容API
+        // 🔥 使用新的用户生成内容API
+        // 🔥 重要：已发布的内容（包括 INLIFE 和 INSTYLE）也应该在聊天记录中显示，不会被删除
         console.log('🔍 [SIDEBAR] 开始加载用户生成内容...')
         const response = await fetch('/api/user/generated-content?limit=20&offset=0')
         console.log('🔍 [SIDEBAR] API响应状态:', response.status)
@@ -69,11 +70,13 @@ export default function ChatHistorySidebar({ isOpen, onClose, onSessionSelect }:
           success: data.success,
           contentsLength: data.contents?.length || 0,
           total: data.total || 0,
-          error: data.error
+          error: data.error,
+          publishedCount: data.contents?.filter((c: any) => c.status === 'published').length || 0
         })
         
         if (data.success && data.contents) {
-          // 转换数据格式以匹配现有接口
+          // 🔥 转换数据格式以匹配现有接口
+          // 🔥 注意：不过滤已发布的内容，所有内容（包括已发布的）都应该显示在聊天记录中
           const formattedImages = data.contents.map((content: any) => {
             console.log('🔍 [SIDEBAR] 处理内容:', {
               id: content.id,
