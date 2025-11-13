@@ -74,16 +74,107 @@ export async function POST(request: NextRequest) {
 
     console.log('✅ [PUBLISH-API] 找到内容记录:', content.id)
 
-    // 更新状态为已发布
+    // 🔥 发布前确保所有图片都已持久化为 base64
+    let imagesData = content.images
+    if (typeof imagesData === 'string') {
+      try {
+        imagesData = JSON.parse(imagesData)
+      } catch (error) {
+        console.error('❌ [PUBLISH-API] 解析图片数据失败:', error)
+        imagesData = []
+      }
+    }
+
+    if (Array.isArray(imagesData) && imagesData.length > 0) {
+      console.log('🖼️ [PUBLISH-API] 开始持久化图片，共', imagesData.length, '张')
+      
+      const persistedImages = await Promise.all(
+        imagesData.map(async (img: any, index: number) => {
+          if (!img) return null
+
+          // 检查是否已有 imageDataUrl
+          const existingDataUrl =
+            (typeof img.imageDataUrl === 'string' && img.imageDataUrl) ||
+            (typeof img === 'string' && img.startsWith('data:') ? img : '') ||
+            ''
+
+          if (existingDataUrl) {
+            console.log(`✅ [PUBLISH-API] 图片 ${index + 1} 已有 imageDataUrl`)
+            return {
+              ...img,
+              imageDataUrl: existingDataUrl
+            }
+          }
+
+          // 尝试从 imageUrl 下载并转换为 base64
+          const candidateUrl =
+            img.imageUrl ||
+            img.url ||
+            img.src ||
+            img.image_path ||
+            img.imageURI ||
+            img.uri ||
+            ''
+
+          if (!candidateUrl || candidateUrl.startsWith('data:')) {
+            return img
+          }
+
+          try {
+            console.log(`🖼️ [PUBLISH-API] 下载图片 ${index + 1} 以持久化:`, candidateUrl)
+            const imageResponse = await fetch(candidateUrl, {
+              cache: 'no-store'
+            })
+
+            if (imageResponse.ok) {
+              const arrayBuffer = await imageResponse.arrayBuffer()
+              const buffer = Buffer.from(arrayBuffer)
+              const contentType =
+                imageResponse.headers.get('content-type') || 'image/jpeg'
+              const imageDataUrl = `data:${contentType};base64,${buffer.toString('base64')}`
+              console.log(`✅ [PUBLISH-API] 图片 ${index + 1} 持久化成功`)
+              return {
+                ...img,
+                imageUrl: candidateUrl,
+                imageDataUrl: imageDataUrl
+              }
+            } else {
+              console.warn(
+                `⚠️ [PUBLISH-API] 图片 ${index + 1} 下载失败，状态码:`,
+                imageResponse.status
+              )
+              return img
+            }
+          } catch (downloadError) {
+            console.error(`❌ [PUBLISH-API] 图片 ${index + 1} 下载异常:`, downloadError)
+            return img
+          }
+        })
+      )
+
+      // 更新图片数据
+      imagesData = persistedImages.filter(Boolean)
+      console.log('✅ [PUBLISH-API] 图片持久化完成，共', imagesData.length, '张')
+    }
+
+    // 更新状态为已发布，同时更新图片数据
     console.log('📝 [PUBLISH-API] 更新发布状态...')
+    const updateData: any = {
+      status: 'published',
+      publishedAt: new Date()
+    }
+
+    // 如果有持久化后的图片数据，一起更新
+    if (Array.isArray(imagesData) && imagesData.length > 0) {
+      updateData.images = JSON.stringify(imagesData)
+      console.log('💾 [PUBLISH-API] 同时更新图片数据（包含 imageDataUrl）')
+    }
+
     const updatedContent = await prisma.userGeneratedContent.update({
       where: {
         id: content.id
       },
-      data: {
-        status: 'published',
-        publishedAt: new Date()
-      }
+      data: updateData
     })
 
     console.log('✅ [PUBLISH-API] 发布成功:', updatedContent.id)

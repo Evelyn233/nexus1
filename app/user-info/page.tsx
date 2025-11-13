@@ -517,12 +517,12 @@ export default function UserInfoPage() {
             onClick={handleSkip}
             className="text-gray-500 text-sm hover:text-gray-700"
           >
-            跳过
+            Skip
           </button>
           
           <div className="text-center">
             <p className="text-xs text-gray-400">
-              点击完成提交信息
+              Click Complete to submit information
             </p>
           </div>
           
@@ -535,7 +535,7 @@ export default function UserInfoPage() {
                 : 'bg-gray-300 text-gray-500 cursor-not-allowed'
             }`}
           >
-            <span>{isAnalyzing ? '分析中...' : '完成'}</span>
+            <span>{isAnalyzing ? 'Analyzing...' : 'Complete'}</span>
             <span className="text-white">{isAnalyzing ? '🔍' : '✈️'}</span>
           </button>
         </div>

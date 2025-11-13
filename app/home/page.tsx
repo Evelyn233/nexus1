@@ -683,7 +683,7 @@ function UserProfileContent() {
     return (
       <div className="text-center py-8">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-magazine-primary mx-auto mb-2"></div>
-        <p className="text-sm text-gray-500">加载用户信息...</p>
+        <p className="text-sm text-gray-500">Loading user information...</p>
       </div>
     )
   }

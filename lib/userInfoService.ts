@@ -400,10 +400,10 @@ export async function generateUserReport(
   return {
     userName: currentUserName,
     reportDate: new Date().toISOString(),
-    conversationSummary: '对话内容分析中...',
+    conversationSummary: 'Analyzing conversation...',
     personalityInsights: [],
     lifestylePatterns: [],
-    emotionalState: '分析中...',
+    emotionalState: 'Analyzing...',
     growthAreas: [],
     recommendations: [],
     conversationCount: getConversationCount() + 1,

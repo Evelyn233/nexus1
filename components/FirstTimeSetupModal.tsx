@@ -18,23 +18,23 @@ export default function FirstTimeSetupModal({ isOpen, onClose, currentStep: exte
 
   const steps = [
     {
-      title: '正在分析您的信息...',
-      description: 'AI正在深度分析您的性格特征和偏好',
+      title: 'Analyzing your information...',
+      description: 'AI is deeply analyzing your personality traits and preferences',
       icon: <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
     },
     {
-      title: '生成个性化档案...',
-      description: '基于您的信息创建专属用户档案',
+      title: 'Generating personalized profile...',
+      description: 'Creating your exclusive user profile based on your information',
       icon: <Loader2 className="w-6 h-6 animate-spin text-teal-500" />
     },
     {
-      title: '建立记忆系统...',
-      description: '为您建立智能记忆和学习系统',
+      title: 'Building memory system...',
+      description: 'Establishing an intelligent memory and learning system for you',
       icon: <Loader2 className="w-6 h-6 animate-spin text-green-500" />
     },
     {
-      title: '完成初始化...',
-      description: '所有设置已完成，即将为您开启个性化体验',
+      title: 'Completing initialization...',
+      description: 'All settings are complete, ready to start your personalized experience',
       icon: <CheckCircle className="w-6 h-6 text-green-500" />
     }
   ]
@@ -90,10 +90,10 @@ export default function FirstTimeSetupModal({ isOpen, onClose, currentStep: exte
               <span className="text-white text-2xl font-bold">✨</span>
             </div>
             <h2 className="text-2xl font-bold text-gray-800 mb-2">
-              首次录入信息
+              First Time Setup
             </h2>
             <p className="text-gray-600">
-              正在为您建立个性化档案，请稍等...
+              Creating your personalized profile, please wait...
             </p>
           </div>
 
@@ -153,10 +153,10 @@ export default function FirstTimeSetupModal({ isOpen, onClose, currentStep: exte
             <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
               <div className="flex items-center justify-center space-x-2 text-green-800">
                 <CheckCircle className="w-5 h-5" />
-                <span className="font-medium">初始化完成！</span>
+                <span className="font-medium">Initialization Complete!</span>
               </div>
               <p className="text-sm text-green-600 mt-1">
-                即将为您开启个性化体验...
+                Ready to start your personalized experience...
               </p>
             </div>
           )}

@@ -423,7 +423,7 @@ export default function HistoryDetailPage() {
                               console.error('图片加载失败:', resolvedImageUrl)
                               e.currentTarget.src =
                                 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgdmlld0JveD0iMCAwIDQwMCAzMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iMzAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0xNzUgMTI1SDIyNVYxNzVIMTc1VjEyNVoiIGZpbGw9IiM5Q0EzQUYiLz4KPHA+PC9wPgo8L3N2Zz4K'
-                          e.currentTarget.alt = '图片加载失败'
+                          e.currentTarget.alt = 'Image failed to load'
                         }}
                         onLoad={() => {
                               console.log('图片加载成功:', resolvedImageUrl)

@@ -884,7 +884,7 @@ const MAX_GENERATED_IMAGES = 20 // 最多生成20张图（免费额度）
     setMessages(prev => [...prev, {
       id: `assistant-processing-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       type: 'assistant',
-      content: '正在分析您的回答，准备下一个问题...'
+      content: 'Analyzing your answer, preparing next question...'
     }])
     
     // 动态生成下一个问题或跳转到生图
@@ -3251,7 +3251,7 @@ AI问题：${aiQuestion}
         {step === 'loading' && (
           <div className="flex flex-col items-center justify-center py-12">
             <Loader2 className="w-8 h-8 text-magazine-primary animate-spin mb-4" />
-            <p className="text-gray-600">正在分析您的输入...</p>
+            <p className="text-gray-600">Analyzing your input...</p>
           </div>
         )}
 

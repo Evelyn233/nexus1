@@ -133,7 +133,7 @@ export default function ProfilePage() {
   }
 
   const handleLogout = async () => {
-    if (confirm('确定要退出登录吗？')) {
+    if (confirm('Are you sure you want to logout?')) {
       await signOut({ callbackUrl: '/auth/signin' })
     }
   }
