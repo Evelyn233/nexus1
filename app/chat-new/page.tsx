@@ -134,7 +134,7 @@ const MAX_GENERATED_IMAGES = 20 // 最多生成20张图（免费额度）
         clearTimeout(timeoutId)
         
         if (!response.ok) {
-          throw new Error('加载历史对话失败')
+          throw new Error('Failed to load conversation history')
         }
         
         const result = await response.json()
@@ -232,7 +232,7 @@ const MAX_GENERATED_IMAGES = 20 // 最多生成20张图（免费额度）
                 sceneTitle:
                   img.sceneTitle ||
                   img.title ||
-                  `场景 ${resolvedIndex + 1}`,
+                  `Scene ${resolvedIndex + 1}`,
                 sceneIndex: resolvedIndex,
                 prompt: typeof img.prompt === 'string' ? img.prompt : '',
                 isPsychodrama: Boolean(img.isPsychodrama),
@@ -292,20 +292,20 @@ const MAX_GENERATED_IMAGES = 20 // 最多生成20张图（免费额度）
           answersCount: content.answers?.length || 0
         })
       } else {
-        throw new Error(result.error || '历史对话不存在')
+        throw new Error(result.error || 'Conversation history does not exist')
       }
       } catch (fetchError: any) {
         clearTimeout(timeoutId)
         if (fetchError.name === 'AbortError') {
           console.error('⏱️ [CHAT-NEW] 加载历史对话超时')
-          alert('加载历史对话超时，请重试')
+          alert('Loading conversation history timed out, please try again')
         } else {
           throw fetchError
         }
       }
     } catch (error) {
       console.error('❌ [CHAT-NEW] 加载历史对话失败:', error)
-      alert(`加载历史对话失败: ${error instanceof Error ? error.message : '未知错误'}`)
+      alert(`Failed to load conversation history: ${error instanceof Error ? error.message : 'Unknown error'}`)
       router.push('/chat-new')
     } finally {
       setIsLoading(false)
@@ -477,7 +477,7 @@ const MAX_GENERATED_IMAGES = 20 // 最多生成20张图（免费额度）
         setMessages([{
           id: 'system-limit',
           type: 'system',
-          content: `⚠️ 您已生成 ${MAX_GENERATED_IMAGES} 张图片，达到免费额度上限。\n\n如需继续使用，请联系客服开通付费功能。`
+          content: `⚠️ You have generated ${MAX_GENERATED_IMAGES} images, reaching the free quota limit.\n\nTo continue using, please contact customer service to enable paid features.`
         }])
         return
       }
@@ -692,7 +692,7 @@ const MAX_GENERATED_IMAGES = 20 // 最多生成20张图（免费额度）
     setMessages(prev => [...prev, {
       id: `system-stopped-${Date.now()}`,
       type: 'system',
-      content: '⏸️ 生成已停止，您可以继续对话或直接生图'
+              content: '⏸️ Generation stopped, you can continue the conversation or generate images directly'
     }])
     
     console.log('✅ [CHAT-NEW] 已重置所有状态，可以立即开始新的生图')
@@ -836,7 +836,7 @@ const MAX_GENERATED_IMAGES = 20 // 最多生成20张图（免费额度）
             setMessages(prev => [...prev, {
               id: `error-${Date.now()}`,
               type: 'system',
-              content: '⚠️ 登录状态已过期，请刷新页面重新登录'
+              content: '⚠️ Login status expired, please refresh the page to login again'
             }])
           } else {
             // 其他错误，直接生成
@@ -1857,7 +1857,7 @@ ${aiPrompt}`
               router.push('/payment')
               return
             } else {
-              alert('无法生成图片，请稍后重试')
+              alert('Unable to generate images, please try again later')
               return
             }
           }
@@ -3026,13 +3026,13 @@ AI问题：${aiQuestion}
     
     if (generatedImagesData.length === 0) {
       console.error('❌ [PUBLISH] 验证失败: 没有图片')
-      alert('没有可发布的内容')
+      alert('No content to publish')
       return
     }
     
     if (!savedContentId && !currentSessionId) {
       console.error('❌ [PUBLISH] 验证失败: 缺少contentId和sessionId')
-      alert('无法找到要发布的内容，请重新生成')
+      alert('Unable to find content to publish, please regenerate')
       return
     }
     
@@ -3084,7 +3084,7 @@ AI问题：${aiQuestion}
       console.log('📤 [PUBLISH] 响应数据:', data)
       
       if (!response.ok) {
-        throw new Error(data.details || data.error || '发布失败')
+        throw new Error(data.details || data.error || 'Publish failed')
       }
       
       setIsPublished(true)
@@ -3106,7 +3106,7 @@ AI问题：${aiQuestion}
     } catch (error: any) {
       console.error('❌ [PUBLISH] 发布失败:', error)
       console.error('❌ [PUBLISH] 错误详情:', error.message)
-      alert(`发布失败: ${error.message}`)
+      alert(`Publish failed: ${error.message}`)
     } finally {
       setIsPublishing(false)
     }
@@ -3266,7 +3266,7 @@ AI问题：${aiQuestion}
                   const sceneTitle = message.sceneData?.title // LLM会根据用户输入语言生成
                     || message.sceneData?.emotionalTrigger // 心理剧fallback
                     || message.content // 最终fallback
-                    || '场景'
+                    || 'Scene'
                   
                   return (
                     <div key={message.id} className="w-full space-y-3">
@@ -3284,12 +3284,12 @@ AI问题：${aiQuestion}
                         </h3>
                         {message.sceneData?.isPsychodrama && (
                           <span className="text-xs bg-magazine-primary/90 text-white px-2 py-0.5 rounded-full">
-                              心理剧
+                              Psychodrama
                             </span>
                         )}
                         {message.sceneData?.isHypothetical && (
                           <span className="text-xs bg-blue-500/90 text-white px-2 py-0.5 rounded-full">
-                              假想人生
+                              Hypothetical
                             </span>
                         )}
                       </div>
@@ -3392,7 +3392,7 @@ AI问题：${aiQuestion}
                     setMessages(prev => [...prev, {
                       id: `system-skip-${Date.now()}`,
                       type: 'system',
-                      content: '✅ 已跳过剩余问题，开始为您生成专属场景...'
+                      content: '✅ Skipped remaining questions, starting to generate your exclusive scenes...'
                     }])
                     setTimeout(() => {
                       // 🔥 使用从messages提取的回答，而不是空的answers state
@@ -3402,7 +3402,7 @@ AI问题：${aiQuestion}
                   className="px-6 py-2.5 bg-magazine-primary text-white rounded-full font-medium shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 flex items-center gap-2 hover:bg-magazine-secondary"
                 >
                   <span>🎨</span>
-                  <span>直接生图</span>
+                  <span>Generate Images</span>
                 </button>
               </div>
             )}
@@ -3417,10 +3417,10 @@ AI问题：${aiQuestion}
                   onKeyPress={(e) => e.key === 'Enter' && !isLoading && !isGenerating && handleSendMessage()}
                   placeholder={
                     isGenerating 
-                      ? '正在创作中...' 
+                      ? 'Generating...' 
                       : isLoading && questions.length === 0
-                      ? '正在生成问题，请稍候...'
-                      : '请输入您的回答...'
+                      ? 'Generating questions, please wait...'
+                      : 'Enter your answer...'
                   }
                   className="flex-1 px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-magazine-primary focus:border-transparent disabled:bg-gray-50 disabled:text-gray-400"
                   disabled={isLoading || isGenerating}
@@ -3431,7 +3431,7 @@ AI问题：${aiQuestion}
                   <button
                     onClick={handleStopGeneration}
                     className="px-4 py-2 bg-magazine-primary text-white rounded-xl hover:bg-magazine-secondary transition-colors flex items-center justify-center"
-                    title="停止生成"
+                    title="Stop Generation"
                   >
                     <div className="w-5 h-5 rounded-full border-2 border-white animate-spin border-t-transparent"></div>
                   </button>
@@ -3452,7 +3452,7 @@ AI问题：${aiQuestion}
         {step === 'generating' && (
           <div className="flex flex-col items-center justify-center py-12">
             <Loader2 className="w-8 h-8 text-magazine-primary animate-spin mb-4" />
-            <p className="text-gray-600">正在生成您的专属内容...</p>
+            <p className="text-gray-600">Generating your exclusive content...</p>
           </div>
         )}
       </div>
@@ -3463,7 +3463,7 @@ AI问题：${aiQuestion}
           <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full my-8 max-h-[90vh] overflow-y-auto">
             {/* 头部 */}
             <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between rounded-t-2xl">
-              <h3 className="text-xl font-bold text-gray-800">发布作品预览</h3>
+              <h3 className="text-xl font-bold text-gray-800">Publish Preview</h3>
               <button
                 onClick={() => setShowPublishDialog(false)}
                 className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
@@ -3477,23 +3477,23 @@ AI问题：${aiQuestion}
               {/* AI生成的标题 */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  作品标题 <span className="text-teal-500 text-xs">(AI自动生成)</span>
+                  Title <span className="text-teal-500 text-xs">(AI Generated)</span>
                 </label>
                 <div className="relative">
                   <input
                     type="text"
                     value={publishTitle}
                     onChange={(e) => setPublishTitle(e.target.value)}
-                    placeholder="AI正在生成标题..."
+                    placeholder="AI is generating title..."
                     className="w-full px-4 py-2.5 border border-teal-300 bg-teal-50 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent text-sm font-medium text-gray-800"
                     maxLength={100}
                   />
                   <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                    <span className="text-xs text-teal-600">🤖 可编辑</span>
+                    <span className="text-xs text-teal-600">🤖 Editable</span>
                   </div>
                 </div>
                 <p className="text-xs text-gray-500 mt-1">
-                  {publishTitle.length}/100 字符 · 标题由AI根据内容自动生成，你可以修改
+                  {publishTitle.length}/100 characters · Title is auto-generated by AI, you can edit it
                 </p>
               </div>
               
@@ -3504,7 +3504,7 @@ AI问题：${aiQuestion}
                 return (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      封面图 <span className="text-gray-500 text-xs">(将使用第一张图作为封面)</span>
+                      Cover Image <span className="text-gray-500 text-xs">(First image will be used as cover)</span>
                     </label>
                     <div className="relative aspect-video bg-gray-100 rounded-lg overflow-hidden border-2 border-teal-300 shadow-md">
                       <img
@@ -3513,7 +3513,7 @@ AI问题：${aiQuestion}
                         className="w-full h-full object-cover"
                       />
                       <div className="absolute top-2 left-2 bg-teal-500 text-white text-xs px-2 py-1 rounded-full font-medium">
-                        封面
+                        Cover
                       </div>
                       <div className="absolute bottom-2 left-2 right-2">
                         <p className="text-white text-sm font-medium bg-black/50 px-2 py-1 rounded backdrop-blur-sm">
@@ -3528,15 +3528,15 @@ AI问题：${aiQuestion}
               {/* 图片数量信息 */}
               <div className="bg-gradient-to-r from-teal-50 to-cyan-50 rounded-lg p-4">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-gray-700">图片数量</span>
-                  <span className="text-lg font-bold text-teal-600">{generatedImagesData.length} 张</span>
+                  <span className="text-sm font-medium text-gray-700">Image Count</span>
+                  <span className="text-lg font-bold text-teal-600">{generatedImagesData.length} images</span>
                 </div>
               </div>
               
               {/* 图文预览 */}
               <div>
                 <h4 className="text-sm font-medium text-gray-700 mb-3">
-                  图文预览 <span className="text-gray-500 text-xs">(共{generatedImagesData.length}组)</span>
+                  Preview <span className="text-gray-500 text-xs">({generatedImagesData.length} sets)</span>
                 </h4>
                 <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2">
                   {[...generatedImagesData].sort((a, b) => a.sceneIndex - b.sceneIndex).map((image, index) => (
@@ -3573,7 +3573,7 @@ AI问题：${aiQuestion}
                 <div className="flex gap-2">
                   <span className="text-yellow-600 flex-shrink-0">💡</span>
                   <p className="text-sm text-yellow-800">
-                    发布后，你的作品将展示在首页"社区作品"区域，供其他用户欣赏和学习。
+                    After publishing, your work will be displayed in the "Community Works" section on the home page for other users to view and learn from.
                   </p>
                 </div>
               </div>
@@ -3585,7 +3585,7 @@ AI问题：${aiQuestion}
                 onClick={() => setShowPublishDialog(false)}
                 className="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
               >
-                取消
+                Cancel
               </button>
               <button
                 onClick={handlePublish}
@@ -3595,12 +3595,12 @@ AI问题：${aiQuestion}
                 {isPublishing ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>发布中...</span>
+                    <span>Publishing...</span>
                   </>
                 ) : (
                   <>
                     <Share2 className="w-4 h-4" />
-                    <span>确认发布</span>
+                    <span>Confirm Publish</span>
                   </>
                 )}
               </button>
