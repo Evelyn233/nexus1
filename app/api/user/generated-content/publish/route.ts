@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
     console.log('✅ [PUBLISH-API] 找到内容记录:', content.id)
 
     // 🔥 发布前确保所有图片都已持久化为 base64
-    let imagesData = content.images
+    let imagesData: any[] | string | null = content.images
     if (typeof imagesData === 'string') {
       try {
         imagesData = JSON.parse(imagesData)
