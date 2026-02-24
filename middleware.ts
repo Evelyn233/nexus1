@@ -18,14 +18,19 @@ export default withAuth(
       tokenEmail: token?.email
     })
 
+    // 🔥 /home、/gallery 已移除，统一重定向到 /profile
+    if (pathname === '/home' || pathname.startsWith('/home/') || pathname === '/gallery' || pathname.startsWith('/gallery/')) {
+      return NextResponse.redirect(new URL('/profile', req.url))
+    }
+
     // 🔥 根路径是公开的 landing page
     if (isRootPage) {
-      // 已登录用户访问根路径，重定向到首页
+      // 已登录用户访问根路径，重定向到 profile
       if (isAuth) {
-        console.log('🔄 [MIDDLEWARE] 已登录用户访问根路径，重定向到首页')
-        const homeUrl = new URL('/home', req.url)
-        homeUrl.searchParams.set('t', Date.now().toString())
-        return NextResponse.redirect(homeUrl)
+        console.log('🔄 [MIDDLEWARE] 已登录用户访问根路径，重定向到 profile')
+        const profileUrl = new URL('/profile', req.url)
+        profileUrl.searchParams.set('t', Date.now().toString())
+        return NextResponse.redirect(profileUrl)
       }
       // 未登录用户访问根路径，允许访问（显示 landing page）
       console.log('✅ [MIDDLEWARE] 未登录用户访问根路径（公开页面），允许访问')
@@ -35,11 +40,11 @@ export default withAuth(
     // 🔥 处理登录页面
     if (isSignInPage) {
       if (isAuth) {
-        // 已登录用户访问登录页，重定向到首页
-        console.log('🔄 [MIDDLEWARE] 已登录用户访问登录页，重定向到首页')
-        const homeUrl = new URL('/home', req.url)
-        homeUrl.searchParams.set('t', Date.now().toString())
-        return NextResponse.redirect(homeUrl)
+        // 已登录用户访问登录页，重定向到 profile
+        console.log('🔄 [MIDDLEWARE] 已登录用户访问登录页，重定向到 profile')
+        const profileUrl = new URL('/profile', req.url)
+        profileUrl.searchParams.set('t', Date.now().toString())
+        return NextResponse.redirect(profileUrl)
       }
       // 未登录用户访问登录页，允许访问
       console.log('✅ [MIDDLEWARE] 未登录用户访问登录页，允许访问')
@@ -58,11 +63,17 @@ export default withAuth(
       return null
     }
 
+    // 🔥 广场、公开 profile 允许未登录访问
+    if (pathname === '/square' || pathname.startsWith('/u/')) {
+      console.log('✅ [MIDDLEWARE] 广场/公开 profile，允许访问')
+      return null
+    }
+
     // 🔥 处理保护页面
     if (!isAuth) {
-      // 🔥 特殊处理：chat-new 和 home 页面允许未登录访问，由前端处理认证状态
+      // 🔥 特殊处理：chat-new 页面允许未登录访问，由前端处理认证状态
       // 这样可以避免用户在输入时被重定向，导致输入丢失
-      if (pathname.startsWith('/chat-new') || pathname.startsWith('/home')) {
+      if (pathname.startsWith('/chat-new')) {
         console.log('⚠️ [MIDDLEWARE]', pathname, '页面允许未登录访问，由前端处理认证状态')
         return null
       }
@@ -108,13 +119,13 @@ export default withAuth(
       authorized: ({ token, req }) => {
         const pathname = req.nextUrl.pathname
         
-        // 🔥 根路径和认证页面始终允许访问（不检查token）
-        if (pathname === '/' || pathname === '/auth/signin' || pathname.startsWith('/auth/')) {
+        // 🔥 根路径、认证页面、广场、公开 profile 始终允许访问（不检查token）
+        if (pathname === '/' || pathname === '/auth/signin' || pathname.startsWith('/auth/') || pathname === '/square' || pathname.startsWith('/u/')) {
           return true
         }
         
-        // 🔥 chat-new 和 home 页面允许未登录访问，由前端处理认证状态
-        if (pathname.startsWith('/chat-new') || pathname.startsWith('/home')) {
+        // 🔥 chat-new 页面允许未登录访问，由前端处理认证状态
+        if (pathname.startsWith('/chat-new')) {
           console.log('⚠️ [MIDDLEWARE-AUTH]', pathname, '页面允许未登录访问，由前端处理认证状态')
           return true
         }
@@ -145,13 +156,16 @@ export default withAuth(
 export const config = {
   matcher: [
     '/', // 根路径（landing page），允许公开访问
-    '/home/:path*',
+    '/home/:path*', // 重定向到 /profile
+    '/profile/:path*',
     '/chat/:path*',
     '/chat-new/:path*',
     '/generate/:path*',
-    '/gallery/:path*',
+    '/gallery/:path*', // 重定向到 /profile
     '/user-info/:path*',
     '/auth/signin', // 登录页，允许公开访问
+    '/square', // 广场，允许公开访问
+    '/u/:path*', // 公开 profile，允许公开访问
   ],
 }
 

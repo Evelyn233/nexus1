@@ -6,7 +6,8 @@ const nextConfig = {
     NEXTAUTH_URL: "http://localhost:3000",
     NEXTAUTH_SECRET: "c8bbf0a4c60d5a4845aedf3c15daffd241d7759a466a9b57fc2494d916635070",
     DEEPSEEK_API_KEY: "sk-e3911ff08dae4f4fb59c7b521e2a5415",
-    SEEDREAM_API_KEY: "17b4a6a5-1a2b-4c3d-827b-cef480fd1580"
+    SEEDREAM_API_KEY: "17b4a6a5-1a2b-4c3d-827b-cef480fd1580",
+    RAG_API_URL: process.env.RAG_API_URL || "http://localhost:8000"
   },
   // 移除过时的 appDir 配置，Next.js 14 默认启用
   images: {

@@ -1,15 +1,21 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { useSession } from 'next-auth/react'
+import { useState, useEffect, useRef } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { useSession, signOut } from 'next-auth/react'
 import { UserInfo, saveUserInfo, getUserInfo, isUserInfoComplete, saveUserMetadata, setCurrentUserName, addUserToList } from '@/lib/userInfoService'
 import { UserMetadataAnalyzer } from '@/lib/userMetadataService'
 import FirstTimeSetupModal from '@/components/FirstTimeSetupModal'
+import ImageCropModal, { blobToDataUrl } from '@/components/ImageCropModal'
 
 export default function UserInfoPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { data: session } = useSession()
+  
+  // 检查是否是管理员
+  const isAdmin = session?.user?.email === '595674464@qq.com'
+  const urlPrompt = searchParams.get('prompt') || ''
   
   const [userInfo, setUserInfo] = useState<UserInfo>({
     name: '',  // 添加姓名字段
@@ -32,6 +38,10 @@ export default function UserInfoPage() {
   const [showFirstTimeModal, setShowFirstTimeModal] = useState(false)
   const [isFirstTimeUser, setIsFirstTimeUser] = useState(false)
   const [analysisStep, setAnalysisStep] = useState(0) // 真实分析步骤
+  const [profileInput, setProfileInput] = useState(urlPrompt || '') // 用户输入的profile信息
+  const [profileFlowImageUrl, setProfileFlowImageUrl] = useState<string | null>(null) // 新账号流程：先放照片，上传后的 URL
+  const [cropImageSrc, setCropImageSrc] = useState<string | null>(null) // 待裁剪的图片 URL，打开裁剪弹窗
+  const profilePhotoInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     const loadUserData = async () => {
@@ -91,11 +101,9 @@ export default function UserInfoPage() {
     checkComplete(newUserInfo)
   }
 
-  // 检查信息是否完整
+  // 检查信息是否完整（姓名、性别已移除问卷，改为可选；其余仍可选填）
   const checkComplete = (info: UserInfo) => {
     const baseComplete = !!(
-      info.name &&  // 添加姓名必填检查
-      info.gender &&
       info.birthDate.year &&
       info.birthDate.month &&
       info.birthDate.day &&
@@ -104,8 +112,6 @@ export default function UserInfoPage() {
       info.location &&
       info.personality
     )
-    
-    // 如果是女性，还需要头发长度信息
     const complete = info.gender === 'female' ? (baseComplete && !!info.hairLength) : baseComplete
     setIsComplete(complete)
   }
@@ -235,7 +241,7 @@ export default function UserInfoPage() {
         
         // 如果不是首次用户，立即跳转
         if (!isFirstTimeUser) {
-          router.push('/home')
+          router.push('/profile')
         }
         // 首次用户：等待模态框通过 onClose 回调来触发跳转
       } catch (error) {
@@ -244,7 +250,7 @@ export default function UserInfoPage() {
         if (isFirstTimeUser) {
           setShowFirstTimeModal(false)
         }
-        router.push('/home')
+        router.push('/profile')
       } finally {
         setIsAnalyzing(false)
       }
@@ -255,12 +261,12 @@ export default function UserInfoPage() {
   const handleFirstTimeSetupComplete = () => {
     console.log('🎉 [USER-INFO] 首次用户设置完成，跳转到首页')
     setShowFirstTimeModal(false)
-    router.push('/home')
+    router.push('/profile')
   }
 
   // 跳过
   const handleSkip = () => {
-    router.push('/home')
+    router.push('/profile')
   }
 
   // 生成年份选项
@@ -280,79 +286,192 @@ export default function UserInfoPage() {
         <div className="max-w-md mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center">
             <img 
-              src="/inflow-logo.jpeg" 
+              src="/logo-nexus.jpeg" 
               alt="logo" 
-              className="w-16 h-16 rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
-              onClick={() => router.push('/home')}
+              className="h-10 w-auto object-contain rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
+              onClick={() => router.push('/profile')}
             />
           </div>
           <h1 className="text-lg font-medium text-gray-900">用户信息</h1>
-          <div className="w-6 h-6 bg-gray-400 rounded-full flex items-center justify-center">
-            <span className="text-white text-xs">?</span>
-          </div>
+          {session ? (
+            <button
+              type="button"
+              onClick={() => signOut({ callbackUrl: '/auth/signin' })}
+              className="text-sm text-gray-600 hover:text-gray-900"
+            >
+              换账号
+            </button>
+          ) : (
+            <div className="w-6 h-6 bg-gray-400 rounded-full flex items-center justify-center">
+              <span className="text-white text-xs">?</span>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Content */}
       <div className="flex-1 max-w-md mx-auto w-full px-4 py-6 space-y-6">
         
-        {/* Name Question */}
-        <div className="flex items-start space-x-3">
-          <div className="bg-gray-200 rounded-2xl rounded-bl-lg px-4 py-3 max-w-xs">
-            <p className="text-gray-700 text-sm">
-              您好！很高兴认识您，请问怎么称呼您？
+        {/* Profile Generation Dialog - For Admin（新账号流程：先放照片，再介绍自己） */}
+        {isAdmin && (
+          <div className="mb-6 bg-gradient-to-r from-teal-50 to-cyan-50 border-2 border-teal-200 rounded-2xl p-6 shadow-lg">
+            <p className="text-center text-lg font-semibold text-gray-900 mb-4">
+              生成你的专属 Profile
             </p>
+            <div className="flex flex-col gap-5">
+              {/* 第一步：上传一张照片 - input 盖在最上层 + 备用按钮，兼容手机端 */}
+              <div>
+                <p className="text-sm font-medium text-teal-800 mb-2">第一步：上传一张照片</p>
+                <label className="relative flex w-full aspect-[4/3] min-h-[120px] rounded-xl border-2 border-dashed border-teal-300 bg-white/80 hover:border-teal-400 hover:bg-teal-50/50 cursor-pointer overflow-hidden">
+                  {profileFlowImageUrl ? (
+                    <img src={profileFlowImageUrl} alt="已上传" className="w-full h-full object-cover pointer-events-none" />
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center gap-2 text-teal-600 pointer-events-none">
+                      <span className="text-4xl">📷</span>
+                      <span className="text-sm font-medium">点击上传照片</span>
+                    </div>
+                  )}
+                  <input
+                    ref={profilePhotoInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                    style={{ fontSize: '16px' }}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (!file) return
+                      const url = URL.createObjectURL(file)
+                      setCropImageSrc(url)
+                      e.target.value = ''
+                    }}
+                  />
+                </label>
+                <button
+                  type="button"
+                  onClick={() => profilePhotoInputRef.current?.click()}
+                  className="mt-2 w-full py-2 text-sm text-teal-600 border border-teal-300 rounded-lg hover:bg-teal-50"
+                >
+                  或点此选择照片
+                </button>
+                <p className="mt-1.5 text-xs text-gray-500">
+                  若提示「权限被拒」，请在浏览器弹窗中允许访问照片/相册；或在手机设置 → 应用 → Chrome → 权限中开启
+                </p>
+              </div>
+              {/* 第二步：介绍一下自己 */}
+              <div>
+                <p className="text-sm font-medium text-teal-800 mb-2">第二步：介绍一下自己</p>
+                <textarea
+                  value={profileInput}
+                  onChange={(e) => setProfileInput(e.target.value)}
+                  placeholder="例如：我是 Evelyn，做 AI 产品，喜欢艺术电影和独立音乐…"
+                  rows={3}
+                  className="w-full px-4 py-3 rounded-xl border border-teal-300 bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent resize-none"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && e.ctrlKey && profileInput.trim()) {
+                      router.push(`/chat-new?prompt=${encodeURIComponent(profileInput.trim())}&autoStart=true${profileFlowImageUrl ? `&image=${encodeURIComponent(profileFlowImageUrl)}` : ''}`)
+                    }
+                  }}
+                />
+              </div>
+              <button
+                onClick={() => {
+                  const prompt = profileInput.trim() || 'Help me create my profile'
+                  const url = profileFlowImageUrl
+                    ? `/chat-new?prompt=${encodeURIComponent(prompt)}&autoStart=true&image=${encodeURIComponent(profileFlowImageUrl)}`
+                    : `/chat-new?prompt=${encodeURIComponent(prompt)}&autoStart=true`
+                  router.push(url)
+                }}
+                className="w-full px-8 py-3 bg-gradient-to-r from-teal-600 to-cyan-600 text-white rounded-xl font-semibold hover:opacity-90 transition-opacity shadow-md"
+              >
+                {profileFlowImageUrl ? '开始生成 Profile' : '先上传照片，或直接开始对话'}
+              </button>
+              {urlPrompt && (
+                <p className="text-xs text-gray-500 text-center mt-2">
+                  来自首页的输入："{urlPrompt.substring(0, 50)}{urlPrompt.length > 50 ? '...' : ''}"
+                </p>
+              )}
+            </div>
           </div>
-        </div>
+        )}
         
-        <div className="flex justify-end">
-          <div className="w-full max-w-xs">
-            <input
-              type="text"
-              value={userInfo.name}
-              onChange={(e) => {
-                const newUserInfo = { ...userInfo, name: e.target.value }
-                setUserInfo(newUserInfo)
-                checkComplete(newUserInfo)
-              }}
-              placeholder="请输入您的称呼"
-              className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-            />
-          </div>
-        </div>
-        
-        {/* Gender Question */}
-        <div className="flex items-start space-x-3">
-          <div className="bg-gray-200 rounded-2xl rounded-bl-lg px-4 py-3 max-w-xs">
-            <p className="text-gray-700 text-sm">
-              {userInfo.name ? `${userInfo.name}，` : ''}请告诉我您的性别？
+        {/* 🔥 新账号流程：先放照片，再介绍自己 */}
+        {!isAdmin && (
+          <div className="mb-6 bg-gradient-to-r from-teal-50 to-cyan-50 border-2 border-teal-200 rounded-2xl p-6 shadow-lg">
+            <p className="text-center text-lg font-semibold text-gray-900 mb-4">
+              生成你的专属 Profile
             </p>
+            <div className="flex flex-col gap-5">
+              {/* 第一步：上传一张照片 - input 盖在最上层 + 备用按钮，兼容手机端 */}
+              <div>
+                <p className="text-sm font-medium text-teal-800 mb-2">第一步：上传一张照片</p>
+                <label className="relative flex w-full aspect-[4/3] min-h-[120px] rounded-xl border-2 border-dashed border-teal-300 bg-white/80 hover:border-teal-400 hover:bg-teal-50/50 cursor-pointer overflow-hidden">
+                  {profileFlowImageUrl ? (
+                    <img src={profileFlowImageUrl} alt="已上传" className="w-full h-full object-cover pointer-events-none" />
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center gap-2 text-teal-600 pointer-events-none">
+                      <span className="text-4xl">📷</span>
+                      <span className="text-sm font-medium">点击上传照片</span>
+                      <span className="text-xs text-gray-500">选一张你喜欢的照片</span>
+                    </div>
+                  )}
+                  <input
+                    ref={profilePhotoInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                    style={{ fontSize: '16px' }}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (!file) return
+                      const url = URL.createObjectURL(file)
+                      setCropImageSrc(url)
+                      e.target.value = ''
+                    }}
+                  />
+                </label>
+                <button
+                  type="button"
+                  onClick={() => profilePhotoInputRef.current?.click()}
+                  className="mt-2 w-full py-2 text-sm text-teal-600 border border-teal-300 rounded-lg hover:bg-teal-50"
+                >
+                  或点此选择照片
+                </button>
+                <p className="mt-1.5 text-xs text-gray-500">
+                  若提示「权限被拒」，请在浏览器弹窗中允许访问照片/相册；或在手机设置 → 应用 → Chrome → 权限中开启
+                </p>
+              </div>
+              {/* 第二步：介绍一下自己 */}
+              <div>
+                <p className="text-sm font-medium text-teal-800 mb-2">第二步：介绍一下自己</p>
+                <textarea
+                  value={profileInput}
+                  onChange={(e) => setProfileInput(e.target.value)}
+                  placeholder="例如：我是 Evelyn，做 AI 产品，喜欢艺术电影和独立音乐…"
+                  rows={3}
+                  className="w-full px-4 py-3 rounded-xl border border-teal-300 bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent resize-none"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && e.ctrlKey && profileInput.trim()) {
+                      router.push(`/chat-new?prompt=${encodeURIComponent(profileInput.trim())}&autoStart=true${profileFlowImageUrl ? `&image=${encodeURIComponent(profileFlowImageUrl)}` : ''}`)
+                    }
+                  }}
+                />
+              </div>
+              <button
+                onClick={() => {
+                  const prompt = profileInput.trim() || 'Help me create my profile'
+                  const url = profileFlowImageUrl
+                    ? `/chat-new?prompt=${encodeURIComponent(prompt)}&autoStart=true&image=${encodeURIComponent(profileFlowImageUrl)}`
+                    : `/chat-new?prompt=${encodeURIComponent(prompt)}&autoStart=true`
+                  router.push(url)
+                }}
+                className="w-full px-8 py-3 bg-gradient-to-r from-teal-600 to-cyan-600 text-white rounded-xl font-semibold hover:opacity-90 transition-opacity shadow-md"
+              >
+                {profileFlowImageUrl ? '开始生成 Profile' : '先上传照片，或直接开始对话'}
+              </button>
+            </div>
           </div>
-        </div>
+        )}
         
-        <div className="flex justify-end space-x-3">
-          <button
-            onClick={() => handleGenderChange('male')}
-            className={`px-6 py-3 rounded-xl text-sm font-medium transition-colors ${
-              userInfo.gender === 'male'
-                ? 'bg-teal-600 text-white'
-                : 'bg-white text-gray-700 border border-gray-300'
-            }`}
-          >
-            男
-          </button>
-          <button
-            onClick={() => handleGenderChange('female')}
-            className={`px-6 py-3 rounded-xl text-sm font-medium transition-colors ${
-              userInfo.gender === 'female'
-                ? 'bg-teal-600 text-white'
-                : 'bg-white text-gray-700 border border-gray-300'
-            }`}
-          >
-            女
-          </button>
-        </div>
-
         {/* Birth Date Question */}
         <div className="flex items-start space-x-3">
           <div className="bg-gray-200 rounded-2xl rounded-bl-lg px-4 py-3 max-w-xs">
@@ -546,6 +665,40 @@ export default function UserInfoPage() {
         isOpen={showFirstTimeModal}
         onClose={handleFirstTimeSetupComplete}
         currentStep={analysisStep}
+      />
+
+      {/* 上传照片后裁剪：选图 → 裁剪到合适位置 → 确定后上传 */}
+      <ImageCropModal
+        imageSrc={cropImageSrc ?? ''}
+        isOpen={!!cropImageSrc}
+        onClose={() => {
+          if (cropImageSrc) URL.revokeObjectURL(cropImageSrc)
+          setCropImageSrc(null)
+        }}
+        onConfirm={async (blob) => {
+          try {
+            const dataUrl = await blobToDataUrl(blob)
+            const res = await fetch('/api/image/upload', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ imageData: dataUrl, filename: 'profile-crop.jpg' }),
+            })
+            if (!res.ok) {
+              const err = await res.json().catch(() => ({}))
+              alert('上传失败：' + (err.error || res.status))
+              return
+            }
+            const data = await res.json()
+            if (data?.url) setProfileFlowImageUrl(data.url)
+            if (cropImageSrc) URL.revokeObjectURL(cropImageSrc)
+            setCropImageSrc(null)
+          } catch (err) {
+            console.error('Upload after crop:', err)
+            alert('上传失败，请重试')
+          }
+        }}
+        aspect={4 / 3}
+        title="裁剪照片"
       />
     </div>
   )

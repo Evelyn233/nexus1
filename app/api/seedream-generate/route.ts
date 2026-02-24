@@ -2,67 +2,81 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(request: NextRequest) {
   try {
-    const { prompt, negativePrompt, width, height } = await request.json()
+    const { prompt, negativePrompt, width, height, imageUrl, imageData } = await request.json()
     
-    console.log('🚀 [API] 收到SeeDream生图请求', { prompt, negativePrompt, width, height })
+    console.log('🚀 [API] 收到SeeDream生图请求', { prompt: prompt?.slice(0, 60), hasImage: !!(imageUrl || imageData) })
     
-    // SeeDream API配置
-    const config = {
-      API_KEY: process.env.SEEDREAM_API_KEY || '17b4a6a5-1a2b-4c3d-827b-cef480fd1580',
-      ENDPOINT: 'https://ark.cn-beijing.volces.com/api/v3/images/generations',
-      MODEL: 'doubao-seedream-4-0-250828'
+    const apiKey = process.env.SEEDREAM_API_KEY || process.env.ARK_API_KEY || '17b4a6a5-1a2b-4c3d-827b-cef480fd1580'
+    const endpoint = 'https://ark.cn-beijing.volces.com/api/v3/images/generations'
+    
+    // 用户输入了图片：走图生图，使用 4-5 模型，把图作为 image 传给 SeeDream
+    let imageForApi: string | undefined
+    if (imageData && typeof imageData === 'string' && imageData.startsWith('data:')) {
+      imageForApi = imageData
+    } else if (imageUrl && typeof imageUrl === 'string') {
+      // localhost 时 Volces 无法抓取，转为 base64
+      if (imageUrl.includes('localhost') || imageUrl.includes('127.0.0.1')) {
+        try {
+          const r = await fetch(imageUrl)
+          if (r.ok) {
+            const buf = await r.arrayBuffer()
+            const b64 = Buffer.from(buf).toString('base64')
+            const ct = r.headers.get('content-type') || 'image/jpeg'
+            imageForApi = `data:${ct};base64,${b64}`
+          } else {
+            imageForApi = imageUrl
+          }
+        } catch {
+          imageForApi = imageUrl
+        }
+      } else {
+        imageForApi = imageUrl
+      }
     }
-
-    // 构建请求体
-    const requestBody = {
-      model: config.MODEL,
-      prompt: prompt,
-      ...(negativePrompt && { negative_prompt: negativePrompt }),
-      sequential_image_generation: "auto",
-      sequential_image_generation_options: {
-        max_images: 1 // 🔥 改为1，避免生成重复图片
-      },
-      response_format: "url",
-      size: width && height ? `${width}x${height}` : "1024x1024",
-      quality: "hd",
-      stream: false,
-      watermark: false,
-      n: 1 // 🔥 改为1，每个场景只生成1张图，避免重复
-    }
     
-    console.log('📋 [API] 请求参数:', {
-      model: requestBody.model,
-      promptLength: prompt.length,
-      size: requestBody.size,
-      n: requestBody.n,
-      max_images: requestBody.sequential_image_generation_options.max_images
-    })
+    const size = width && height ? `${width}x${height}` : '1024x1024'
+    const requestBody: Record<string, unknown> = imageForApi
+      ? {
+          model: 'doubao-seedream-4-5-251128',
+          prompt,
+          image: imageForApi,
+          size,
+          watermark: false,
+          response_format: 'url'
+        }
+      : {
+          model: 'doubao-seedream-4-0-250828',
+          prompt,
+          ...(negativePrompt && { negative_prompt: negativePrompt }),
+          sequential_image_generation: 'auto',
+          sequential_image_generation_options: { max_images: 1 },
+          response_format: 'url',
+          size,
+          quality: 'hd',
+          stream: false,
+          watermark: false,
+          n: 1
+        }
+    
+    console.log('📋 [API] 请求参数:', { model: requestBody.model, promptLength: prompt?.length, size, hasImage: !!imageForApi })
 
-    // 带重试机制的请求函数
     const makeRequest = async (attempt: number) => {
       console.log(`🔄 [API] 第${attempt}次尝试...`)
-      
       const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 60000) // 60秒超时
-      
+      const timeoutId = setTimeout(() => controller.abort(), 60000)
       try {
-        console.log('📤 [API] 发送请求体:', JSON.stringify(requestBody, null, 2))
-        
-        const response = await fetch(config.ENDPOINT, {
+        const res = await fetch(endpoint, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${config.API_KEY}`,
-          },
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
           body: JSON.stringify(requestBody),
           signal: controller.signal
         })
         
         clearTimeout(timeoutId)
-        return response
-      } catch (error) {
+        return res
+      } catch (e) {
         clearTimeout(timeoutId)
-        throw error
+        throw e
       }
     }
 
@@ -72,31 +86,14 @@ export async function POST(request: NextRequest) {
       try {
         const response = await makeRequest(attempt)
         
-        console.log('📡 [API] SeeDream API响应状态:', response.status)
-
         if (!response.ok) {
           const errorText = await response.text()
           console.error('❌ [API] SeeDream API错误:', response.status, errorText)
-          console.error('❌ [API] 请求配置:', {
-            endpoint: config.ENDPOINT,
-            model: config.MODEL,
-            apiKey: config.API_KEY ? `${config.API_KEY.substring(0, 8)}...` : 'undefined',
-            requestBody: requestBody
-          })
-          
           if (attempt < 2) {
-            console.log('⏳ [API] 等待1秒后重试...')
-            await new Promise(resolve => setTimeout(resolve, 1000))
+            await new Promise(r => setTimeout(r, 1000))
             continue
           }
-          
-          return NextResponse.json(
-            { 
-              success: false, 
-              error: `SeeDream API请求失败: ${response.status} - ${errorText}` 
-            },
-            { status: 500 }
-          )
+          return NextResponse.json({ success: false, error: `SeeDream API请求失败: ${response.status} - ${errorText}` }, { status: 500 })
         }
 
         const data = await response.json()

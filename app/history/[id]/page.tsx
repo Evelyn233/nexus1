@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { ArrowLeft, Download, Share2, Calendar, Image as ImageIcon, Play, Trash2 } from 'lucide-react'
 import Image from 'next/image'
+import { resolveImageUrl } from '@/lib/resolveImageUrl'
 
 interface ContentDetail {
   id: string
@@ -243,7 +244,7 @@ export default function HistoryDetailPage() {
       if (response.ok) {
         console.log('✅ [HISTORY-DETAIL] 作品删除成功')
         // 跳转到首页或个人主页
-        router.push('/home')
+        router.push('/profile')
       } else {
         const errorData = await response.json()
         console.error('❌ [HISTORY-DETAIL] 删除失败:', errorData)
@@ -261,7 +262,7 @@ export default function HistoryDetailPage() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-teal-50 via-cyan-50 to-blue-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-magazine-primary mx-auto"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
           <p className="text-gray-600 mt-4">加载中...</p>
         </div>
       </div>
@@ -274,8 +275,8 @@ export default function HistoryDetailPage() {
         <div className="text-center">
           <p className="text-red-600 mb-4">{error || '内容不存在'}</p>
           <button
-            onClick={() => router.push('/home')}
-            className="px-6 py-2 bg-magazine-primary text-white rounded-lg hover:bg-magazine-secondary transition-colors"
+            onClick={() => router.push('/profile')}
+            className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors"
           >
             返回
           </button>
@@ -289,7 +290,7 @@ export default function HistoryDetailPage() {
       {/* 头部 */}
       <div className="max-w-6xl mx-auto mb-8">
         <button
-          onClick={() => router.push('/home')}
+          onClick={() => router.push('/profile')}
           className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4 transition-colors"
         >
           <ArrowLeft className="w-5 h-5" />
@@ -350,7 +351,7 @@ export default function HistoryDetailPage() {
               <>
                 {/* 用户初始输入 */}
                 <div className="flex justify-end">
-                  <div className="max-w-[80%] bg-magazine-primary text-white rounded-2xl px-4 py-3">
+                  <div className="max-w-[80%] bg-primary text-white rounded-2xl px-4 py-3">
                     <p className="text-sm leading-relaxed">{content.initialPrompt}</p>
                   </div>
                 </div>
@@ -368,7 +369,7 @@ export default function HistoryDetailPage() {
                     {/* 用户回答 */}
                     {content.answers[index] && (
                       <div className="flex justify-end">
-                        <div className="max-w-[80%] bg-magazine-primary text-white rounded-2xl px-4 py-3">
+                        <div className="max-w-[80%] bg-primary text-white rounded-2xl px-4 py-3">
                           <p className="text-sm leading-relaxed">{content.answers[index]}</p>
                         </div>
                       </div>
@@ -403,7 +404,7 @@ export default function HistoryDetailPage() {
                   {/* 图片 */}
                   <div className="my-3">
                     {(() => {
-                      const resolvedImageUrl =
+                      const rawUrl =
                         typeof image === 'string'
                           ? image
                           : image?.imageDataUrl ||
@@ -414,6 +415,7 @@ export default function HistoryDetailPage() {
                             image?.imageURI ||
                             image?.uri ||
                             ''
+                      const resolvedImageUrl = resolveImageUrl(rawUrl)
 
                       return resolvedImageUrl ? (
                     <div className="relative rounded-xl overflow-hidden border border-gray-200">
@@ -503,7 +505,7 @@ export default function HistoryDetailPage() {
                     comments.map((comment) => (
                       <div key={comment.id} className="border-b border-gray-200 pb-4 last:border-b-0">
                         <div className="flex items-start gap-3">
-                          <div className="w-10 h-10 rounded-full bg-gradient-to-r from-magazine-primary to-magazine-secondary flex items-center justify-center text-white font-bold">
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-r from-primary to-primary-dark flex items-center justify-center text-white font-bold">
                             {comment.author.name?.[0] || '?'}
                           </div>
                           <div className="flex-1">
@@ -536,7 +538,7 @@ export default function HistoryDetailPage() {
               <input
                 type="text"
                 placeholder="输入你的新想法或故事..."
-                  className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-magazine-primary focus:border-transparent"
+                  className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                 onKeyPress={(e) => {
                   if (e.key === 'Enter') {
                     const input = e.currentTarget.value.trim()
@@ -549,7 +551,7 @@ export default function HistoryDetailPage() {
               />
               <button
                 onClick={() => router.push(`/chat-new?continue=${contentId}`)}
-                  className="px-6 py-3 bg-magazine-primary text-white rounded-lg hover:bg-magazine-secondary transition-colors"
+                  className="px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors"
               >
                 继续创作
               </button>
@@ -571,13 +573,13 @@ export default function HistoryDetailPage() {
                 value={commentText}
                 onChange={(e) => setCommentText(e.target.value)}
                 placeholder="写下你的评论..."
-                className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-magazine-primary focus:border-transparent resize-none"
+                className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
                 rows={2}
               />
               <button
                 onClick={handleSubmitComment}
                 disabled={!commentText.trim() || isSubmittingComment}
-                className="px-6 py-3 bg-magazine-primary text-white rounded-lg hover:bg-magazine-secondary transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                className="px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
               >
                 {isSubmittingComment ? '提交中...' : '发表评论'}
               </button>

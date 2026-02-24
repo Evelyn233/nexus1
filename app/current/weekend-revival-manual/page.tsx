@@ -55,7 +55,7 @@ export default function WeekendRevivalManual() {
       <div className="max-w-3xl mx-auto px-4 py-12 space-y-12">
         <div className="space-y-6">
           <Link
-            href="/home"
+            href="/profile"
             className="inline-flex items-center text-xs uppercase tracking-[0.3em] text-gray-500 hover:text-gray-800 transition-colors"
           >
             ← Home
@@ -90,7 +90,7 @@ export default function WeekendRevivalManual() {
           {sections.map((section, index) => (
             <section key={index} className="flex flex-col md:flex-row gap-6 items-start">
               <div className="md:w-1/2 space-y-4">
-                <h2 className="text-xl font-semibold text-magazine-primary">{section.title}</h2>
+                <h2 className="text-xl font-semibold text-primary">{section.title}</h2>
                 {section.description.map((paragraph, i) => (
                   <p key={i} className="text-sm leading-relaxed text-gray-700">
                     {paragraph}

@@ -3,27 +3,24 @@
 import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
-import { History, X, Image as ImageIcon } from 'lucide-react'
-import ContentCard from '@/components/ContentCard'
+import { signOut } from 'next-auth/react'
+import { History, X, Share2, LogOut } from 'lucide-react'
 import InputSection from '@/components/InputSection'
-import UserInfoBar from '@/components/UserInfoBar'
 import ClientOnly from '@/components/ClientOnly'
 import ChatHistorySidebar from '@/components/ChatHistorySidebar'
+import DailyQuestionCard from '@/components/DailyQuestionCard'
+import Drawer from '@/components/Drawer'
+import NewUserOnboarding, { getOnboardingDone } from '@/components/NewUserOnboarding'
 import { QUICK_GENERATE_OPTIONS } from '@/lib/config'
 import { resetUserInfo, getUserInfo, getUserInfoDescription, getCurrentUserName, setCurrentUserName, getUserList, addUserToList, removeUserFromList, getLatestUserReport, getUserReports } from '@/lib/userInfoService'
-import { getUserGeneratedContents } from '@/lib/userContentStorageService'
 
 export default function HomePage() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { isAuthenticated, session, isLoading } = useAuth()
+  const { session } = useAuth()
   const [inputValue, setInputValue] = useState('')
   const [showUserProfile, setShowUserProfile] = useState(false)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
-  const [userContent, setUserContent] = useState<any[]>([])
-  const [contentLoading, setContentLoading] = useState(true)
-  const [publishedContent, setPublishedContent] = useState<any[]>([])
-  const [publishedLoading, setPublishedLoading] = useState(true)
   const [customQuickOptions, setCustomQuickOptions] = useState<string[]>(() => {
     // 从 localStorage 读取自定义选项
     if (typeof window !== 'undefined') {
@@ -32,262 +29,27 @@ export default function HomePage() {
     }
     return []
   })
-
+  const [showNewUserOnboarding, setShowNewUserOnboarding] = useState(false)
+  const [shareLinkCopied, setShareLinkCopied] = useState(false)
+  useEffect(() => {
+    if (session) {
+      setShowNewUserOnboarding(false)
+      return
+    }
+    if (typeof window !== 'undefined' && !getOnboardingDone()) {
+      setShowNewUserOnboarding(true)
+    }
+  }, [session])
   // 检查 URL 参数，如果有 openHistory=true，自动打开历史记录侧边栏
   useEffect(() => {
     const openHistory = searchParams.get('openHistory')
-    const refresh = searchParams.get('refresh')
-    
     if (openHistory === 'true') {
       setIsSidebarOpen(true)
-    }
-    
-    // 如果有refresh参数，刷新已发布内容
-    if (refresh === 'true') {
-      console.log('🔄 [HOME] 检测到刷新参数，重新加载已发布内容...')
-      loadPublishedContent()
-    }
-    
-    // 清除 URL 参数，避免刷新时重复执行
-    if (openHistory === 'true' || refresh === 'true') {
-      window.history.replaceState({}, '', '/home')
+      window.history.replaceState({}, '', '/profile')
     }
   }, [searchParams])
 
-  // 加载用户生成的内容
-  useEffect(() => {
-    if (isAuthenticated) {
-      loadUserContent()
-    }
-  }, [isAuthenticated])
-
-  // 加载已发布内容
-  useEffect(() => {
-    loadPublishedContent()
-  }, [])
-
-  const loadUserContent = async () => {
-    try {
-      setContentLoading(true)
-      console.log('🔍 [HOME] 加载用户生成内容...')
-      const result = await getUserGeneratedContents(4, 0) // 只加载最新的4条
-      
-      if (result.success && result.contents) {
-        console.log('✅ [HOME] 加载用户内容成功:', result.contents.length)
-        setUserContent(result.contents)
-      } else {
-        console.log('⚠️ [HOME] 没有用户内容，使用静态数据')
-        setUserContent([])
-      }
-    } catch (error) {
-      console.error('❌ [HOME] 加载用户内容失败:', error)
-      setUserContent([])
-    } finally {
-      setContentLoading(false)
-    }
-  }
-
-  const normalizeImages = (images: any): any[] => {
-    if (!images) return []
-    let result = images
-
-    if (typeof images === 'string') {
-      try {
-        const parsed = JSON.parse(images)
-        result = parsed
-      } catch (error) {
-        console.warn('⚠️ [HOME] 解析 images 字段失败:', error)
-        return []
-      }
-    }
-
-    if (!Array.isArray(result)) {
-      return []
-    }
-
-    return result
-      .map((img, index) => {
-        if (!img) return null
-        if (typeof img === 'string') {
-          const isDataUrl = img.startsWith('data:')
-          return {
-            sceneIndex: index,
-            imageUrl: isDataUrl ? '' : img,
-            imageDataUrl: isDataUrl ? img : ''
-          }
-        }
-        if (typeof img === 'object') {
-          const rawUrl =
-            img.imageUrl || img.url || img.src || img.image_path || img.imageURI || img.uri || ''
-          const dataUrl =
-            img.imageDataUrl && typeof img.imageDataUrl === 'string'
-              ? img.imageDataUrl
-              : rawUrl && rawUrl.startsWith('data:')
-                ? rawUrl
-                : ''
-          return {
-            sceneIndex: typeof img.sceneIndex === 'number' ? img.sceneIndex : index,
-            imageUrl: rawUrl,
-            imageDataUrl: dataUrl,
-            ...img
-          }
-        }
-        return null
-      })
-      .filter(Boolean) as any[]
-  }
-
-  const getFirstImageUrl = (images: any[]): string => {
-    if (!Array.isArray(images)) return ''
-    const imageObj = images.find((img) => {
-      if (typeof img === 'string') {
-        return img.trim().length > 0
-      }
-      return (
-        img?.imageDataUrl ||
-        img?.imageUrl ||
-        img?.url ||
-        img?.src ||
-        img?.image_path ||
-        img?.imageURI ||
-        img?.uri
-      )
-    })
-    if (!imageObj) return ''
-    if (typeof imageObj === 'string') {
-      return imageObj
-    }
-    return (
-      imageObj.imageDataUrl ||
-      imageObj.imageUrl ||
-      imageObj.url ||
-      imageObj.src ||
-      imageObj.image_path ||
-      imageObj.imageURI ||
-      imageObj.uri ||
-      ''
-    )
-  }
-
-  const loadPublishedContent = async () => {
-    try {
-      setPublishedLoading(true)
-      console.log('🔍 [HOME] 加载已发布内容...')
-      const response = await fetch('/api/published-content?limit=2')
-      console.log('🔍 [HOME] API响应状态:', response.status)
-      
-      if (response.ok) {
-        const data = await response.json()
-        console.log('🔍 [HOME] API返回数据:', {
-          success: data.success,
-          contentsLength: data.contents?.length || 0,
-          total: data.total || 0,
-          contents: data.contents
-        })
-        
-        if (data.success && Array.isArray(data.contents)) {
-          console.log('✅ [HOME] 加载已发布内容成功:', data.contents.length, '个作品')
-          const normalized = data.contents.map((content: any) => {
-            const images = normalizeImages(content.images)
-            const sortedImages = Array.isArray(images)
-              ? [...images].sort((a, b) => (a?.sceneIndex || 0) - (b?.sceneIndex || 0))
-              : []
-            return {
-              ...content,
-              images: sortedImages,
-              firstImageUrl: getFirstImageUrl(sortedImages)
-            }
-          })
-          setPublishedContent(normalized)
-        } else {
-          console.warn('⚠️ [HOME] API返回数据格式异常:', data)
-          setPublishedContent([])
-        }
-      } else {
-        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
-        console.error('❌ [HOME] API返回错误:', response.status, errorData)
-        setPublishedContent([])
-      }
-    } catch (error) {
-      console.error('❌ [HOME] 加载已发布内容失败:', error)
-      setPublishedContent([])
-    } finally {
-      setPublishedLoading(false)
-    }
-  }
-  
-  // 显示加载状态
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-magazine-primary mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
-        </div>
-      </div>
-    )
-  }
-
-  const staticContentData = [
-    {
-      id: 1,
-      image: '/images/samfeng.webp',
-      moduleLabel: 'INCURRENT',
-      title: 'Sam Altman: The Last Human CEO?',
-      subtitle: '',
-      type: 'article' as const,
-      authorInitial: 'A',
-      authorName: 'AI Current',
-      href: '/current/sam-altman'
-    },
-    {
-      id: 2,
-      image: '/images/instyle.jpeg',
-      moduleLabel: 'INSTYLE',
-      title: 'InStyle: Autumn in Shanghai',
-      subtitle: '',
-      type: 'article' as const,
-      href: '/current/instyle'
-    },
-    {
-      id: 3,
-      image: '/images/subway.jpeg',
-      title: 'Everyone on the subway stares at their phones, but no one is really communicating',
-      subtitle: '',
-      type: 'article' as const,
-      authorInitial: 'S',
-      authorName: 'Sophie'
-    },
-    {
-      id: 4,
-      image: '/images/hannibal.jpeg?v=2',
-      title: 'I Want to Be a Female Villain Like Hannibal',
-      subtitle: '',
-      type: 'article' as const,
-      authorInitial: 'H',
-      authorName: 'Hannibal'
-    },
-    {
-      id: 5,
-      image: '/images/divorse.jpeg',
-      title: 'The Missing Manual for Connection',
-      subtitle: '',
-      type: 'article' as const,
-      authorInitial: 'L',
-      authorName: 'Luna'
-    },
-    {
-      id: 6,
-      image: '/images/weekend.jpeg',
-      moduleLabel: 'INLIFE',
-      title: 'Weekend Revival Manual',
-      tagline: 'Shanghai Escapes · A Guide to Creative Reset and Spiritual Recalibration',
-      subtitle: 'Click to generate personalized advice',
-      type: 'article' as const,
-      href: '/current/weekend-revival-manual'
-    }
-  ]
-
+  // /home 不再阻塞等待 session：直接显示页面，session 在后台解析（middleware 已允许未登录访问 /home）
   const handleSend = () => {
     if (inputValue.trim()) {
       // 跳转到聊天页面进行深度提问
@@ -314,7 +76,7 @@ export default function HomePage() {
       console.log('📸 [HOME] 图片已上传:', file.name)
       // 可以在这里显示图片预览或保存图片
       // 暂时先显示提示
-      alert(`图片 "${file.name}" 已上传`)
+      alert(`Image "${file.name}" uploaded`)
     }
     reader.readAsDataURL(file)
   }
@@ -322,27 +84,35 @@ export default function HomePage() {
   const handleImageToAI = async (file: File) => {
     try {
       console.log('🤖 [HOME] 准备将图片发送给AI:', file.name)
-      
-      // 将图片转换为base64
-      const reader = new FileReader()
-      reader.onload = async (e) => {
-        const base64Image = e.target?.result as string
-        
-        // 跳转到聊天页面，传递图片数据
-        const imageData = {
-          name: file.name,
-          data: base64Image,
-          type: file.type
-        }
-        
-        // 将图片数据编码到URL中（或使用其他方式传递）
-        const encodedData = encodeURIComponent(JSON.stringify(imageData))
-        router.push(`/chat-new?image=${encodedData}`)
+      // 1. 转为 base64
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const r = new FileReader()
+        r.onload = () => resolve(r.result as string)
+        r.onerror = () => reject(new Error('读取图片失败'))
+        r.readAsDataURL(file)
+      })
+      // 2. 上传到服务器，避免 URL 过长（414）且便于编辑接口使用
+      const res = await fetch('/api/image/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageData: dataUrl, filename: file.name })
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        alert('Image upload failed: ' + (err.error || res.status))
+        return
       }
-      reader.readAsDataURL(file)
+      const data = await res.json()
+      const imageUrl = data?.url
+      if (!imageUrl) {
+        alert('Image upload failed: no URL returned')
+        return
+      }
+      // 3. 跳转聊天页，带上图片 URL 并自动开始
+      router.push(`/chat-new?prompt=${encodeURIComponent("I'm sharing an image, please take a look.")}&autoStart=true&image=${encodeURIComponent(imageUrl)}`)
     } catch (error) {
       console.error('❌ [HOME] 处理图片失败:', error)
-      alert('处理图片失败，请重试')
+      alert('Failed to process image, please try again')
     }
   }
 
@@ -355,6 +125,24 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-white">
+      {/* 新用户导引：未登录时先上传照片 + 简单自我介绍 */}
+      <NewUserOnboarding
+        isOpen={showNewUserOnboarding}
+        onClose={() => setShowNewUserOnboarding(false)}
+        onComplete={(photoDataUrl, intro) => {
+          setShowNewUserOnboarding(false)
+          if (typeof window !== 'undefined') {
+            try {
+              if (photoDataUrl) {
+                const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}')
+                userInfo.image = photoDataUrl
+                localStorage.setItem('userInfo', JSON.stringify(userInfo))
+              }
+              // intro 已由 NewUserOnboarding 存到 newUserOnboardingIntro，profile 加载时会用作一句话陈述
+            } catch (_) {}
+          }
+        }}
+      />
       {/* 历史记录侧边栏 */}
       <ChatHistorySidebar
         isOpen={isSidebarOpen}
@@ -366,30 +154,40 @@ export default function HomePage() {
       <header className="flex items-center justify-between p-4 bg-white border-b border-gray-100">
         <div className="flex items-center">
           <img 
-            src="/inflow-logo.jpeg" 
+            src="/logo-nexus.jpeg" 
             alt="logo" 
-            className="w-24 h-16 rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
-            onClick={() => router.push('/home')}
+            className="h-12 w-auto object-contain rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
+            onClick={() => router.push('/profile')}
           />
         </div>
         <div className="flex items-center space-x-4">
           <button
             onClick={() => setIsSidebarOpen(true)}
-            className="text-magazine-gray hover:text-magazine-primary transition-colors"
+            className="text-gray-500 hover:text-primary transition-colors"
             title="History"
           >
             <History className="w-6 h-6" />
           </button>
           <button
             onClick={() => router.push('/profile')}
-            className="text-magazine-gray hover:text-magazine-primary transition-colors"
+            className="text-gray-500 hover:text-primary transition-colors"
             title="My Profile"
           >
             👤
           </button>
+          {session && (
+            <button
+              onClick={() => signOut({ callbackUrl: '/auth/signin' })}
+              className="text-gray-500 hover:text-primary transition-colors flex items-center gap-1"
+              title="换账号"
+            >
+              <LogOut className="w-5 h-5" />
+              <span className="text-sm hidden sm:inline">换账号</span>
+            </button>
+          )}
           <button
-            onClick={() => router.push('/gallery')}
-            className="text-magazine-gray hover:text-magazine-primary transition-colors"
+            onClick={() => router.push('/profile')}
+            className="text-gray-500 hover:text-primary transition-colors"
             title="Gallery"
           >
             🖼️
@@ -397,83 +195,40 @@ export default function HomePage() {
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="p-4 pb-40 max-w-md mx-auto">
-        {/* Community Works */}
-          <div className="mb-6">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-lg font-bold text-gray-800">🌟 Community Works</h2>
-            {!publishedLoading && (
-              <span className="text-xs text-gray-500">{publishedContent.length} works</span>
-            )}
-            </div>
-          
-          {publishedLoading ? (
-            <div className="grid grid-cols-2 gap-4">
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="h-64 bg-gray-100 rounded-2xl animate-pulse"></div>
-              ))}
-            </div>
-          ) : publishedContent.length > 0 ? (
-            <div className="grid grid-cols-2 gap-4">
-              {publishedContent.map((content) => {
-                const firstImageUrl = content.firstImageUrl || getFirstImageUrl(content.images)
-                return (
-                  <div 
-                    key={content.id} 
-                    className="h-64 cursor-pointer"
-                    onClick={() => router.push(`/history/${content.id}`)}
-                  >
-                    <div className="relative h-full bg-gradient-to-br from-teal-50 to-cyan-50 rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition-all group">
-                      {firstImageUrl ? (
-                        <img
-                          src={firstImageUrl}
-                          alt={content.title}
-                          className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        />
-                      ) : (
-                        <div className="absolute inset-0 bg-gradient-to-br from-teal-100 to-cyan-100 flex items-center justify-center">
-                          <ImageIcon className="w-12 h-12 text-teal-400 opacity-50" />
-                        </div>
-                      )}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
-                      <div className="absolute bottom-0 left-0 right-0 p-3">
-                        <p className="text-white text-sm font-medium line-clamp-2 mb-1">
-                          {content.title || content.initialPrompt || 'Published Work'}
-                        </p>
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="text-white/80">{content.author?.name || 'Anonymous'}</span>
-                          <span className="text-white/60">{content.imageCount || 0} images</span>
-                        </div>
-                      </div>
-                      <div className="absolute top-2 right-2 bg-teal-500 text-white text-xs px-2 py-1 rounded-full">
-                        Published
-                      </div>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          ) : (
-            <div className="text-center py-8 bg-gray-50 rounded-2xl">
-              <p className="text-gray-500 text-sm">No published works yet</p>
-              <p className="text-gray-400 text-xs mt-2">Publish your work to share with others!</p>
-          </div>
-        )}
-        </div>
+      {/* mybio: single elon-ex - 变窄，与下方 max-w-md 对齐 */}
+      <div className="w-full px-4 max-w-md mx-auto">
+        {/* 卡片最上方：分享我的链接 */}
+        <button
+          type="button"
+          onClick={async () => {
+            if (!session) return
+            try {
+              const res = await fetch('/api/user/info', { credentials: 'include' })
+              const data = await res.json().catch(() => ({}))
+              const id = data?.userInfo?.id
+              if (id && typeof window !== 'undefined' && navigator.clipboard?.writeText) {
+                const url = `${window.location.origin}/u/${id}`
+                await navigator.clipboard.writeText(url)
+                setShareLinkCopied(true)
+                setTimeout(() => setShareLinkCopied(false), 2000)
+              }
+            } catch (_) {}
+          }}
+          disabled={!session}
+          className="w-full flex items-center justify-center gap-2 px-3 py-2.5 mt-4 text-sm font-medium text-gray-700 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-t-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <Share2 className="w-4 h-4 text-teal-500 shrink-0" />
+          <span>分享我的链接</span>
+          {shareLinkCopied && <span className="text-xs text-teal-600">已复制</span>}
+        </button>
+        <h2 className="pt-4 text-lg font-bold text-gray-800">mybio</h2>
+        <img src="/elon-ex.jpeg" alt="mybio" className="w-full max-w-[380px] mx-auto h-auto block rounded-lg" />
+      </div>
 
-        {/* Featured Content */}
-        <div className="mb-3">
-          <h2 className="text-lg font-bold text-gray-800">📖 Featured Content</h2>
-        </div>
-        <div className="grid grid-cols-2 gap-4">
-          {staticContentData.map((item) => (
-            <div key={item.id} className="h-64">
-              <ContentCard data={item} />
-            </div>
-          ))}
-        </div>
-      </main>
+      {/* 每日一问：回答 + 评价问题（下次更温和/更尖锐/保持等），存入用户数据库 */}
+      <DailyQuestionCard />
+
+      <main className="p-4 pb-40 max-w-md mx-auto" />
 
       {/* Quick Generate Buttons - Horizontal Scroll */}
       <div className="fixed bottom-16 left-0 right-0 p-3 bg-white max-w-md mx-auto">
@@ -482,7 +237,7 @@ export default function HomePage() {
             <h2 className="text-xs font-medium text-gray-500">Quick Generate</h2>
             <button
               onClick={() => router.push('/profile')}
-              className="text-xs text-magazine-primary hover:text-magazine-secondary flex items-center space-x-1"
+              className="text-xs text-primary hover:text-primary-dark flex items-center space-x-1"
             >
               <span>👤</span>
               <span>My Info</span>
@@ -496,7 +251,7 @@ export default function HomePage() {
                 <button
                   key={prompt}
                   onClick={() => setInputValue(prompt)}
-                  className="px-3 py-1.5 text-xs bg-magazine-light-gray text-magazine-primary rounded-full hover:bg-magazine-accent transition-colors whitespace-nowrap flex-shrink-0"
+                  className="px-3 py-1.5 text-xs bg-gray-100 text-primary rounded-full hover:bg-primary-accent transition-colors whitespace-nowrap flex-shrink-0"
                 >
                   {prompt}
                 </button>
@@ -535,47 +290,28 @@ export default function HomePage() {
         />
       </div>
 
-      {/* User Profile Modal */}
-      {showUserProfile && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 max-h-[80vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-gray-900">My Info</h2>
-              <button
-                onClick={() => setShowUserProfile(false)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-            
-            <ClientOnly>
-              <UserProfileContent />
-            </ClientOnly>
-            
-            <div className="mt-6 flex space-x-3">
-              <button
-                onClick={() => {
-                  setShowUserProfile(false)
-                  router.push('/user-info')
-                }}
-                className="flex-1 bg-magazine-primary text-white py-2 px-4 rounded-lg hover:bg-magazine-secondary transition-colors"
-              >
-                Edit Info
-              </button>
-              <button
-                onClick={() => {
-                  resetUserInfo()
-                  setShowUserProfile(false)
-                }}
-                className="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors"
-              >
-                Reset User
-              </button>
-            </div>
+      {/* User Profile - 拉窗式，可缩小 */}
+      <Drawer isOpen={showUserProfile} onClose={() => setShowUserProfile(false)} title="My Info">
+        <div className="p-6">
+          <ClientOnly>
+            <UserProfileContent />
+          </ClientOnly>
+          <div className="mt-6 flex space-x-3">
+            <button
+              onClick={() => { setShowUserProfile(false); router.push('/user-info') }}
+              className="flex-1 bg-primary text-white py-2 px-4 rounded-lg hover:bg-primary-dark transition-colors"
+            >
+              Edit Info
+            </button>
+            <button
+              onClick={() => { resetUserInfo(); setShowUserProfile(false) }}
+              className="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors"
+            >
+              Reset User
+            </button>
           </div>
         </div>
-      )}
+      </Drawer>
     </div>
   )
 }
@@ -682,7 +418,7 @@ function UserProfileContent() {
   if (isLoadingUserInfo) {
     return (
       <div className="text-center py-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-magazine-primary mx-auto mb-2"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
         <p className="text-sm text-gray-500">Loading user information...</p>
       </div>
     )
@@ -738,7 +474,7 @@ function UserProfileContent() {
                   <div className="flex space-x-2">
                     <button
                       onClick={() => switchUser(name)}
-                      className="px-3 py-1 bg-magazine-primary text-white text-sm rounded hover:bg-magazine-secondary"
+                      className="px-3 py-1 bg-primary text-white text-sm rounded hover:bg-primary-dark"
                     >
                       Select
                     </button>
@@ -756,21 +492,21 @@ function UserProfileContent() {
         )}
         
         {/* 创建新用户 */}
-        <div className="bg-magazine-light-gray p-4 rounded-lg">
-          <h3 className="font-medium text-magazine-dark mb-3">Create New User</h3>
+        <div className="bg-gray-100 p-4 rounded-lg">
+          <h3 className="font-medium text-gray-800 mb-3">Create New User</h3>
           <div className="flex space-x-2">
             <input
               type="text"
               value={newUserName}
               onChange={(e) => setNewUserName(e.target.value)}
               placeholder="Enter user name"
-              className="flex-1 px-3 py-2 border border-magazine-accent rounded-lg focus:outline-none focus:ring-2 focus:ring-magazine-primary"
+              className="flex-1 px-3 py-2 border border-primary-accent rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
               onKeyPress={(e) => e.key === 'Enter' && addNewUser()}
             />
             <button
               onClick={addNewUser}
               disabled={!newUserName.trim()}
-              className="px-4 py-2 bg-magazine-primary text-white rounded-lg hover:bg-magazine-secondary disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Create
             </button>
@@ -816,16 +552,16 @@ function UserProfileContent() {
   return (
     <div className="space-y-4">
       {/* 当前用户信息 */}
-      <div className="bg-magazine-light-gray p-4 rounded-lg">
+      <div className="bg-gray-100 p-4 rounded-lg">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="font-medium text-magazine-dark">Current User</h3>
-            <p className="text-lg font-semibold text-magazine-primary">{currentUserName}</p>
+            <h3 className="font-medium text-gray-800">Current User</h3>
+            <p className="text-lg font-semibold text-primary">{currentUserName}</p>
           </div>
           <div className="flex space-x-2">
             <button
               onClick={() => setShowUserSelector(true)}
-              className="px-3 py-1 bg-magazine-primary text-white text-sm rounded hover:bg-magazine-secondary"
+              className="px-3 py-1 bg-primary text-white text-sm rounded hover:bg-primary-dark"
             >
               Switch User
             </button>
@@ -891,9 +627,9 @@ function UserProfileContent() {
 
       {/* 深度分析 - 隐藏，只作为后台数据存储 */}
       {/* {userInfoDescription && (
-        <div className="bg-magazine-light-gray p-4 rounded-lg">
-          <h3 className="font-medium text-magazine-dark mb-2">深度分析</h3>
-          <div className="text-sm text-magazine-primary whitespace-pre-wrap">{userInfoDescription}</div>
+        <div className="bg-gray-100 p-4 rounded-lg">
+          <h3 className="font-medium text-gray-800 mb-2">深度分析</h3>
+          <div className="text-sm text-primary whitespace-pre-wrap">{userInfoDescription}</div>
         </div>
       )} */}
 
@@ -958,74 +694,34 @@ function UserProfileContent() {
         </div>
       )}
       
-      {/* 用户选择器弹窗 */}
-      {showUserSelector && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 max-h-[80vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-gray-900">Select User</h2>
-              <button
-                onClick={() => setShowUserSelector(false)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-            
-            <div className="space-y-4">
-              {/* 用户列表 */}
-              {userList.length > 0 && (
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <h3 className="font-medium text-gray-900 mb-3">Existing Users</h3>
-                  <div className="space-y-2">
-                    {userList.map((name) => (
-                      <div key={name} className="flex items-center justify-between p-2 bg-white rounded border">
-                        <span className="text-gray-900">{name}</span>
-                        <div className="flex space-x-2">
-                          <button
-                            onClick={() => switchUser(name)}
-                            className="px-3 py-1 bg-magazine-primary text-white text-sm rounded hover:bg-magazine-secondary"
-                          >
-                            Select
-                          </button>
-                          <button
-                            onClick={() => deleteUser(name)}
-                            className="px-3 py-1 bg-red-500 text-white text-sm rounded hover:bg-red-600"
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      </div>
-                    ))}
+      {/* 用户选择器 - 拉窗式，可缩小 */}
+      <Drawer isOpen={showUserSelector} onClose={() => setShowUserSelector(false)} title="Select User">
+        <div className="p-6 space-y-4">
+          {userList.length > 0 && (
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h3 className="font-medium text-gray-900 mb-3">Existing Users</h3>
+              <div className="space-y-2">
+                {userList.map((name) => (
+                  <div key={name} className="flex items-center justify-between p-2 bg-white rounded border">
+                    <span className="text-gray-900">{name}</span>
+                    <div className="flex space-x-2">
+                      <button onClick={() => switchUser(name)} className="px-3 py-1 bg-primary text-white text-sm rounded hover:bg-primary-dark">Select</button>
+                      <button onClick={() => deleteUser(name)} className="px-3 py-1 bg-red-500 text-white text-sm rounded hover:bg-red-600">Delete</button>
+                    </div>
                   </div>
-                </div>
-              )}
-              
-              {/* 创建新用户 */}
-              <div className="bg-magazine-light-gray p-4 rounded-lg">
-                <h3 className="font-medium text-magazine-dark mb-3">Create New User</h3>
-                <div className="flex space-x-2">
-                  <input
-                    type="text"
-                    value={newUserName}
-                    onChange={(e) => setNewUserName(e.target.value)}
-                    placeholder="Enter user name"
-                    className="flex-1 px-3 py-2 border border-magazine-accent rounded-lg focus:outline-none focus:ring-2 focus:ring-magazine-primary"
-                    onKeyPress={(e) => e.key === 'Enter' && addNewUser()}
-                  />
-                  <button
-                    onClick={addNewUser}
-                    disabled={!newUserName.trim()}
-                    className="px-4 py-2 bg-magazine-primary text-white rounded-lg hover:bg-magazine-secondary disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Create
-                  </button>
-                </div>
+                ))}
               </div>
+            </div>
+          )}
+          <div className="bg-gray-100 p-4 rounded-lg">
+            <h3 className="font-medium text-gray-800 mb-3">Create New User</h3>
+            <div className="flex space-x-2">
+              <input type="text" value={newUserName} onChange={(e) => setNewUserName(e.target.value)} placeholder="Enter user name" className="flex-1 px-3 py-2 border border-primary-accent rounded-lg focus:outline-none focus:ring-2 focus:ring-primary" onKeyPress={(e) => e.key === 'Enter' && addNewUser()} />
+              <button onClick={addNewUser} disabled={!newUserName.trim()} className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark disabled:opacity-50 disabled:cursor-not-allowed">Create</button>
             </div>
           </div>
         </div>
-      )}
+      </Drawer>
     </div>
   )
 }

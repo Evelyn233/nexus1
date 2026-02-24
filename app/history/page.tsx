@@ -96,7 +96,7 @@ export default function HistoryPage() {
       {/* 头部 */}
       <div className="max-w-6xl mx-auto mb-8">
         <button
-          onClick={() => router.push('/home')}
+          onClick={() => router.push('/profile')}
           className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4 transition-colors"
         >
           <ArrowLeft className="w-5 h-5" />
@@ -115,7 +115,7 @@ export default function HistoryPage() {
       <div className="max-w-6xl mx-auto">
         {loading ? (
           <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-magazine-primary mx-auto"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
             <p className="text-gray-600 mt-4">加载中...</p>
           </div>
         ) : contents.length === 0 ? (
@@ -123,8 +123,8 @@ export default function HistoryPage() {
             <MessageCircle className="w-16 h-16 text-gray-300 mx-auto mb-4" />
             <p className="text-gray-600">还没有故事记录</p>
             <button
-              onClick={() => router.push('/home')}
-              className="mt-4 px-6 py-2 bg-magazine-primary text-white rounded-lg hover:bg-magazine-secondary transition-colors"
+              onClick={() => router.push('/profile')}
+              className="mt-4 px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors"
             >
               开始创作
             </button>
@@ -247,7 +247,7 @@ export default function HistoryPage() {
                         e.stopPropagation()
                         router.push(`/chat-new?continue=${content.id}`)
                       }}
-                      className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-magazine-primary text-white text-sm rounded-lg hover:bg-magazine-secondary transition-colors"
+                      className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-primary text-white text-sm rounded-lg hover:bg-primary-dark transition-colors"
                     >
                       <Play className="w-4 h-4" />
                       继续创作
@@ -281,7 +281,7 @@ export default function HistoryPage() {
                 // TODO: 加载更多
                 console.log('加载更多')
               }}
-              className="px-6 py-2 bg-white text-magazine-primary border border-magazine-primary rounded-lg hover:bg-teal-50 transition-colors"
+              className="px-6 py-2 bg-white text-primary border border-primary rounded-lg hover:bg-teal-50 transition-colors"
             >
               加载更多
             </button>

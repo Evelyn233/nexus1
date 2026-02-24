@@ -46,7 +46,7 @@ export default function AuthErrorPage() {
           <div className="space-y-3">
             <Link
               href="/auth/signin"
-              className="w-full bg-magazine-primary text-white px-6 py-3 rounded-xl font-medium hover:bg-magazine-secondary transition-colors duration-200 block text-center"
+              className="w-full bg-primary text-white px-6 py-3 rounded-xl font-medium hover:bg-primary-dark transition-colors duration-200 block text-center"
             >
               重新登录
             </Link>

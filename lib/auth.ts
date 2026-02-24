@@ -70,9 +70,13 @@ export const authOptions: NextAuthOptions = {
           const user = await Promise.race([userPromise, timeoutPromise]) as any
           console.log('👤 [AUTH] 用户查询结果:', user ? '找到用户' : '用户不存在')
 
-          if (!user || !user.password) {
-            console.log('❌ [AUTH] 用户不存在或密码为空')
-            throw new Error('账号或密码错误')
+          if (!user) {
+            console.log('❌ [AUTH] 用户不存在')
+            throw new Error('请您先注册')
+          }
+          if (!user.password) {
+            console.log('❌ [AUTH] 该账号未设置密码，可能通过第三方登录')
+            throw new Error('该账号通过第三方登录，请使用 Google/GitHub 登录')
           }
 
           console.log('🔐 [AUTH] 开始验证密码...')
@@ -94,6 +98,9 @@ export const authOptions: NextAuthOptions = {
             image: user.image,
           }
         } catch (error) {
+          if (error instanceof Error && error.message === '账号或密码错误') {
+            throw error
+          }
           console.error('❌ [AUTH] 数据库查询失败:', error)
           if (error instanceof Error && error.message.includes('超时')) {
             throw new Error('数据库连接超时，请稍后重试')
@@ -131,7 +138,7 @@ export const authOptions: NextAuthOptions = {
     signIn: '/auth/signin',
     signOut: '/auth/signout',
     error: '/auth/error',
-    newUser: '/user-info', // 新用户注册后跳转到信息收集页面
+    newUser: '/profile', // 新用户注册后进入 profile
   },
 
   callbacks: {

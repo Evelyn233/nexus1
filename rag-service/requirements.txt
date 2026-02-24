@@ -1,0 +1,14 @@
+# MiniRAG (HKUDS) - https://github.com/HKUDS/MiniRAG
+minirag-hku>=0.0.2
+
+# API server
+fastapi>=0.100.0
+uvicorn[standard]>=0.22.0
+
+# Optional: fetch URL content for "增加数据库" links
+requests>=2.28.0
+beautifulsoup4>=4.12.0
+
+# MiniRAG / LightRAG deps (minirag-hku 有时未声明，需显式安装)
+python-dotenv
+json_repair>=0.7.0

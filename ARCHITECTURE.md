@@ -152,24 +152,6 @@ if (confidence >= 0.70) {
   - 戏剧化光线（DRAMATIC SIDE LIGHTING, HIGH CONTRAST）
   - 前景特写 + 背景虚化（SHARP FOCUS + HEAVILY BLURRED）
 
-### 4. 杂志封面生成
-```
-故事分析 → 封面元素生成 → 图像生成
-```
-
-**关键文件**:
-- `lib/magazineCoverService.ts` - 封面生成服务
-- `app/api/generate-magazine-cover/route.ts` - API路由
-
-**流程**:
-1. 分析故事内容和情绪
-2. 动态生成封面元素：
-   - 大标题（核心冲突）
-   - 副标题（情感张力）
-   - 封面风格（基于故事类型）
-   - 艺术风格（基于情绪基调）
-3. 生成封面图像
-
 ---
 
 ## 🗂️ 目录结构
@@ -187,7 +169,6 @@ magazine/
 │   │   │   └── two-layer-data/ # 两层数据查询
 │   │   ├── chat-sessions/      # 聊天会话
 │   │   ├── generate-content/   # 内容生成
-│   │   └── generate-magazine-cover/ # 封面生成
 │   │
 │   ├── chat-new/               # 智能对话页面
 │   ├── generate/               # 场景生成页面
@@ -199,7 +180,6 @@ magazine/
 │   ├── sceneGenerationService.ts    # 场景生成
 │   ├── psychodramaSceneService.ts   # 心理剧生成
 │   ├── contentGenerationService.ts  # 内容协调
-│   ├── magazineCoverService.ts      # 封面生成
 │   ├── userDataApi.ts          # 用户数据API
 │   ├── imageGeneration.ts      # 图像生成
 │   └── sceneStoryMappingService.ts  # 场景-故事映射
@@ -230,8 +210,6 @@ magazine/
 
 ### 内容生成
 - `POST /api/generate-content` - 生成内容和场景
-- `POST /api/generate-magazine-cover` - 生成杂志封面
-
 ### AI代理
 - `POST /api/ai/chat` - DeepSeek聊天代理
 - `POST /api/doubao-chat` - DouBao聊天代理

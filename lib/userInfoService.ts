@@ -171,11 +171,11 @@ const defaultUserMetadata: UserMetadata = {
 }
 
 // 本地存储键名
-const USER_INFO_KEY = 'magazine_user_info'
-const USER_METADATA_KEY = 'magazine_user_metadata'
-const CURRENT_USER_KEY = 'magazine_current_user'
-const USER_LIST_KEY = 'magazine_user_list'
-const USER_REPORT_KEY = 'magazine_user_report'
+const USER_INFO_KEY = 'profile_user_info'
+const USER_METADATA_KEY = 'profile_user_metadata'
+const CURRENT_USER_KEY = 'profile_current_user'
+const USER_LIST_KEY = 'profile_user_list'
+const USER_REPORT_KEY = 'profile_user_report'
 
 // 获取当前用户名字（优先从NextAuth session获取）
 export function getCurrentUserName(): string {

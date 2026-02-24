@@ -23,7 +23,6 @@ export function useAuth() {
     try {
       if (!session?.user?.email) return
 
-      // 调用同步API
       const response = await fetch('/api/user/sync', {
         method: 'POST'
       })
@@ -31,14 +30,7 @@ export function useAuth() {
       if (response.ok) {
         const data = await response.json()
         console.log('✅ 用户数据同步成功:', data)
-
-        // 如果用户还没有填写详细信息，跳转到用户信息页面
-        if (!data.result?.hasDetailedInfo) {
-          console.log('⚠️ [AUTH] 新用户缺少详细信息，跳转到用户信息页面')
-          router.push('/user-info')
-        } else {
-          console.log('✅ [AUTH] 老用户已有详细信息，直接进入主页')
-        }
+        // 不再以「profile 有数据」为前置条件跳转；用户可自行进入 profile / user-info
       }
     } catch (error) {
       console.error('❌ 同步用户数据失败:', error)

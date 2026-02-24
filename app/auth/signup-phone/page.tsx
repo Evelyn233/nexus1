@@ -139,9 +139,9 @@ export default function SignUpPhonePage() {
         <div className="text-center">
           <div className="flex items-center justify-center mb-4">
             <img 
-              src="/inflow-logo.jpeg" 
+              src="/logo-nexus.jpeg" 
               alt="logo" 
-              className="w-24 h-20 rounded-lg"
+              className="h-16 w-auto object-contain rounded-lg"
             />
           </div>
           <h2 className="mt-2 text-xl font-semibold text-gray-900">📱 手机号注册</h2>

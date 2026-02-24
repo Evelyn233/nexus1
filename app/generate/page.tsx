@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { ArrowLeft, Download, Share2, RotateCcw } from 'lucide-react'
 import Image from 'next/image'
+import Drawer from '@/components/Drawer'
 import { generateImage } from '@/lib/imageGeneration'
 import { SceneStoryMappingService, StoryMappingResult } from '../../lib/sceneStoryMappingService'
 import { saveUserGeneratedContent } from '@/lib/userContentStorageService'
@@ -27,7 +28,7 @@ export default function GeneratePage() {
   useEffect(() => {
     if (fromChat && timestamp) {
       // 从sessionStorage读取数据
-      const storedData = sessionStorage.getItem('chat_data') || sessionStorage.getItem('magazine_generate_data')
+      const storedData = sessionStorage.getItem('chat_data')
       if (storedData) {
         try {
           const data = JSON.parse(storedData)
@@ -314,7 +315,7 @@ export default function GeneratePage() {
       console.log('💾 [GENERATE] 开始保存生成内容到数据库...')
       
       // 从sessionStorage获取完整的场景数据
-      const storedData = sessionStorage.getItem('chat_data') || sessionStorage.getItem('magazine_generate_data')
+      const storedData = sessionStorage.getItem('chat_data')
       if (!storedData) {
         console.warn('⚠️ [GENERATE] 未找到完整的生成数据，跳过保存')
         console.log('🔍 [GENERATE] 可用的sessionStorage keys:', Object.keys(sessionStorage))
@@ -432,7 +433,7 @@ export default function GeneratePage() {
   // 获取场景标题
   const getSceneTitle = (index: number): string => {
     // 优先使用新的场景数据
-    const storedData = sessionStorage.getItem('chat_data') || sessionStorage.getItem('magazine_generate_data')
+    const storedData = sessionStorage.getItem('chat_data')
     if (storedData) {
       try {
         const data = JSON.parse(storedData)
@@ -658,7 +659,7 @@ export default function GeneratePage() {
   // 获取场景描述
   const getSceneDescription = (index: number): string => {
     // 优先使用新的场景数据
-    const storedData = sessionStorage.getItem('chat_data') || sessionStorage.getItem('magazine_generate_data')
+    const storedData = sessionStorage.getItem('chat_data')
     if (storedData) {
       try {
         const data = JSON.parse(storedData)
@@ -705,57 +706,6 @@ export default function GeneratePage() {
   // 智能归属加载状态
   const [isStoryMappingLoading, setIsStoryMappingLoading] = useState(false)
   
-  // 杂志封面相关状态
-  const [magazineCover, setMagazineCover] = useState<any>(null)
-  const [isGeneratingCover, setIsGeneratingCover] = useState(false)
-  const [showCover, setShowCover] = useState(false)
-
-  // 生成杂志封面
-  const handleGenerateCover = async () => {
-    console.log('📰 [GENERATE] 开始生成杂志封面')
-    setIsGeneratingCover(true)
-    
-    try {
-      // 从sessionStorage获取完整数据
-      const storedData = sessionStorage.getItem('chat_data')
-      if (!storedData) {
-        throw new Error('未找到生成数据')
-      }
-      
-      const data = JSON.parse(storedData)
-      
-      // 调用后端API生成封面
-      const response = await fetch('/api/generate-magazine-cover', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          initialPrompt: data.original || data.initialPrompt,
-          answers: data.answers || [],
-          scenes: data.contentResult?.scenes,
-          story: data.contentResult?.story
-        })
-      })
-      
-      if (!response.ok) {
-        throw new Error('封面生成失败')
-      }
-      
-      const coverData = await response.json()
-      console.log('✅ [GENERATE] 杂志封面生成成功:', coverData)
-      
-      setMagazineCover(coverData.cover)
-      setShowCover(true)
-      
-    } catch (error) {
-      console.error('❌ [GENERATE] 封面生成失败:', error)
-      alert('封面生成失败，请重试')
-    } finally {
-      setIsGeneratingCover(false)
-    }
-  }
-
   // 获取场景对应的故事片段（使用智能归属）
   const getSceneStoryFragment = (index: number): string => {
     console.log(`🔍 [SCENE-${index + 1}] 当前storyMappings状态:`, storyMappings)
@@ -813,10 +763,10 @@ export default function GeneratePage() {
       <header className="flex items-center justify-between p-4 bg-white border-b border-gray-100">
         <div className="flex items-center space-x-3">
           <img 
-            src="/inflow-logo.jpeg" 
+            src="/logo-nexus.jpeg" 
             alt="logo" 
-            className="w-20 h-14 rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
-            onClick={() => router.push('/home')}
+            className="h-10 w-auto object-contain rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
+            onClick={() => router.push('/profile')}
           />
           <button
             onClick={handleBack}
@@ -1020,27 +970,21 @@ export default function GeneratePage() {
                 })}
               </div>
               
-              {/* 大图查看模态 */}
+              {/* 大图查看 - 拉窗式，可缩小 */}
               {selectedImageIndex !== null && (
-                <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" onClick={() => setSelectedImageIndex(null)}>
-                  <div className="relative max-w-4xl max-h-full" onClick={(e) => e.stopPropagation()}>
+                <Drawer isOpen={selectedImageIndex !== null} onClose={() => setSelectedImageIndex(null)} title={`场景 ${selectedImageIndex + 1}`} width="max-w-4xl">
+                  <div className="p-6 flex justify-center">
                     <Image
                       src={generatedImages[selectedImageIndex]}
-                      alt={`大图查看：场景${selectedImageIndex + 1}`}
+                      alt={`场景${selectedImageIndex + 1}`}
                       width={1024}
                       height={1024}
-                      className="object-contain max-h-[80vh] rounded-lg"
+                      className="object-contain max-h-[75vh] rounded-lg"
                       quality={100}
                       unoptimized={true}
                     />
-                    <button
-                      onClick={() => setSelectedImageIndex(null)}
-                      className="absolute top-4 right-4 bg-white/90 hover:bg-white text-black w-8 h-8 rounded-full flex items-center justify-center"
-                    >
-                      ×
-                    </button>
                   </div>
-                </div>
+                </Drawer>
               )}
               
               {/* Generation Info */}
@@ -1078,26 +1022,6 @@ export default function GeneratePage() {
                     </button>
                   </div>
                   
-                  {/* 生成杂志封面按钮 */}
-                  {!magazineCover && (
-                    <button
-                      onClick={handleGenerateCover}
-                      disabled={isGeneratingCover}
-                      className="w-full flex items-center justify-center space-x-2 py-3 px-4 bg-gradient-to-r from-teal-500 to-cyan-600 text-white rounded-lg hover:from-teal-600 hover:to-cyan-700 transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {isGeneratingCover ? (
-                        <>
-                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                          <span>正在生成封面...</span>
-                        </>
-                      ) : (
-                        <>
-                          <span className="text-lg">📰</span>
-                          <span className="font-medium">生成杂志封面</span>
-                        </>
-                      )}
-                    </button>
-                  )}
                 </div>
               </div>
             </div>
@@ -1114,111 +1038,6 @@ export default function GeneratePage() {
           )}
         </div>
 
-
-        {/* Magazine Cover Display */}
-        {magazineCover && showCover && (
-          <div className="mt-6 bg-gradient-to-br from-teal-50 to-cyan-50 rounded-lg p-6 shadow-lg border-2 border-teal-200">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-teal-600 to-cyan-600">
-                📰 杂志封面
-              </h2>
-              <button
-                onClick={() => setShowCover(false)}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                ✕
-              </button>
-            </div>
-            
-            <div className="bg-white rounded-lg p-6 shadow-md">
-              {/* 封面标题 */}
-              <div className="text-center mb-6 space-y-3">
-                <h1 className="text-4xl font-bold text-gray-900 mb-2">
-                  {magazineCover.mainTitle}
-                </h1>
-                <p className="text-lg text-gray-600 italic">
-                  {magazineCover.subtitle}
-                </p>
-                <div className="h-1 w-24 bg-gradient-to-r from-teal-500 to-cyan-600 mx-auto rounded-full"></div>
-              </div>
-              
-              {/* 封面信息 */}
-              <div className="space-y-4 text-sm">
-                {/* 核心冲突 */}
-                <div className="bg-teal-50 rounded-lg p-4">
-                  <h3 className="font-semibold text-teal-800 mb-2">核心冲突</h3>
-                  <p className="text-gray-700 leading-relaxed">{magazineCover.coreConflict}</p>
-                  <div className="mt-2 flex items-center">
-                    <span className="text-xs text-teal-600">冲突强度:</span>
-                    <div className="flex-1 ml-2 bg-teal-200 rounded-full h-2">
-                      <div 
-                        className="bg-teal-600 h-2 rounded-full transition-all" 
-                        style={{ width: `${(magazineCover.conflictIntensity || 5) * 10}%` }}
-                      ></div>
-                    </div>
-                    <span className="ml-2 text-xs text-teal-600">{magazineCover.conflictIntensity || 5}/10</span>
-                  </div>
-                </div>
-                
-                {/* 关键地点 */}
-                {magazineCover.keyLocation && (
-                  <div className="bg-cyan-50 rounded-lg p-4">
-                    <h3 className="font-semibold text-cyan-800 mb-2">📍 关键地点</h3>
-                    <p className="text-gray-700">{magazineCover.keyLocation}</p>
-                  </div>
-                )}
-                
-                {/* 其他人物 */}
-                {magazineCover.otherCharacters && magazineCover.otherCharacters.length > 0 && (
-                  <div className="bg-blue-50 rounded-lg p-4">
-                    <h3 className="font-semibold text-blue-800 mb-2">👥 其他人物</h3>
-                    <ul className="space-y-1">
-                      {magazineCover.otherCharacters.map((char: string, idx: number) => (
-                        <li key={idx} className="text-gray-700 text-sm">• {char}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-                
-                {/* 心理元素 */}
-                {magazineCover.psychologicalElements && magazineCover.psychologicalElements.length > 0 && (
-                  <div className="bg-indigo-50 rounded-lg p-4">
-                    <h3 className="font-semibold text-indigo-800 mb-2">🧠 心理元素</h3>
-                    <ul className="space-y-1">
-                      {magazineCover.psychologicalElements.map((elem: string, idx: number) => (
-                        <li key={idx} className="text-gray-700 text-sm">• {elem}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-                
-                {/* 设计方案 */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-gray-50 rounded-lg p-3">
-                    <div className="text-xs text-gray-500 mb-1">封面风格</div>
-                    <div className="text-gray-800 font-medium">{magazineCover.coverStyle}</div>
-                  </div>
-                  <div className="bg-gray-50 rounded-lg p-3">
-                    <div className="text-xs text-gray-500 mb-1">字体风格</div>
-                    <div className="text-gray-800 font-medium">{magazineCover.typography}</div>
-                  </div>
-                </div>
-                
-                {/* 配色方案 */}
-                <div className="bg-gradient-to-r from-teal-50 to-cyan-50 rounded-lg p-4">
-                  <h3 className="font-semibold text-teal-800 mb-2">🎨 配色方案</h3>
-                  <p className="text-gray-700 text-sm">{magazineCover.colorScheme}</p>
-                </div>
-                
-                {/* 封面图片描述 */}
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <h3 className="font-semibold text-gray-800 mb-2">📸 封面图片描述</h3>
-                  <p className="text-gray-700 text-sm leading-relaxed">{magazineCover.coverImageDescription_CN}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Additional Suggestions */}
         {generatedImages.length > 0 && (

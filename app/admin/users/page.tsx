@@ -40,6 +40,9 @@ export default function AdminUsersPage() {
   const [error, setError] = useState<string | null>(null)
   const [expandedUsers, setExpandedUsers] = useState<Set<string>>(new Set())
   const [selectedUser, setSelectedUser] = useState<string | null>(null)
+  const [profileOwnerUserId, setProfileOwnerUserId] = useState<string | null>(null)
+  const [profileOwnerName, setProfileOwnerName] = useState<string | null>(null)
+  const [settingProfileOwner, setSettingProfileOwner] = useState<string | null>(null)
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -49,8 +52,47 @@ export default function AdminUsersPage() {
     
     if (status === 'authenticated') {
       loadUsers()
+      loadProfileOwner()
     }
   }, [status, router])
+
+  const loadProfileOwner = async () => {
+    try {
+      const res = await fetch('/api/admin/profile-owner')
+      const data = await res.json().catch(() => ({}))
+      if (data.success && data.profileOwnerUserId) {
+        setProfileOwnerUserId(data.profileOwnerUserId)
+        setProfileOwnerName(data.profileOwnerUser?.name || data.profileOwnerUser?.email || data.profileOwnerUserId)
+      } else {
+        setProfileOwnerUserId(null)
+        setProfileOwnerName(null)
+      }
+    } catch {
+      setProfileOwnerUserId(null)
+      setProfileOwnerName(null)
+    }
+  }
+
+  const setAsProfileOwner = async (userId: string) => {
+    try {
+      setSettingProfileOwner(userId)
+      const res = await fetch('/api/admin/profile-owner', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (res.ok && data.success) {
+        await loadProfileOwner()
+      } else {
+        alert(data.error || '设置失败')
+      }
+    } catch (e: any) {
+      alert(e?.message || '设置失败')
+    } finally {
+      setSettingProfileOwner(null)
+    }
+  }
 
   const loadUsers = async () => {
     try {
@@ -164,7 +206,7 @@ export default function AdminUsersPage() {
               <h1 className="text-3xl font-bold text-gray-900">用户数据库查看器</h1>
               <p className="text-gray-600 mt-2">当前登录：{session?.user?.email}</p>
             </div>
-            <div className="flex gap-4">
+            <div className="flex gap-4 items-center flex-wrap">
               <button
                 onClick={loadUsers}
                 className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
@@ -174,6 +216,11 @@ export default function AdminUsersPage() {
               <div className="px-4 py-2 bg-green-100 text-green-800 rounded-lg">
                 共 {users.length} 个用户
               </div>
+              {profileOwnerUserId && (
+                <div className="px-4 py-2 bg-amber-50 text-amber-800 rounded-lg border border-amber-200">
+                  当前 Profile 展示用户：{profileOwnerName || profileOwnerUserId}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -210,8 +257,8 @@ export default function AdminUsersPage() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4 flex-1">
                       <span className="text-xl">{isExpanded ? '▼' : '▶'}</span>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3">
+                      <div className="flex-1 flex items-center gap-3 flex-wrap">
+                        <div className="flex items-center gap-3 flex-wrap">
                           <h3 className="text-lg font-semibold text-gray-900">
                             {user.name || '未设置姓名'}
                           </h3>
@@ -221,6 +268,14 @@ export default function AdminUsersPage() {
                           {user.phone && (
                             <span className="text-sm text-gray-500">({user.phone})</span>
                           )}
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); setAsProfileOwner(user.id) }}
+                            disabled={settingProfileOwner === user.id}
+                            className="px-2 py-1 text-xs font-medium rounded bg-amber-100 text-amber-800 hover:bg-amber-200 disabled:opacity-50"
+                          >
+                            {profileOwnerUserId === user.id ? '✓ 当前展示' : (settingProfileOwner === user.id ? '设置中…' : '设为 Profile 展示')}
+                          </button>
                         </div>
                         <div className="flex items-center gap-4 mt-1 text-sm text-gray-600">
                           {user.gender && <span>性别: {user.gender === 'female' ? '女' : '男'}</span>}

@@ -1,4 +1,3 @@
-// Prisma 数据库 Schema
 generator client {
   provider = "prisma-client-js"
 }
@@ -8,129 +7,98 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// 用户表
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String?   @unique
-  emailVerified DateTime?
-  password      String?   // 密码（加密后）
-  image         String?
-  
-  // 🆕 手机号登录
-  phone         String?   @unique  // 手机号
-  phoneVerified Boolean   @default(false)  // 手机号是否验证
-  
-  // 基本信息
-  gender        String?
-  birthDate     String?   // JSON: {year, month, day, hour}
-  age           Int?      // 年龄
-  height        String?
-  weight        String?
-  location      String?
-  personality   String?   // 初始自我认知（MBTI等）
-  hairLength    String?
-  
-  // 自我认知（第一层：用户自己填写）
-  selfMBTI      String?   // MBTI类型
-  selfTraits    String?   // 自我描述的性格特质（JSON数组）
-  selfInterests String?   // 兴趣爱好（JSON数组）
-  selfGoals     String?   // 目标和愿景（JSON数组）
-  
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  
-  accounts      Account[]
-  sessions      Session[]
-  metadata      UserMetadata?  // 一对一关系
-  chatSessions  ChatSession[]
-  generatedImages GeneratedImage[]
-  generatedContents UserGeneratedContent[]  // 用户生成的内容
-  payments       UserPayment[]  // 付费记录
-  wallet         UserWallet?    // 钱包（一对一关系）
-  dailyQuotas    UserDailyQuota[] // 每日免费额度记录
-  comments       Comment[]  // 用户发表的评论
-  
+  id                      String                 @id @default(cuid())
+  name                    String?
+  email                   String?                @unique
+  emailVerified           DateTime?
+  password                String?
+  image                   String?
+  phone                   String?                @unique
+  phoneVerified           Boolean                @default(false)
+  gender                  String?
+  birthDate               String?
+  age                     Int?
+  height                  String?
+  weight                  String?
+  location                String?
+  personality             String?
+  hairLength              String?
+  selfMBTI                String?
+  selfTraits              String?
+  selfInterests           String?
+  selfGoals               String?
+  createdAt               DateTime               @default(now())
+  updatedAt               DateTime               @updatedAt
+  profileData             String?
+  profileSlug             String?                @unique
+  accounts                Account[]
+  chatSessions            ChatSession[]
+  comments                Comment[]
+  generatedImages         GeneratedImage[]
+  profileMessagesSent     ProfileMessage[]       @relation("ProfileMessageFrom")
+  profileMessagesReceived ProfileMessage[]       @relation("ProfileMessageTo")
+  sessions                Session[]
+  dailyQuotas             UserDailyQuota[]
+  dailyQuestionResponses  UserDailyQuestionResponse[]
+  generatedContents       UserGeneratedContent[]
+  metadata                UserMetadata?
+  payments                UserPayment[]
+  wallet                  UserWallet?
+
   @@map("users")
 }
 
-// 用户深度元数据表（AI分析结果）
 model UserMetadata {
-  id        String   @id @default(cuid())
-  userId    String   @unique
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  // 基础命理元数据（基于生日，不可变）
-  zodiacSign        String?  // 星座
-  chineseZodiac     String?  // 生肖
-  baziAnalysis      String?  // 八字分析
-  baziDayMaster     String?  // 日主
-  baziPattern       String?  // 格局
-  astrologicalProfile String? // 星盘分析
-  ziweiAnalysis     String?  // 紫微命盘
-  
-  // 星盘超深度分析（新增 - 联网搜索英文信息，用户输入90%+星盘10%）
-  deepAstrologicalAnalysis  String?  // JSON格式，存储DeepAnalysisResult
-  astroAnalysisDate         DateTime?  // 分析日期
-  
-  // 核心性格特征（AI分析，持续更新）
-  coreTraits        String?  // JSON数组：核心性格特质
-  communicationStyle String? // JSON数组：沟通风格
-  emotionalPattern  String?  // JSON数组：情感模式
-  decisionStyle     String?  // JSON数组：决策风格
-  stressResponse    String?  // JSON数组：压力反应
-  
-  // 人际关系特征（AI分析）
-  interpersonalStrengths String?  // JSON数组
-  interpersonalChallenges String? // JSON数组
-  socialEnergyPattern String?     // JSON数组
-  
-  // 生活方式和偏好（从对话中学习）
-  aestheticPreferences String?  // JSON数组：美学偏好
-  lifestyleHobbies     String?  // JSON数组：生活爱好
-  activityPreferences  String?  // JSON数组：活动偏好
-  fashionStyle         String?  // JSON数组：时尚风格
-  
-  // 地点偏好（从对话中学习，用于场景生成）
-  frequentLocations    String?  // JSON数组：用户经常去的具体地点
-  favoriteVenues       String?  // JSON数组：喜欢的场所类型
-  
-  // 职业和关系模式（AI分析）
-  careerAptitude      String?  // JSON数组：职业天赋
-  relationshipPattern String?  // JSON数组：感情模式
-  lifePhilosophy      String?  // JSON数组：人生哲学
-  
-  // 实用特征
-  luckyColors     String?  // JSON数组：幸运色
-  luckyNumbers    String?  // JSON数组：幸运数字
-  
-  // 🔥 优先级1：用户真实键入（最高优先级，用户原话）
-  userRawInputs        String?  // JSON数组：[{timestamp, input, context}, ...]
-  userMentionedKeywords String?  // JSON数组：用户提到的关键词/短语（从对话中提取）
-  
-  // 🆕 第一层：用户明确提到的具体信息（从 frequentLocations 等分离出来）
-  userMentionedLocations   String?  // JSON数组：用户明确提到的具体地点（如"莱莱小笼"、"悬崖咖啡"）
-  userMentionedActivities  String?  // JSON数组：用户明确提到的活动
-  userMentionedFoods       String?  // JSON数组：用户明确提到的食物
-  userMentionedPeople      String?  // JSON数组：用户明确提到的人物
-  
-  // 优先级2：AI持续学习的洞察（辅助分析，次要）
-  conversationInsights String?  // JSON数组：对话洞察
-  behaviorPatterns     String?  // JSON数组：行为模式
-  styleInsights        String?  // JSON数组：风格洞察
-  
-  // 分析历史
-  lastAnalyzed     DateTime  @default(now())
-  analysisHistory  String?   // JSON数组：分析历史记录
-  updateCount      Int       @default(0)  // 更新次数
-  
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  
+  id                       String    @id @default(cuid())
+  userId                   String    @unique
+  zodiacSign               String?
+  chineseZodiac            String?
+  baziAnalysis             String?
+  baziDayMaster            String?
+  baziPattern              String?
+  astrologicalProfile      String?
+  ziweiAnalysis            String?
+  deepAstrologicalAnalysis String?
+  astroAnalysisDate        DateTime?
+  coreTraits               String?
+  communicationStyle       String?
+  emotionalPattern         String?
+  decisionStyle            String?
+  stressResponse           String?
+  interpersonalStrengths   String?
+  interpersonalChallenges  String?
+  socialEnergyPattern      String?
+  aestheticPreferences     String?
+  lifestyleHobbies         String?
+  activityPreferences      String?
+  fashionStyle             String?
+  frequentLocations        String?
+  favoriteVenues           String?
+  careerAptitude           String?
+  relationshipPattern      String?
+  lifePhilosophy           String?
+  luckyColors              String?
+  luckyNumbers             String?
+  userRawInputs            String?
+  userMentionedKeywords    String?
+  userMentionedLocations   String?
+  userMentionedActivities  String?
+  userMentionedFoods       String?
+  userMentionedPeople      String?
+  conversationInsights     String?
+  behaviorPatterns         String?
+  styleInsights            String?
+  lastAnalyzed             DateTime  @default(now())
+  analysisHistory          String?
+  updateCount              Int       @default(0)
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
+  user                     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@map("user_metadata")
 }
 
-// OAuth账号表
 model Account {
   id                String  @id @default(cuid())
   userId            String
@@ -144,14 +112,12 @@ model Account {
   scope             String?
   id_token          String?
   session_state     String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
   @@map("accounts")
 }
 
-// 会话表
 model Session {
   id           String   @id @default(cuid())
   sessionToken String   @unique
@@ -162,7 +128,6 @@ model Session {
   @@map("sessions")
 }
 
-// 验证令牌表
 model VerificationToken {
   identifier String
   token      String   @unique
@@ -172,160 +137,183 @@ model VerificationToken {
   @@map("verification_tokens")
 }
 
-// 🆕 手机验证码表
 model PhoneVerificationCode {
   id        String   @id @default(cuid())
   phone     String
-  code      String   // 6位验证码
-  type      String   // 'register' | 'login' | 'reset'
+  code      String
+  type      String
   expires   DateTime
   used      Boolean  @default(false)
   createdAt DateTime @default(now())
-  
+
   @@index([phone])
   @@index([expires])
   @@map("phone_verification_codes")
 }
 
-// 聊天会话表
 model ChatSession {
   id            String   @id @default(cuid())
   userId        String
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   title         String
   initialPrompt String
-  messages      String   // JSON 格式
-  answers       String   // JSON 格式
-  questions     String   // JSON 格式
-  
+  messages      String
+  answers       String
+  questions     String
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
-  
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@map("chat_sessions")
 }
 
-// 生成图片表（旧版，保留兼容）
 model GeneratedImage {
-  id          String   @id @default(cuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  filename    String
-  prompt      String
-  imageUrl    String
-  localPath   String?
-  
-  createdAt   DateTime @default(now())
-  
+  id        String   @id @default(cuid())
+  userId    String
+  filename  String
+  prompt    String
+  imageUrl  String
+  localPath String?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@map("generated_images")
 }
 
-// 用户生成内容表（完整存储每次生图的所有数据）
 model UserGeneratedContent {
-  id          String   @id @default(cuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  sessionId   String?  // 聊天会话ID（用于关联和发布）
-  title       String?  // AI生成的标题
-  
-  // 用户输入
-  initialPrompt String   // 用户元键入
-  questions     String   // JSON数组：问题列表
-  answers       String   // JSON数组：回答列表
-  
-  // 生成的场景数据
-  scenes        String   // JSON格式：SceneGenerationResult
-  // scenes包含：coreKeywords, coreScenes, logicalScenes, storyDescription, narrative
-  
-  // 生成的故事
-  storyNarrative String? // 故事叙述
-  
-  // 生成的图片
-  images        String   // JSON数组：[{sceneTitle, prompt, imageUrl, localPath}, ...]
-  imageCount    Int      @default(0)
-  
-  // 生成时的用户状态快照
-  userSnapshot  String?  // JSON格式：{age, location, personality, hairLength, ...}
-  
-  // 元数据快照（生成时的用户元数据）
-  metadataSnapshot String? // JSON格式：personality, traits, preferences
-  
-  // 生成状态
-  status        String   @default("completed") // draft, processing, completed, failed, private, published
-  
-  // 标签和分类
-  tags          String?  // JSON数组：用户可以添加的标签
-  category      String?  // 分类：daily, memory, milestone, etc.
-  
-  // 时间戳
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  publishedAt   DateTime? // 发布时间
-  
-  comments       Comment[]  // 评论列表
-  
+  id               String    @id @default(cuid())
+  userId           String
+  initialPrompt    String
+  questions        String
+  answers          String
+  scenes           String
+  storyNarrative   String?
+  images           String
+  imageCount       Int       @default(0)
+  userSnapshot     String?
+  metadataSnapshot String?
+  status           String    @default("completed")
+  tags             String?
+  category         String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  publishedAt      DateTime?
+  sessionId        String?
+  title            String?
+  comments         Comment[]
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@map("user_generated_contents")
 }
 
-// 评论表
-model Comment {
-  id          String   @id @default(cuid())
-  contentId  String
-  content    UserGeneratedContent @relation(fields: [contentId], references: [id], onDelete: Cascade)
-  userId     String
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  text       String   // 评论内容
+model ProfileMessage {
+  id         String   @id @default(cuid())
+  toUserId   String
+  fromUserId String?
+  text       String
   createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  
+  fromUser   User?    @relation("ProfileMessageFrom", fields: [fromUserId], references: [id])
+  toUser     User     @relation("ProfileMessageTo", fields: [toUserId], references: [id], onDelete: Cascade)
+
+  @@index([toUserId])
+  @@index([createdAt])
+  @@map("profile_messages")
+}
+
+model Comment {
+  id        String               @id @default(cuid())
+  contentId String
+  userId    String
+  text      String
+  createdAt DateTime             @default(now())
+  updatedAt DateTime             @updatedAt
+  content   UserGeneratedContent @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  user      User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@map("comments")
 }
 
-// 用户付费记录表
 model UserPayment {
   id              String   @id @default(cuid())
   userId          String
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  amount          Float    // 付费金额（美元）
-  paymentId       String   // PayPal支付ID
-  status          String   @default("pending") // pending, completed, failed, refunded
-  imagesPurchased Int      @default(5) // 购买的图片数量
-  paypalUrl       String?  // PayPal支付链接
-  
+  amount          Float
+  paymentId       String
+  status          String   @default("pending")
+  imagesPurchased Int      @default(5)
+  paypalUrl       String?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
-  
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@map("user_payments")
 }
 
-// 用户钱包余额表
 model UserWallet {
-  id              String   @id @default(cuid())
-  userId          String   @unique
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  balance         Float    @default(0) // 钱包余额（美元）
-  totalSpent      Float    @default(0) // 总消费金额
-  totalEarned     Float    @default(0) // 总充值金额
-  
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  balance     Float    @default(0)
+  totalSpent  Float    @default(0)
+  totalEarned Float    @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@map("user_wallets")
 }
 
-// 用户每日免费额度表
 model UserDailyQuota {
-  id              String   @id @default(cuid())
-  userId          String
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  date            DateTime // 日期（只保存日期部分）
-  freeImagesUsed  Int      @default(0) // 当日已使用的免费图片数
-  isNewUser       Boolean  @default(false) // 是否为新用户（影响免费额度）
-  
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  
+  id             String   @id @default(cuid())
+  userId         String
+  date           DateTime
+  freeImagesUsed Int      @default(0)
+  isNewUser      Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@unique([userId, date])
   @@map("user_daily_quotas")
+}
+
+// 每日一问：用户回答 + 对问题的评价；同一天可多轮「继续生成问题并回答」
+model UserDailyQuestionResponse {
+  id           String   @id @default(cuid())
+  userId       String
+  questionDate DateTime // 问题所属日期
+  questionText String   // 问题内容
+  answer       String?  // 用户回答
+  rating       String   // milder | sharper | keep | more_personal | other
+  ratingNote   String?  // 选 other 时的补充说明
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([questionDate])
+  @@index([userId, questionDate])
+  @@map("user_daily_question_responses")
+}
+
+// 潜在合作：访客查看被访者 profile 时生成，自动入库
+model CollaborationHint {
+  id            String   @id @default(cuid())
+  viewerUserId  String   // 访客
+  targetUserId  String   // 被访者
+  hint          String   // 生成的一句话
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([viewerUserId, targetUserId])
+  @@index([viewerUserId])
+  @@index([targetUserId])
+  @@map("collaboration_hints")
+}
+
+// 应用配置（如 Profile 展示用户），供管理后台设置
+model AppConfig {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String?
+  updatedAt DateTime @updatedAt
+
+  @@map("app_config")
 }

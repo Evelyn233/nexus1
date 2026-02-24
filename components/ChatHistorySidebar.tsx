@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, MessageSquare, Image as ImageIcon, Trash2, Clock, Search } from 'lucide-react'
+import { X, MessageSquare, Image as ImageIcon, Trash2, Clock, Search, Minimize2, Maximize2 } from 'lucide-react'
 import { UserGeneratedContentRecord } from '@/lib/userContentStorageService'
 
 interface ChatMessage {
@@ -28,11 +28,14 @@ interface ChatHistorySidebarProps {
 }
 
 export default function ChatHistorySidebar({ isOpen, onClose, onSessionSelect }: ChatHistorySidebarProps) {
+  const [isMinimized, setIsMinimized] = useState(false)
   const [activeTab, setActiveTab] = useState<'chats' | 'images'>('images')
   const [sessions, setSessions] = useState<ChatSession[]>([])
   const [images, setImages] = useState<UserGeneratedContentRecord[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
+
+  useEffect(() => { if (isOpen) setIsMinimized(false) }, [isOpen])
 
   // 加载历史记录（只保留一个 useEffect，避免重复加载）
   useEffect(() => {
@@ -191,33 +194,38 @@ export default function ChatHistorySidebar({ isOpen, onClose, onSessionSelect }:
     )
   })
 
+  // 缩小状态：左侧悬浮条
+  if (isOpen && isMinimized) {
+    return (
+      <div
+        className="fixed left-0 top-1/2 -translate-y-1/2 z-50 flex flex-col items-center gap-1.5 rounded-r-xl bg-white shadow-lg border border-l-0 border-gray-200 px-2 py-3 cursor-pointer hover:shadow-xl transition-shadow"
+        onClick={() => setIsMinimized(false)}
+      >
+        <Maximize2 className="w-4 h-4 text-gray-500" />
+        <span className="text-[10px] font-medium text-gray-600">历史</span>
+        <button onClick={(e) => { e.stopPropagation(); onClose() }} className="p-1 hover:bg-gray-100 rounded">
+          <X className="w-3 h-3 text-gray-500" />
+        </button>
+      </div>
+    )
+  }
+
   return (
     <>
-      {/* 遮罩层 */}
-      {isOpen && (
-        <div 
-          className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40"
-          onClick={onClose}
-        />
-      )}
-
-      {/* 侧边栏 */}
-      <div 
-        className={`fixed top-0 left-0 h-full w-80 bg-white shadow-2xl z-50 transform transition-transform duration-300 ease-in-out ${
-          isOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
-      >
+      {isOpen && <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40" onClick={onClose} />}
+      <div className={`fixed top-0 left-0 h-full w-80 bg-white shadow-2xl z-50 transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="flex flex-col h-full">
-          {/* 头部 */}
           <div className="px-6 py-4 border-b border-gray-200">
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-lg font-semibold text-gray-800">历史记录</h2>
-              <button
-                onClick={onClose}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <X className="w-5 h-5 text-gray-600" />
-              </button>
+              <div className="flex items-center gap-1">
+                <button onClick={() => setIsMinimized(true)} className="p-2 hover:bg-gray-100 rounded-lg transition-colors" title="缩小">
+                  <Minimize2 className="w-4 h-4 text-gray-600" />
+                </button>
+                <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                  <X className="w-5 h-5 text-gray-600" />
+                </button>
+              </div>
             </div>
             <button
               onClick={() => {

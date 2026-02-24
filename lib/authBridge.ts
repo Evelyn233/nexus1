@@ -7,7 +7,7 @@
  */
 
 import { Session } from 'next-auth'
-import prisma from './prisma'
+import prisma, { withRetry } from './prisma'
 
 /**
  * 登录后检查用户数据
@@ -20,11 +20,14 @@ export async function initializeUserSession(session: Session | null) {
   }
 
   try {
-    // 从Prisma获取完整用户信息（包括元数据）
-    const dbUser = await prisma.user.findUnique({
-      where: { email: session.user.email },
-      include: { metadata: true }
-    })
+    // 从Prisma获取完整用户信息（包括元数据）；P2024 连接池超时时重试一次
+    const dbUser = await withRetry(() =>
+      prisma.user.findUnique({
+        where: { email: session.user.email },
+        include: { metadata: true }
+      }),
+      1
+    )
 
     if (!dbUser) {
       console.error('❌ [AUTH-BRIDGE] Prisma数据库中未找到用户')
@@ -44,19 +47,30 @@ export async function initializeUserSession(session: Session | null) {
       }
     }
 
+    // 视为「已填写详细信息」：要么填过旧版表单（gender+birthDate），要么已生成过 Profile（profileData 有内容）
+    let hasProfileContent = false
+    if (dbUser.profileData) {
+      try {
+        const pd = typeof dbUser.profileData === 'string' ? JSON.parse(dbUser.profileData) : dbUser.profileData
+        hasProfileContent = !!(pd?.userSay || pd?.oneSentenceDesc || (Array.isArray(pd?.insights) && pd.insights.length > 0) || (Array.isArray(pd?.tags) && pd.tags.length > 0))
+      } catch {
+        hasProfileContent = false
+      }
+    }
+    const hasDetailedInfo = !!(dbUser.gender && hasValidBirthDate) || hasProfileContent
+
     console.log('✅ [AUTH-BRIDGE] 用户session已验证:', userName)
     console.log('📊 [AUTH-BRIDGE] 用户数据状态:', {
       hasBasicInfo: !!(dbUser.gender && dbUser.birthDate),
       hasMetadata: !!dbUser.metadata,
-      gender: dbUser.gender,
-      birthDate: dbUser.birthDate,
-      hasValidBirthDate: hasValidBirthDate
+      hasProfileContent,
+      hasDetailedInfo
     })
 
     return {
       userId: dbUser.id,
       userName: userName,
-      hasDetailedInfo: !!(dbUser.gender && hasValidBirthDate),
+      hasDetailedInfo,
       hasMetadata: !!dbUser.metadata
     }
   } catch (error) {

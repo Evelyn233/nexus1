@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Download, Trash2, Eye } from 'lucide-react'
+import Drawer from '@/components/Drawer'
+import { resolveImageUrl } from '@/lib/resolveImageUrl'
 
 interface SavedImage {
   id: string
@@ -173,10 +175,10 @@ export default function GalleryPage() {
         <div className="max-w-md mx-auto flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <img 
-              src="/inflow-logo.jpeg" 
+              src="/logo-nexus.jpeg" 
               alt="logo" 
-              className="w-20 h-14 rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
-              onClick={() => router.push('/home')}
+              className="h-10 w-auto object-contain rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
+              onClick={() => router.push('/profile')}
             />
             <button
               onClick={() => router.back()}
@@ -195,7 +197,7 @@ export default function GalleryPage() {
       <main className="max-w-md mx-auto p-4">
         {loading ? (
           <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-magazine-primary"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
           </div>
         ) : savedImages.length === 0 ? (
           <div className="text-center py-12">
@@ -206,8 +208,8 @@ export default function GalleryPage() {
             </p>
             <div className="space-y-2">
               <button
-                onClick={() => router.push('/home')}
-                className="bg-magazine-primary text-white px-6 py-2 rounded-lg hover:bg-magazine-secondary transition-colors"
+                onClick={() => router.push('/profile')}
+                className="bg-primary text-white px-6 py-2 rounded-lg hover:bg-primary-dark transition-colors"
               >
                 开始创作
               </button>
@@ -232,7 +234,7 @@ export default function GalleryPage() {
                 <div key={image.id} className="bg-white rounded-lg shadow-sm overflow-hidden group">
                   <div className="aspect-square relative">
                     <img
-                      src={image.imageDataUrl || image.imageUrl}
+                      src={resolveImageUrl(image.imageDataUrl || image.imageUrl)}
                       alt={image.sceneTitle}
                       className="w-full h-full object-cover cursor-pointer transition-transform group-hover:scale-105"
                       onClick={() => setSelectedImage(image)}
@@ -276,67 +278,48 @@ export default function GalleryPage() {
         )}
       </main>
 
-      {/* Image Modal */}
+      {/* Image - 拉窗式，可缩小 */}
       {selectedImage && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-lg w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-gray-900">{selectedImage.sceneTitle}</h3>
-              <button
-                onClick={() => setSelectedImage(null)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                ✕
+        <Drawer
+          isOpen={!!selectedImage}
+          onClose={() => setSelectedImage(null)}
+          title={selectedImage.sceneTitle}
+          width="max-w-lg"
+          footer={(
+            <div className="px-6 py-4 flex gap-3">
+              <button onClick={() => { setSelectedImage(null); handleViewContent(selectedImage.contentId) }} className="flex-1 flex items-center justify-center space-x-2 py-2 px-4 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors">
+                <Eye className="w-4 h-4" />
+                <span>查看完整创作</span>
+              </button>
+              <button onClick={() => handleDownload(selectedImage)} className="flex-1 flex items-center justify-center space-x-2 py-2 px-4 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+                <Download className="w-4 h-4" />
+                <span>下载</span>
               </button>
             </div>
-            
-            <div className="p-4">
-              <div className="aspect-square relative mb-4 rounded-lg overflow-hidden">
-                <img
-                  src={selectedImage.imageDataUrl || selectedImage.imageUrl}
-                  alt={selectedImage.sceneTitle}
-                  className="w-full h-full object-cover"
-                />
+          )}
+        >
+          <div className="p-6">
+            <div className="aspect-square relative mb-4 rounded-lg overflow-hidden">
+              <img src={resolveImageUrl(selectedImage.imageDataUrl || selectedImage.imageUrl)} alt={selectedImage.sceneTitle} className="w-full h-full object-cover" />
+            </div>
+            <div className="space-y-3">
+              <div>
+                <label className="text-sm font-medium text-gray-500">场景描述</label>
+                <p className="text-sm text-gray-900 mt-1">{selectedImage.prompt}</p>
               </div>
-              
-              <div className="space-y-3">
+              {selectedImage.story && selectedImage.story !== selectedImage.prompt && (
                 <div>
-                  <label className="text-sm font-medium text-gray-500">场景描述</label>
-                  <p className="text-sm text-gray-900 mt-1">{selectedImage.prompt}</p>
+                  <label className="text-sm font-medium text-gray-500">故事内容</label>
+                  <p className="text-sm text-gray-700 mt-1">{selectedImage.story}</p>
                 </div>
-                
-                {selectedImage.story && selectedImage.story !== selectedImage.prompt && (
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">故事内容</label>
-                    <p className="text-sm text-gray-700 mt-1">{selectedImage.story}</p>
-                  </div>
-                )}
-                
-                <div>
-                  <label className="text-sm font-medium text-gray-500">创作时间</label>
-                  <p className="text-sm text-gray-900 mt-1">{formatDate(selectedImage.savedAt)}</p>
-                </div>
-              </div>
-              
-              <div className="flex space-x-3 mt-6">
-                <button
-                  onClick={() => handleViewContent(selectedImage.contentId)}
-                  className="flex-1 flex items-center justify-center space-x-2 py-2 px-4 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors"
-                >
-                  <Eye className="w-4 h-4" />
-                  <span>查看完整创作</span>
-                </button>
-                <button
-                  onClick={() => handleDownload(selectedImage)}
-                  className="flex-1 flex items-center justify-center space-x-2 py-2 px-4 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-                >
-                  <Download className="w-4 h-4" />
-                  <span>下载</span>
-                </button>
+              )}
+              <div>
+                <label className="text-sm font-medium text-gray-500">创作时间</label>
+                <p className="text-sm text-gray-900 mt-1">{formatDate(selectedImage.savedAt)}</p>
               </div>
             </div>
           </div>
-        </div>
+        </Drawer>
       )}
       
       {/* 输入框 */}

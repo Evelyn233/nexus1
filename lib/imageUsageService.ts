@@ -74,27 +74,67 @@ export async function getUserDailyQuota(userId: string): Promise<DailyQuotaInfo>
  * 获取用户钱包余额
  */
 export async function getUserWalletBalance(userId: string): Promise<number> {
-  const wallet = await prisma.userWallet.findUnique({
-    where: { userId }
-  })
-  
-  return wallet?.balance || 0
+  if (!process.env.DATABASE_URL) {
+    console.warn('⚠️ [WALLET] DATABASE_URL 未设置，返回默认余额 0')
+    return 0
+  }
+
+  try {
+    const wallet = await prisma.userWallet.findUnique({
+      where: { userId }
+    })
+    
+    return wallet?.balance || 0
+  } catch (error: any) {
+    console.error('❌ [WALLET] 数据库查询失败:', error.message)
+    return 0
+  }
 }
 
 /**
  * 获取用户图片使用情况
  */
 export async function getUserImageUsage(userEmail: string): Promise<UserImageUsage> {
-  // 查找用户
-  const user = await prisma.user.findUnique({
-    where: { email: userEmail },
-    include: {
-      wallet: true,
-      generatedContents: {
-        select: { imageCount: true }
+  // 检查数据库连接
+  if (!process.env.DATABASE_URL) {
+    console.warn('⚠️ [IMAGE-USAGE] DATABASE_URL 未设置，返回默认权限')
+    // 管理员特殊处理
+    if (userEmail === '595674464@qq.com') {
+      return {
+        userId: 'admin-user',
+        dailyFreeUsed: 0,
+        dailyFreeLimit: 999999,
+        walletBalance: 999999,
+        canGenerateFree: true,
+        canGeneratePaid: true,
+        isNewUser: false,
+        totalImagesGenerated: 0
       }
     }
-  })
+    // 返回默认权限，允许生成
+    return {
+      userId: 'temp-user',
+      dailyFreeUsed: 0,
+      dailyFreeLimit: 10,
+      walletBalance: 0,
+      canGenerateFree: true,
+      canGeneratePaid: false,
+      isNewUser: true,
+      totalImagesGenerated: 0
+    }
+  }
+
+  try {
+    // 查找用户
+    const user = await prisma.user.findUnique({
+      where: { email: userEmail },
+      include: {
+        wallet: true,
+        generatedContents: {
+          select: { imageCount: true }
+        }
+      }
+    })
   
   if (!user) {
     console.log('⚠️ [IMAGE-USAGE] 用户不存在，返回默认权限')
@@ -135,15 +175,41 @@ export async function getUserImageUsage(userEmail: string): Promise<UserImageUsa
     0
   )
   
-  return {
-    userId: user.id,
-    dailyFreeUsed: dailyQuota.freeImagesUsed,
-    dailyFreeLimit: dailyQuota.freeImagesLimit,
-    walletBalance,
-    canGenerateFree: dailyQuota.freeImagesUsed < dailyQuota.freeImagesLimit,
-    canGeneratePaid: walletBalance >= 0.5, // 假设每张图片0.5美元
-    isNewUser: dailyQuota.isNewUser,
-    totalImagesGenerated
+    return {
+      userId: user.id,
+      dailyFreeUsed: dailyQuota.freeImagesUsed,
+      dailyFreeLimit: dailyQuota.freeImagesLimit,
+      walletBalance,
+      canGenerateFree: dailyQuota.freeImagesUsed < dailyQuota.freeImagesLimit,
+      canGeneratePaid: walletBalance >= 0.5, // 假设每张图片0.5美元
+      isNewUser: dailyQuota.isNewUser,
+      totalImagesGenerated
+    }
+  } catch (error: any) {
+    console.error('❌ [IMAGE-USAGE] 数据库查询失败:', error.message)
+    // 数据库连接失败时返回默认权限
+    if (userEmail === '595674464@qq.com') {
+      return {
+        userId: 'admin-user',
+        dailyFreeUsed: 0,
+        dailyFreeLimit: 999999,
+        walletBalance: 999999,
+        canGenerateFree: true,
+        canGeneratePaid: true,
+        isNewUser: false,
+        totalImagesGenerated: 0
+      }
+    }
+    return {
+      userId: 'temp-user',
+      dailyFreeUsed: 0,
+      dailyFreeLimit: 10,
+      walletBalance: 0,
+      canGenerateFree: true,
+      canGeneratePaid: false,
+      isNewUser: true,
+      totalImagesGenerated: 0
+    }
   }
 }
 

@@ -185,13 +185,13 @@ export class SceneGenerationService {
       if (!userInfo?.name || !userInfo?.gender || !userInfo?.location) {
         console.error('❌ [SCENE-GEN] 用户信息不完整！')
         console.error('❌ [SCENE-GEN] 当前用户信息:', userInfo)
-        console.error('❌ [SCENE-GEN] localStorage keys:', Object.keys(localStorage).filter(k => k.includes('magazine')))
+        console.error('❌ [SCENE-GEN] localStorage keys:', Object.keys(localStorage).filter(k => k.includes('profile')))
         
         // 尝试重新获取
         const currentUserName = getCurrentUserName()
         if (currentUserName) {
           console.log('🔄 [SCENE-GEN] 尝试重新获取用户:', currentUserName)
-          const userKey = `magazine_user_info_${currentUserName}`
+          const userKey = `profile_user_info_${currentUserName}`
           const storedUserInfo = localStorage.getItem(userKey)
           if (storedUserInfo) {
             try {

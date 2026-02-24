@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Loader2, CheckCircle, AlertCircle } from 'lucide-react'
+import { Loader2, CheckCircle } from 'lucide-react'
+import Drawer from '@/components/Drawer'
 
 interface FirstTimeSetupModalProps {
   isOpen: boolean
@@ -82,86 +83,41 @@ export default function FirstTimeSetupModal({ isOpen, onClose, currentStep: exte
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-8 max-w-md mx-4 shadow-xl">
-        <div className="text-center">
-          <div className="mb-6">
-            <div className="w-16 h-16 bg-gradient-to-r from-teal-500 to-cyan-500 rounded-full flex items-center justify-center mx-auto mb-4">
-              <span className="text-white text-2xl font-bold">✨</span>
-            </div>
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">
-              First Time Setup
-            </h2>
-            <p className="text-gray-600">
-              Creating your personalized profile, please wait...
-            </p>
+    <Drawer isOpen={isOpen} onClose={onClose} title="First Time Setup" minimizable={true}>
+      <div className="p-6 text-center">
+        <div className="mb-6">
+          <div className="w-16 h-16 bg-gradient-to-r from-teal-500 to-cyan-500 rounded-full flex items-center justify-center mx-auto mb-4">
+            <span className="text-white text-2xl font-bold">✨</span>
           </div>
-
-          {/* 进度条 */}
-          <div className="mb-6">
-            <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
-              <div 
-                className="bg-gradient-to-r from-teal-500 to-cyan-500 h-2 rounded-full transition-all duration-500"
-                style={{ width: `${((currentStep + 1) / steps.length) * 100}%` }}
-              />
-            </div>
-            <div className="text-sm text-gray-500">
-              {currentStep + 1} / {steps.length}
-            </div>
-          </div>
-
-          {/* 当前步骤 */}
-          <div className="space-y-4">
-            {steps.map((step, index) => (
-              <div 
-                key={index}
-                className={`flex items-center space-x-3 p-3 rounded-lg transition-all duration-300 ${
-                  index === currentStep 
-                    ? 'bg-blue-50 border border-blue-200' 
-                    : index < currentStep 
-                    ? 'bg-green-50 border border-green-200' 
-                    : 'bg-gray-50'
-                }`}
-              >
-                <div className="flex-shrink-0">
-                  {index < currentStep ? (
-                    <CheckCircle className="w-6 h-6 text-green-500" />
-                  ) : (
-                    step.icon
-                  )}
-                </div>
-                <div className="flex-1 text-left">
-                  <div className={`font-medium ${
-                    index === currentStep ? 'text-blue-800' : 
-                    index < currentStep ? 'text-green-800' : 'text-gray-500'
-                  }`}>
-                    {step.title}
-                  </div>
-                  <div className={`text-sm ${
-                    index === currentStep ? 'text-blue-600' : 
-                    index < currentStep ? 'text-green-600' : 'text-gray-400'
-                  }`}>
-                    {step.description}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* 完成状态 */}
-          {isComplete && (
-            <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-              <div className="flex items-center justify-center space-x-2 text-green-800">
-                <CheckCircle className="w-5 h-5" />
-                <span className="font-medium">Initialization Complete!</span>
-              </div>
-              <p className="text-sm text-green-600 mt-1">
-                Ready to start your personalized experience...
-              </p>
-            </div>
-          )}
+          <p className="text-gray-600">Creating your personalized profile, please wait...</p>
         </div>
+        <div className="mb-6">
+          <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
+            <div className="bg-gradient-to-r from-teal-500 to-cyan-500 h-2 rounded-full transition-all duration-500" style={{ width: `${((currentStep + 1) / steps.length) * 100}%` }} />
+          </div>
+          <div className="text-sm text-gray-500">{currentStep + 1} / {steps.length}</div>
+        </div>
+        <div className="space-y-4">
+          {steps.map((step, index) => (
+            <div key={index} className={`flex items-center space-x-3 p-3 rounded-lg transition-all duration-300 ${index === currentStep ? 'bg-blue-50 border border-blue-200' : index < currentStep ? 'bg-green-50 border border-green-200' : 'bg-gray-50'}`}>
+              <div className="flex-shrink-0">{index < currentStep ? <CheckCircle className="w-6 h-6 text-green-500" /> : step.icon}</div>
+              <div className="flex-1 text-left">
+                <div className={`font-medium ${index === currentStep ? 'text-blue-800' : index < currentStep ? 'text-green-800' : 'text-gray-500'}`}>{step.title}</div>
+                <div className={`text-sm ${index === currentStep ? 'text-blue-600' : index < currentStep ? 'text-green-600' : 'text-gray-400'}`}>{step.description}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+        {isComplete && (
+          <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+            <div className="flex items-center justify-center space-x-2 text-green-800">
+              <CheckCircle className="w-5 h-5" />
+              <span className="font-medium">Initialization Complete!</span>
+            </div>
+            <p className="text-sm text-green-600 mt-1">Ready to start your personalized experience...</p>
+          </div>
+        )}
       </div>
-    </div>
+    </Drawer>
   )
 }

@@ -2,7 +2,6 @@ import { SceneGenerationService, SceneGenerationResult } from './sceneGeneration
 import { StoryGenerationService, StoryResult } from './storyGenerationService'
 import { PsychodramaSceneService, PsychodramaScene } from './psychodramaSceneService'
 import { OpinionVisualizationService } from './opinionVisualizationService'
-import { MagazineCoverService, MagazineCover } from './magazineCoverService'
 import { HypotheticalSceneService, HypotheticalScene } from './hypotheticalSceneService'
 import { getUserInfo } from './userDataApi'
 import { saveUserRawInput } from './userRawInputService'
@@ -11,7 +10,6 @@ export interface ContentGenerationResult {
   scenes: SceneGenerationResult | null
   story: StoryResult | null
   psychodramaScene: PsychodramaScene | null
-  magazineCover: MagazineCover | null
   finalPrompt?: string
   opinionScenes?: any[]  // 🔥 添加观点场景字段
   hypotheticalScene?: HypotheticalScene | null  // 🔥 添加假定场景字段
@@ -367,7 +365,6 @@ static async generateQuickContent(options: {
         moodDescription: ''
       },
       psychodramaScene: null,  // 稍后后台生成
-      magazineCover: null,
       finalPrompt: initialPrompt,
       opinionScenes: undefined,  // 稍后后台生成
       needsAdditionalGeneration: true  // 🔥 标记需要后台并行生成观点和心理剧
@@ -508,45 +505,6 @@ static async generateQuickContent(options: {
     return results
   }
   
-  /**
-   * 生成杂志封面
-   */
-static async generateMagazineCover(
-  finalScenes: any,
-  story: any,
-    initialPrompt: string,
-    answers: string[]
-): Promise<MagazineCover> {
-  console.log('📰 [CONTENT-GEN] 开始生成杂志封面')
-  
-  const cover = await MagazineCoverService.generateMagazineCover(
-    finalScenes,
-          story,
-          initialPrompt,
-          answers
-        )
-        
-  console.log('✅ [CONTENT-GEN] 杂志封面生成完成')
-  return cover || {
-    needsCover: true,
-    mainTitle: '默认封面',
-    subtitle: '默认副标题',
-    coreConflict: '默认冲突',
-    conflictIntensity: 5,
-    keyLocation: '默认地点',
-    otherCharacters: [],
-    psychologicalElements: [],
-    coverStyle: '简约',
-    colorScheme: '蓝色系',
-    typography: '现代',
-    storyType: '个人故事',
-    emotionalTone: '平静',
-    coverImagePrompt: '默认封面提示',
-    coverImageDescription_CN: '默认中文描述',
-    coverImageDescription_EN: 'Default English Description'
-    }
-  }
-
   /**
    * 新增自我幻想统一检测（identity+hypothetical）
    */

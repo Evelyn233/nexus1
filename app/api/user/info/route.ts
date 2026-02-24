@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { getPrismaUserInfo, savePrismaUserInfo } from '@/lib/prismaUserService'
+import { getPrismaUserInfoFromUser, getPrismaUserInfo, savePrismaUserInfo } from '@/lib/prismaUserService'
+import { prisma, withRetry } from '@/lib/prisma'
 
 // 强制动态渲染
 export const dynamic = 'force-dynamic'
@@ -11,6 +12,7 @@ export const dynamic = 'force-dynamic'
  */
 export async function GET() {
   try {
+    await prisma.$connect()
     const session = await getServerSession(authOptions)
     
     if (!session?.user?.email) {
@@ -20,44 +22,61 @@ export async function GET() {
       )
     }
 
-    const { userInfo, userMetadata } = await getPrismaUserInfo(session.user.email)
+    // 🔥 直接从数据库获取用户（包含ID）
+    const user = await withRetry(() => prisma.user.findUnique({
+      where: { email: session.user.email },
+      include: { metadata: true }
+    }))
 
-    // 如果用户信息不存在，创建默认用户信息
-    if (!userInfo) {
-      console.log('🔧 [USER-INFO] 用户信息不存在，创建默认用户信息')
-      
-      // 创建默认用户信息
-      const defaultUserInfo = {
-        name: session.user.name || '用户',
-        email: session.user.email,
-        gender: 'unknown',
-        birthDate: { year: '1990', month: '1', day: '1' },
-        height: '170',
-        weight: '60',
-        location: '未知',
-        personality: '待了解',
-        hairLength: '中等',
-        age: 25
+    if (!user) {
+      return NextResponse.json(
+        { error: '用户不存在' },
+        { status: 404 }
+      )
+    }
+
+    // 用已查出的 user 直接构建 userInfo/userMetadata，只查一次库
+    const { userInfo, userMetadata } = getPrismaUserInfoFromUser(user)
+
+    // 解析 profileData
+    let profileData = null
+    if (user.profileData) {
+      try {
+        profileData = JSON.parse(user.profileData)
+      } catch {}
+    }
+
+    // 当一句话陈述为空时，从用户最早输入中获取（供 profile 页展示）
+    let earliestInput: string | null = null
+    const hasOneSentence = profileData?.oneSentenceDesc && String(profileData.oneSentenceDesc).trim()
+    if (!hasOneSentence) {
+      // 1. 最早一条 ChatSession 的 initialPrompt
+      const oldestSession = await withRetry(() => prisma.chatSession.findFirst({
+        where: { userId: user.id },
+        orderBy: { createdAt: 'asc' },
+        select: { initialPrompt: true }
+      }))
+      if (oldestSession?.initialPrompt?.trim()) {
+        earliestInput = oldestSession.initialPrompt.trim()
       }
-      
-      // 保存到数据库
-      await savePrismaUserInfo(session.user.email, defaultUserInfo)
-      
-      // 重新获取用户信息
-      const { userInfo: newUserInfo, userMetadata: newUserMetadata } = await getPrismaUserInfo(session.user.email)
-      
-      return NextResponse.json({
-        success: true,
-        userInfo: newUserInfo,
-        userMetadata: newUserMetadata,
-        userInfoDescription: generateUserDescription(newUserInfo, newUserMetadata)
-      })
+      // 2. 若无，取 user_metadata.userRawInputs 中最早一条的 answer（数组末位 = 最早）
+      if (!earliestInput && user.metadata?.userRawInputs) {
+        try {
+          const rawInputs = JSON.parse(user.metadata.userRawInputs) as { answer?: string }[]
+          if (Array.isArray(rawInputs) && rawInputs.length > 0) {
+            const last = rawInputs[rawInputs.length - 1]
+            if (last?.answer?.trim()) earliestInput = last.answer.trim()
+          }
+        } catch {}
+      }
     }
 
     return NextResponse.json({
       success: true,
-      userInfo,
+      userInfo: { ...userInfo, id: user.id, avatarDataUrl: user.image || null, profileSlug: (user as { profileSlug?: string | null }).profileSlug ?? null },
       userMetadata,
+      profileData,
+      earliestInput: earliestInput || null,
       userInfoDescription: generateUserDescription(userInfo, userMetadata)
     })
     

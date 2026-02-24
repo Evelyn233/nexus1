@@ -11,6 +11,8 @@ import { ContentGenerationService } from '@/lib/contentGenerationService'
 import { detectEmotionsWithLLM, translateEmotionsToEnglish } from '@/lib/emotionDetectionService'
 import UserInfoBar from '@/components/UserInfoBar'
 import ChatHistorySidebar from '@/components/ChatHistorySidebar'
+import Drawer from '@/components/Drawer'
+import { resolveImageUrl } from '@/lib/resolveImageUrl'
 
 interface ChatMessage {
   id: string
@@ -38,6 +40,20 @@ export default function ChatNewPage() {
   const searchParams = useSearchParams()
   const urlPrompt = searchParams.get('prompt') || ''
   const continueId = searchParams.get('continue') || '' // 继续对话的ID
+  const autoStart = searchParams.get('autoStart') === 'true' // 是否自动开始对话
+  // 🔥 获取上传的图片：支持 data URL、http(s) URL，或兼容旧版 JSON { data, url }
+  const _rawImage = searchParams.get('image') || ''
+  const uploadedImage = (() => {
+    if (!_rawImage) return ''
+    if (_rawImage.startsWith('data:') || _rawImage.startsWith('http://') || _rawImage.startsWith('https://')) return _rawImage
+    if (_rawImage.startsWith('{')) {
+      try {
+        const o = JSON.parse(_rawImage)
+        if (o && (o.data || o.url)) return o.data || o.url
+      } catch {}
+    }
+    return _rawImage
+  })()
   
   const [initialPrompt, setInitialPrompt] = useState(urlPrompt) // 改为可变状态，支持指代词识别
   const [contextHistory, setContextHistory] = useState('') // 历史背景（用于理解上下文，不生成场景）
@@ -421,35 +437,31 @@ const MAX_GENERATED_IMAGES = 20 // 最多生成20张图（免费额度）
     }
     
     if (urlPrompt || continueId) {
+      // 此前 profile 模式会重定向到首页拉窗，现改为留在本页完成对话，避免「跳走、没继续对话」
+      // 若以后需要「在首页拉窗里生成 profile」，可在此根据来源或参数再分支
+
       // 🚨 防止React StrictMode重复执行
       let cancelled = false
       
-      // 使用本地变量保存当前输入（避免异步setState问题）
       const currentPrompt = urlPrompt
       
-      // 🔄 每次进入都重置对话状态（确保是全新对话）
       console.log('🔄 [CHAT-NEW] 新对话开始，重置所有状态')
       console.log('🔄 [CHAT-NEW] 输入:', currentPrompt)
       console.log('🔄 [CHAT-NEW] 继续对话ID:', continueId)
       
-      // 更新initialPrompt
       setInitialPrompt(currentPrompt)
-      
-      // 重置所有对话状态
       setAnswers([])
-      answersRef.current = []  // 🔥 同步重置ref
+      answersRef.current = []
       setQuestions([])
-      questionsRef.current = []  // 🔥 同步重置ref
+      questionsRef.current = []
       setAskedQuestions([])
       setCurrentQuestionIndex(0)
       setMessages([])
       setStep('loading')
       setIsLoading(false)
       setIsGenerating(false)
-      
       console.log('✅ [CHAT-NEW] 对话状态已完全重置')
       
-      // 如果是继续对话，加载历史对话
       if (continueId) {
         loadHistoryConversation(continueId)
         return
@@ -573,23 +585,28 @@ const MAX_GENERATED_IMAGES = 20 // 最多生成20张图（免费额度）
           } else {
             console.log('⚠️ [CHAT-NEW] API did not return question, generating directly with initial input')
             setApiStatus('fallback')
-            // Generate directly with initial input, pass currentPrompt
             try {
-              await generateInChat([currentPrompt], currentPrompt)
+              if (autoStart) {
+                await generateProfileFromConversation([currentPrompt], [], uploadedImage || undefined)
+              } else {
+                await generateInChat([currentPrompt], currentPrompt)
+              }
             } catch (genError) {
-              console.error('💥 [CHAT-NEW] Failed to generate in chat:', genError)
+              console.error('💥 [CHAT-NEW] Failed to generate:', genError)
             }
           }
           
         } catch (error) {
           console.error('💥 [CHAT-NEW] Failed to generate first question:', error)
-          
-          // API call failed, generate directly with initial input, pass currentPrompt
           console.log('💥 [CHAT-NEW] API call failed, generating directly with initial input')
           try {
-            await generateInChat([currentPrompt], currentPrompt)
+            if (autoStart) {
+              await generateProfileFromConversation([currentPrompt], [], uploadedImage || undefined)
+            } else {
+              await generateInChat([currentPrompt], currentPrompt)
+            }
           } catch (genError) {
-            console.error('💥 [CHAT-NEW] Failed to generate in chat after error:', genError)
+            console.error('💥 [CHAT-NEW] Failed to generate after error:', genError)
           }
         }
       }, 500)
@@ -602,6 +619,54 @@ const MAX_GENERATED_IMAGES = 20 // 最多生成20张图（免费额度）
       }
     }
   }, [urlPrompt])  // 监听URL变化，而不是initialPrompt状态
+
+  // 自动开始对话（管理员从首页跳转过来）
+  useEffect(() => {
+    if (autoStart && initialPrompt && !isLoading && messages.length === 0 && step === 'questions') {
+      console.log('🚀 [CHAT-NEW] 自动开始对话，初始提示:', initialPrompt)
+      setIsLoading(true)
+      
+      // 🔥 检测用户输入的语言
+      const isChinese = /[\u4e00-\u9fa5]/.test(initialPrompt)
+      const welcomeMessage = isChinese 
+        ? `你好！我会帮你创建专属的 profile。我们希望贴上你的故事，让别人更好理解你。你提到："${initialPrompt}"。让我问你一些问题来更好地了解你。`
+        : `Hi! I'll help you create your exclusive profile. We'd like to include your story so others can understand you better. You mentioned: "${initialPrompt}". Let me ask you some questions to get to know you.`
+      
+      // 添加欢迎消息（根据用户语言）
+      setMessages([{
+        id: `welcome-${Date.now()}`,
+        type: 'assistant',
+        content: welcomeMessage
+      }])
+      
+      // 生成第一个问题
+      generateFirstQuestion().then((firstQuestion) => {
+        if (firstQuestion) {
+          setQuestions([firstQuestion])
+          questionsRef.current = [firstQuestion]
+          setMessages(prev => [...prev, {
+            id: `question-${Date.now()}`,
+            type: 'assistant',
+            content: firstQuestion
+          }])
+          setStep('questions')
+        } else {
+          // 如果无法生成问题，直接开始生成profile（不是场景）
+          setMessages(prev => [...prev, {
+            id: `assistant-${Date.now()}`,
+            type: 'assistant',
+            content: 'Great! Let me start generating your profile based on what you told me.'
+          }])
+          generateProfileFromConversation([initialPrompt], [], uploadedImage || undefined)
+        }
+        setIsLoading(false)
+      }).catch((error) => {
+        console.error('❌ [CHAT-NEW] 自动开始对话失败:', error)
+        setIsLoading(false)
+      })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoStart, initialPrompt])
 
   // ❌ 已删除 analyzeUserInputForMetadata 函数 - 冗余的DeepSeek调用
   // 现在使用 DeepSeekMemorySystem.processConversation 在对话结束时统一分析
@@ -738,12 +803,14 @@ const MAX_GENERATED_IMAGES = 20 // 最多生成20张图（免费额度）
     )
     
     if (isDirectGenerateCommand) {
-      console.log('🚀 [CHAT-NEW] 检测到直接生图指令，跳过问答直接生成')
+      console.log('🚀 [CHAT-NEW] 检测到直接生成指令，跳过问答直接生成')
       setInputValue('')
       setIsLoading(true)
-      
-      // 使用已有的answers直接生成，不把"直接生图"加到answers里
-      generateInChat(answers)
+      if (autoStart) {
+        generateProfileFromConversation([initialPrompt], answers, uploadedImage || undefined)
+      } else {
+        generateInChat(answers)
+      }
       return
     }
     
@@ -822,16 +889,17 @@ const MAX_GENERATED_IMAGES = 20 // 最多生成20张图（免费额度）
             }]))
             setIsLoading(false)
           } else {
-            // 信息足够，开始生图
             console.log('✅ [CHAT-NEW] 信息足够，直接生成')
             setMessages(prev => prev.filter(m => m.id !== 'assistant-thinking'))
-            generateInChat([userInput])
+            if (autoStart) {
+              generateProfileFromConversation([userInput], [], uploadedImage || undefined)
+            } else {
+              generateInChat([userInput])
+            }
           }
         } catch (error: any) {
           console.error('❌ [CHAT-NEW] 生成问题失败:', error)
           setMessages(prev => prev.filter(m => m.id !== 'assistant-thinking'))
-          
-          // 🔥 如果是未登录错误，提示用户重新登录，但不自动跳转（避免循环）
           if (error?.message?.includes('未登录') || error?.message?.includes('用户未登录')) {
             setMessages(prev => [...prev, {
               id: `error-${Date.now()}`,
@@ -839,15 +907,18 @@ const MAX_GENERATED_IMAGES = 20 // 最多生成20张图（免费额度）
               content: '⚠️ Login status expired, please refresh the page to login again'
             }])
           } else {
-            // 其他错误，直接生成
-            console.log('⚠️ [CHAT-NEW] 生成问题失败，直接生成内容')
-            generateInChat([userInput])
+            console.log('⚠️ [CHAT-NEW] 生成问题失败，直接生成')
+            if (autoStart) {
+              generateProfileFromConversation([userInput], [], uploadedImage || undefined)
+            } else {
+              generateInChat([userInput])
+            }
           }
           setIsLoading(false)
         }
       }, 500)
       
-      return  // 新键入流程结束
+      return
     }
     
     // === 路径2：回答问题 ===
@@ -884,10 +955,10 @@ const MAX_GENERATED_IMAGES = 20 // 最多生成20张图（免费额度）
     setMessages(prev => [...prev, {
       id: `assistant-processing-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       type: 'assistant',
-      content: 'Analyzing your answer, preparing next question...'
+      content: '💡 正在生成下一个问题...'
     }])
     
-    // 动态生成下一个问题或跳转到生图
+    // 动态生成下一个问题或跳转生成 Profile
     setTimeout(async () => {
       try {
         // 🚨 强制3轮对话上限检查（在前端也检查一次）
@@ -895,9 +966,14 @@ const MAX_GENERATED_IMAGES = 20 // 最多生成20张图（免费额度）
         console.log(`🔍 [CHAT-NEW] 3轮检查 - 所有回答:`, newAnswers)
         
         if (newAnswers.length >= 3) {
-          console.log('🚨 [CHAT-NEW] 已达到3轮对话上限，停止提问，开始生成')
+          console.log('🚨 [CHAT-NEW] 已达到3轮对话上限，停止提问，开始生成profile')
           setMessages(prev => prev.filter(m => !m.id.includes('assistant-processing')))
-          generateInChat(newAnswers)
+          // 🔥 如果是生成profile模式（autoStart），调用generateProfileFromConversation
+          if (autoStart) {
+            generateProfileFromConversation([initialPrompt], newAnswers, uploadedImage || undefined)
+          } else {
+            generateInChat(newAnswers)
+          }
           return
         }
         
@@ -932,29 +1008,31 @@ const MAX_GENERATED_IMAGES = 20 // 最多生成20张图（免费额度）
           }]))
           
         } else if (response.success && response.questions && response.questions.length === 0) {
-          // AI返回空数组，表示信息已收集完毕，开始生成
-          console.log('✅ [CHAT-NEW] AI判断信息已收集完毕，开始在对话框中生成内容')
+          // AI返回空数组，表示信息已收集完毕
+          console.log('✅ [CHAT-NEW] AI判断信息已收集完毕')
           console.log(`📊 [CHAT-NEW] 已收集 ${newAnswers.length} 个回答`)
           console.log('📋 [CHAT-NEW] 所有回答:', newAnswers)
           
-          // 移除"正在分析"的消息
           setMessages(prev => prev.filter(m => !m.id.includes('assistant-processing')))
-          
-          // 保存answers并开始生成
           setAnswers(newAnswers)
-          generateInChat(newAnswers)
+          if (autoStart) {
+            generateProfileFromConversation([initialPrompt], newAnswers, uploadedImage || undefined)
+          } else {
+            generateInChat(newAnswers)
+          }
           return
         } else {
-          // 生成问题失败，开始生成
-          console.log('⚠️ [CHAT-NEW] 生成问题失败或API异常，开始在对话框中生成内容')
+          // 生成问题失败
+          console.log('⚠️ [CHAT-NEW] 生成问题失败或API异常')
           console.log(`📊 [CHAT-NEW] 已收集 ${newAnswers.length} 个回答`)
           
-          // 移除"正在分析"的消息
           setMessages(prev => prev.filter(m => !m.id.includes('assistant-processing')))
-          
-          // 保存answers并开始生成
           setAnswers(newAnswers)
-          generateInChat(newAnswers)
+          if (autoStart) {
+            generateProfileFromConversation([initialPrompt], newAnswers, uploadedImage || undefined)
+          } else {
+            generateInChat(newAnswers)
+          }
           return
         }
       } catch (error: any) {
@@ -968,14 +1046,17 @@ const MAX_GENERATED_IMAGES = 20 // 最多生成20张图（免费额度）
             content: '⚠️ 登录状态已过期，请刷新页面重新登录'
           }]))
         } else {
-          // 如果出错，开始生成内容
           setMessages(prev => prev.filter(m => !m.id.includes('assistant-processing')))
-          generateInChat(newAnswers)
+          if (autoStart) {
+            generateProfileFromConversation([initialPrompt], newAnswers, uploadedImage || undefined)
+          } else {
+            generateInChat(newAnswers)
+          }
         }
       } finally {
         setIsLoading(false)
       }
-    }, 800)
+    }, 100)
   }
 
   // 生成下一个问题
@@ -1008,6 +1089,174 @@ const MAX_GENERATED_IMAGES = 20 // 最多生成20张图（免费额度）
       console.log('⏱️ 总对话时间:', userReport.totalConversationTime)
     } catch (error) {
       console.error('💥 [CHAT-NEW] 生成用户简介报告失败:', error)
+    }
+  }
+
+  // 🔥 生成Profile（不同于场景生成）
+  const generateProfileFromConversation = async (prompts: string[], finalAnswers: string[], uploadedImageUrl?: string) => {
+    console.log('📝 [CHAT-NEW] 开始生成Profile（非场景生成）')
+    console.log('📊 [CHAT-NEW] 用户输入:', prompts)
+    console.log('📊 [CHAT-NEW] 用户回答:', finalAnswers)
+    console.log('🖼️ [CHAT-NEW] 上传的图片:', uploadedImageUrl ? '有图片' : '无图片')
+    
+    setIsGenerating(true)
+    setIsLoading(true)
+    
+    try {
+      // 添加生成中的消息
+      setMessages(prev => [...prev, {
+        id: 'system-generating-profile',
+        type: 'system',
+        content: uploadedImageUrl ? '📝 正在生成您的专属Profile（含头像）...' : '📝 正在生成您的专属Profile...'
+      }])
+      
+      // 照片仅作 Profile 头像，不传入 Seedream、不编辑，直接使用
+      const editedImageUrl = uploadedImageUrl || undefined
+      
+      // 构建完整的对话内容
+      const allInputs = [...prompts, ...finalAnswers].filter(input => input && input.trim())
+      const conversationText = allInputs.join('\n\n')
+      
+      // 调用DeepSeek生成Profile的各个字段
+      const response = await fetch('https://api.deepseek.com/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.NEXT_PUBLIC_DEEPSEEK_API_KEY || 'sk-e3911ff08dae4f4fb59c7b521e2a5415'}`
+        },
+        body: JSON.stringify({
+          model: 'deepseek-chat',
+          messages: [
+            {
+              role: 'system',
+              content: `You are a professional profile writer. Your task is to generate a comprehensive Living Profile based on the user's conversation.
+
+The profile should be structured with the following fields:
+1. **openingStatement**: A compelling opening statement (1-2 sentences)
+2. **whoIAm**: Who I am / what I am not (2-3 sentences)
+3. **reassuranceLine**: A reassurance line (1 sentence)
+4. **howIThink**: How I think / what I notice (2-3 sentences)
+5. **whatImBuildingNow**: What I'm building / exploring now (2-3 sentences)
+6. **whereIComeFromCompressed**: Where I come from (compressed, 2-3 sentences)
+7. **engageCoffeeChat**: How to engage - Coffee chat (1 sentence)
+8. **engageCollab**: How to engage - Collab (1 sentence)
+9. **engageFollow**: How to engage - Follow (1 sentence)
+10. **engageTalk**: How to engage - Talk (1 sentence)
+11. **tags**: An array of 4–8 short labels (in Chinese) that summarize this person's identity from the conversation. Examples: 模特, 纪录片创作者, 真实表达, 艺术创作, 形象塑造. Extract key roles, passions, and traits; use 2–4 characters per tag when possible.
+
+**Requirements:**
+- Use first-person voice ("I", "my")
+- Be authentic and preserve the user's voice
+- Be concise but meaningful
+- Make it engaging and personal
+- Based on the conversation content provided
+- **tags** must be an array of strings, e.g. ["模特", "纪录片创作者", "真实表达"]
+
+Return ONLY a valid JSON object with these exact field names (all fields must be present; tags must be an array, even if empty []).`
+            },
+            {
+              role: 'user',
+              content: `Based on the following conversation, generate my Living Profile:\n\n${conversationText}`
+            }
+          ],
+          max_tokens: 2000,
+          temperature: 0.7
+        })
+      })
+      
+      if (!response.ok) {
+        throw new Error(`DeepSeek API调用失败: ${response.status}`)
+      }
+      
+      const data = await response.json()
+      const content = data.choices[0].message.content.trim()
+      
+      // 提取JSON
+      const jsonMatch = content.match(/```json\n?([\s\S]*?)\n?```/) || 
+                       content.match(/\{[\s\S]*\}/)
+      const jsonString = jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : content
+      const profileData = JSON.parse(jsonString)
+      
+      console.log('✅ [CHAT-NEW] Profile生成完成:', profileData)
+      
+      // 保存到localStorage（首页 draft + profile 页需要的字段）
+      const storageKey = 'livingProfile.home.v1'
+      const avatarUrl = editedImageUrl || profileData.avatarDataUrl || ''
+      const savedDraft = {
+        fullName: profileData.fullName || '',
+        headline: profileData.headline || '',
+        location: profileData.location || '',
+        contactEmail: profileData.contactEmail || '',
+        websiteOrSocial: profileData.websiteOrSocial || '',
+        avatarDataUrl: avatarUrl,
+        openingStatement: profileData.openingStatement || '',
+        whoIAm: profileData.whoIAm || '',
+        reassuranceLine: profileData.reassuranceLine || '',
+        howIThink: profileData.howIThink || '',
+        whatImBuildingNow: profileData.whatImBuildingNow || '',
+        whereIComeFromCompressed: profileData.whereIComeFromCompressed || '',
+        engageCoffeeChat: profileData.engageCoffeeChat || '',
+        engageCollab: profileData.engageCollab || '',
+        engageFollow: profileData.engageFollow || '',
+        engageTalk: profileData.engageTalk || '',
+        // profile 页展示用：用户原话/一句话介绍 + 自动标签
+        userSay: profileData.openingStatement || profileData.whoIAm || profileData.headline || '',
+        oneSentenceDesc: profileData.headline || profileData.openingStatement || profileData.whoIAm || '',
+        tags: Array.isArray(profileData.tags) ? profileData.tags.filter((t: unknown) => typeof t === 'string' && t.trim()) : []
+      }
+      
+      localStorage.setItem(storageKey, JSON.stringify(savedDraft))
+      console.log('✅ [CHAT-NEW] Profile已保存到localStorage')
+      
+      // 同步到数据库（含生成时自动得到的标签）
+      const profileDataForDb = {
+        userSay: savedDraft.userSay || null,
+        oneSentenceDesc: savedDraft.oneSentenceDesc || null,
+        avatarDataUrl: savedDraft.avatarDataUrl || null,
+        tags: Array.isArray(savedDraft.tags) ? savedDraft.tags : [],
+        insights: [],
+        socialLinks: {},
+        databaseSources: []
+      }
+      try {
+        const saveRes = await fetch('/api/user/save', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ profileData: profileDataForDb, image: avatarUrl || undefined })
+        })
+        if (saveRes.ok) console.log('✅ [CHAT-NEW] Profile已同步到数据库')
+        else console.warn('[CHAT-NEW] Profile 同步数据库失败', await saveRes.text())
+      } catch (e) {
+        console.warn('[CHAT-NEW] Profile 同步数据库失败', e)
+      }
+      
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('profileChat:completed'))
+      }
+      
+      // 更新消息
+      setMessages(prev => prev.filter(m => m.id !== 'system-generating-profile').concat([{
+        id: 'system-profile-complete',
+        type: 'system',
+        content: '✅ Profile生成完成！正在跳转到个人主页...'
+      }]))
+      
+      // 跳转到 profile 页，用户能看到刚生成的内容
+      setTimeout(() => {
+        router.push('/profile')
+      }, 1500)
+      
+    } catch (error) {
+      console.error('❌ [CHAT-NEW] Profile生成失败:', error)
+      setMessages(prev => prev.filter(m => m.id !== 'system-generating-profile').concat([{
+        id: 'system-profile-error',
+        type: 'system',
+        content: '❌ Profile生成失败，请重试'
+      }]))
+    } finally {
+      setIsGenerating(false)
+      setIsLoading(false)
     }
   }
 
@@ -1385,11 +1634,6 @@ ${userInfoDescription}
     // 生成用户简介报告
     await generateUserProfile()
     
-    // 生成杂志标题
-    const magazineTitle = await generateMagazineTitle()
-    console.log('📰 [CHAT-NEW] 生成的杂志标题:', magazineTitle)
-    setMainTitle(magazineTitle)  // 保存标题到状态
-    
     // 步骤1：直接基于用户第一键入生成有逻辑性的场景
     console.log('🎯 [CHAT-NEW] 步骤1：开始基于用户第一键入生成有逻辑性的场景...')
     console.log('🎯 [CHAT-NEW] 使用用户数据:', userInfoFromAPI ? 'Prisma数据库' : 'localStorage')
@@ -1407,10 +1651,13 @@ ${userInfoDescription}
     // 直接使用生成的AI提示词
     const aiPrompt = logicalScenes.aiPrompt || ''
     
-    // 构建最终提示词
-    const finalPrompt = `${magazineTitle}
+    // 构建最终提示词（用故事描述首句或默认作为标题）
+    const storyDesc = logicalScenes.storyDescription || '基于您的回答，我们为您准备了一个专属的生活场景。'
+    const titleFromStory = storyDesc.slice(0, 30).trim() + (storyDesc.length > 30 ? '…' : '')
+    setMainTitle(titleFromStory || '我的生活故事')
+    const finalPrompt = `${titleFromStory || '我的生活故事'}
 
-${logicalScenes.storyDescription || '基于您的回答，我们为您准备了一个专属的生活场景。'}
+${storyDesc}
 
 ${aiPrompt}`
     
@@ -1418,102 +1665,17 @@ ${aiPrompt}`
     return finalPrompt
   }
 
-  // 生成杂志标题
-  const generateMagazineTitle = async () => {
-    try {
-      const userInfo = await getUserInfo()
-      const userMetadata = await getUserMetadata()
-      
-      const response = await fetch('https://api.deepseek.com/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY || 'sk-e3911ff08dae4f4fb59c7b521e2a5415'}`
-        },
-        body: JSON.stringify({
-          model: 'deepseek-chat',
-          messages: [
-            {
-              role: 'system',
-              content: '你是一个专业的杂志标题生成器。请直接返回一个简洁的标题文本，不要使用JSON格式，不要使用引号，只返回纯文本标题。'
-            },
-            {
-              role: 'user',
-              content: `基于以下信息生成一个杂志标题：
-
-用户故事：${initialPrompt}
-用户回答：${answers.join(' | ')}
-
-要求：
-1. 简洁有力，10-15个字
-2. 有诗意和美感
-3. 能概括核心主题
-4. 直接返回标题文本，不要任何其他内容
-
-请直接返回标题：`
-            }
-          ],
-          max_tokens: 50,
-          temperature: 0.8
-        })
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        if (data.choices && data.choices[0] && data.choices[0].message) {
-          let title = data.choices[0].message.content.trim()
-          
-          // 清理markdown标记
-          if (title.includes('```json')) {
-            title = title.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim()
-          } else if (title.includes('```')) {
-            title = title.replace(/```\s*/g, '').trim()
-          }
-          
-          // 尝试解析JSON格式的标题
-          try {
-            const parsedTitle = JSON.parse(title)
-            if (parsedTitle.title) {
-              return parsedTitle.title
-            }
-          } catch (parseError) {
-            // 如果不是JSON格式，直接返回文本内容
-            console.log('📝 [CHAT-NEW] 标题不是JSON格式，直接使用文本:', title)
-            return title
-          }
-        }
-      }
-    } catch (error) {
-      console.error('💥 [CHAT-NEW] 标题生成失败:', error)
-    }
-    
-    // 备用方案：使用默认标题
-    return '我的生活故事'
-  }
-
-  // 🔥 处理场景显示的函数
+  // 🔥 处理场景显示的函数（已移除生图逻辑）
   const processScenesForDisplay = (scenes: any[]) => {
-    // 处理心理剧场景
     scenes.forEach((scene: any) => {
       if (scene.isPsychodrama && !scene.storyFragment) {
-        // 心理剧如果没有storyFragment，用完整的心理分析文字
         const psychodramaText = [
           scene.innerMonologue,
-          scene.surfaceVsInner, 
+          scene.surfaceVsInner,
           scene.consciousnessStream,
           scene.psychologicalSymbolism
         ].filter(text => text && text.trim()).join('\n\n')
-        
         scene.storyFragment = psychodramaText || scene.sceneDescription_CN || ''
-      }
-    })
-    
-    // 开始生图
-    scenes.forEach((scene: any, index: number) => {
-      const imagePrompt = scene.detailedPrompt || scene.description || scene.imagePrompt
-      if (imagePrompt) {
-        // 直接调用现有的生图逻辑
-        generateImageForScene(scene, index, scenes)
       }
     })
   }
@@ -1616,7 +1778,7 @@ ${aiPrompt}`
         
         console.log(`✅ [CHAT-NEW] 新增场景 ${globalIndex + 1} 图片提示词已准备:`, imagePrompt.substring(0, 200) + '...')
         
-        // 调用SeeDream API生成图片
+        // 照片不传 Seedream，仅作 Profile 头像；生图只用 prompt
         const imageResponse = await fetch('/api/seedream-generate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -1785,7 +1947,7 @@ ${aiPrompt}`
     }
     
     try {
-      // 调用SeeDream API生成图片
+      // 照片不传 Seedream，仅作 Profile 头像；生图只用 prompt
       const imageResponse = await fetch('/api/seedream-generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1827,876 +1989,24 @@ ${aiPrompt}`
     }
   }
 
-  // 🆕 在对话框中生成内容
+  // 🆕 在对话框中生成内容（已移除生图逻辑，仅提示信息已收集）
   const generateInChat = async (finalAnswers: string[], promptToUse?: string) => {
-    // 创建新的 AbortController
     abortControllerRef.current = new AbortController()
-    const signal = abortControllerRef.current.signal
-    
     setIsGenerating(true)
     setIsLoading(true)
-    
-    // 🔥 在函数作用域声明contentResult，确保finally块可以访问
-    let contentResult: any = null
-    
-    // 使用传入的prompt或当前状态的initialPrompt
-    const actualPrompt = promptToUse || initialPrompt
-    
-    // 🔒 检查用户图片生成额度
     try {
-      const usageResponse = await fetch('/api/user/image-usage')
-      if (usageResponse.ok) {
-        const usage = await usageResponse.json()
-        const canGenerate = await fetch('/api/user/can-generate')
-        if (canGenerate.ok) {
-          const { canGenerate: allowed, needsPayment } = await canGenerate.json()
-          if (!allowed) {
-            setIsGenerating(false)
-            setIsLoading(false)
-            if (needsPayment) {
-              router.push('/payment')
-              return
-            } else {
-              alert('Unable to generate images, please try again later')
-              return
-            }
-          }
-        }
-      }
-    } catch (error) {
-      console.error('❌ [CHAT-NEW] 检查用户额度失败:', error)
-      console.log('⚠️ [CHAT-NEW] 跳过权限检查，直接允许生图（可能是数据库未连接）')
-      // 如果检查失败（比如数据库没连上），允许继续生成（避免阻塞用户体验）
-    }
-    
-    console.log('🎬 [CHAT-NEW] 开始在对话框中生成内容')
-    console.log('📊 [CHAT-NEW] 当前键入（生成场景）:', actualPrompt)
-    console.log('📊 [CHAT-NEW] 历史背景（上下文）:', contextHistory || '无')
-    console.log('📊 [CHAT-NEW] 本轮回答（补充细节）:', finalAnswers)
-    
-    // 🔥 answersWithContext只包含当前轮的回答（不包含历史）
-    // 历史背景通过contextHistory单独传给场景生成
-    const answersWithContext = finalAnswers
-    
-    try {
-      // 添加进度显示
-      const progressId = 'system-generating'
       setMessages(prev => [...prev, {
-        id: progressId,
+        id: `system-done-${Date.now()}`,
         type: 'system',
-        content: '🎬 正在生成场景...'
+        content: '✅ 信息已收集完毕'
       }])
-      
-      // 🔥 确保问题列表与回答列表对应（只使用与当前answers对应的问题）
-      // 如果answers为空，questions也应该为空
-      // 如果answers有3个，questions应该只取前3个
-      const matchingQuestions = answersWithContext.length > 0 
-        ? questions.slice(0, answersWithContext.length)
-        : []
-      
-      console.log('📊 [CHAT-NEW] 场景生成参数:')
-      console.log('  - 元键入:', actualPrompt)
-      console.log('  - 回答数量:', answersWithContext.length)
-      console.log('  - 回答内容:', answersWithContext)
-      console.log('  - 问题数量:', matchingQuestions.length)
-      console.log('  - 问题内容:', matchingQuestions)
-      console.log('  - 状态中总问题数:', questions.length)
-      console.log('  - 状态中所有问题:', questions)
-      
-      // 🔥 检查问题是否与回答匹配
-      if (matchingQuestions.length !== answersWithContext.length) {
-        console.warn(`⚠️ [CHAT-NEW] 问题数量(${matchingQuestions.length})与回答数量(${answersWithContext.length})不匹配`)
-      }
-      
-      // 1. 生成内容（场景、故事、心理剧）
-      // actualPrompt = 当前键入（生成场景的核心）
-      // answersWithContext = 历史背景 + 用户回答（提供上下文）
-      contentResult = await ContentGenerationService.generateQuickContent({
-        initialPrompt: actualPrompt,
-        answers: answersWithContext,
-        questions: matchingQuestions, // 🔥 使用匹配的问题列表，而不是状态中的所有问题
-        contextHistory: contextHistory ? [contextHistory] : [] // 传入历史背景，让场景生成知道
-      })
-      // 2. 准备基础场景数据（立即处理）
-      const logicalScenes = contentResult.scenes?.logicalScenes
-      
-      // 🔥 使用基础场景
-      const scenes = Array.isArray(logicalScenes) 
-        ? logicalScenes 
-        : logicalScenes 
-          ? Object.values(logicalScenes) 
-          : []
-      
-      // 🔥 基础场景立即开始生图
-      const sceneNames = scenes.map((s: any) => s.title).join('、')
-      setMessages(prev => prev.map(msg => 
-        msg.id === progressId 
-          ? { ...msg, content: `✅ 场景已生成：${sceneNames}\n🎨 开始创作画面...` }
-          : msg
-      ))
-      
-      // 🔥 后台并行检测观点和心理剧（基于用户输入，不阻塞基础场景生图）
-      if (contentResult.needsAdditionalGeneration) {
-        console.log('🔄 [CHAT-NEW] 启动后台并行检测观点和情绪（基于用户输入）...')
-        
-        // 获取用户信息
-        const userInfo = await getUserInfo()
-        const userMetadata = await getUserMetadata()
-        
-        // 🔥 后台并行生成观点和心理剧（不阻塞基础场景生图）
-        console.log('🚀 [CHAT-NEW] 开始调用 generateAdditionalContent...')
-        let detectionMessageId: string | undefined
-        ContentGenerationService.generateAdditionalContent(
-          actualPrompt,  // 🔥 基于用户键入检测
-          answersWithContext,
-          questions,
-          userInfo,
-          userMetadata
-        ).then((additionalResults) => {
-          console.log('✅ [CHAT-NEW] 后台生成完成，收到结果!')
-          console.log('📦 [CHAT-NEW] 结果对象:', additionalResults)
-          
-          // 🔥 调试：打印每个生成结果的详细信息
-          console.log('🔍 [CHAT-NEW] 后台生成结果详情:')
-          if (additionalResults.opinionScenes?.length > 0) {
-            console.log('🎯 观点场景详情:', additionalResults.opinionScenes.map((scene, i) => ({
-              index: i,
-              title: scene.title,
-              isOpinionScene: scene.isOpinionScene,
-              opinionText: scene.opinionText,
-              hasImagePrompt: !!scene.imagePrompt,
-              imagePrompt: scene.imagePrompt?.substring(0, 100) + '...',
-              fullScene: scene
-            })))
-          }
-          if (additionalResults.psychodramaScene) {
-            console.log('🎭 心理剧场景详情:', {
-              title: additionalResults.psychodramaScene.title || additionalResults.psychodramaScene.emotionalTrigger,
-              emotionalTrigger: additionalResults.psychodramaScene.emotionalTrigger,
-              isPsychodrama: additionalResults.psychodramaScene.isPsychodrama,
-              hasImagePrompt: !!additionalResults.psychodramaScene.imagePrompt,
-              imagePrompt: additionalResults.psychodramaScene.imagePrompt?.substring(0, 100) + '...',
-              fullScene: additionalResults.psychodramaScene
-            })
-          }
-          
-          // 🔥 收集新增场景和所有生成Promise
-          const newScenes: any[] = []
-          const generationPromises: Promise<void>[] = [] // 🔥 收集所有生成Promise
-          let detectionMessageShown = false
-          const updateDetectionMessage = (content: string) => {
-            if (!detectionMessageId) return
-            setMessages(prev =>
-              prev.map(msg =>
-                msg.id === detectionMessageId
-                  ? { ...msg, content }
-                  : msg
-              )
-            )
-          }
-          const ensureDetectionMessage = () => {
-            if (!detectionMessageShown) {
-              detectionMessageShown = true
-              const messageId = `detection-${Date.now()}`
-              detectionMessageId = messageId
-              setMessages(prev => [...prev, {
-                id: messageId,
-                type: 'system',
-                content: '🔍 正在检测您的观点和情绪，为您生成专属心理场景...'
-              }])
-            }
-          }
-          
-          // 🔥 计算正确的起始索引，确保sceneIndex不冲突
-          const baseSceneCount = scenes.length // 基础场景数量
-          let currentIndex = baseSceneCount // 从基础场景数量之后开始
-          
-          // 🎭 心理剧场景（第一优先级）- 🔥 生成后立即生图
-          if (additionalResults.psychodramaScene) {
-            ensureDetectionMessage()
-            // 🔥 确保心理剧字段正确传递
-            const psychodramaScene = {
-              ...additionalResults.psychodramaScene,
-              isPsychodrama: true,
-              imagePrompt: additionalResults.psychodramaScene.imagePrompt || additionalResults.psychodramaScene.detailedPrompt,
-              title: additionalResults.psychodramaScene.title || additionalResults.psychodramaScene.emotionalTrigger || '心理剧场景',
-              storyFragment: (() => {
-                const narrative = additionalResults.psychodramaScene.sceneDescription_CN?.trim()
-                if (narrative) {
-                  return narrative
-                }
-                const parts: string[] = []
-                if (additionalResults.psychodramaScene.innerMonologue) {
-                  parts.push(`${additionalResults.psychodramaScene.innerMonologue}`)
-                }
-                if (additionalResults.psychodramaScene.surfaceVsInner) {
-                  parts.push(`${additionalResults.psychodramaScene.surfaceVsInner}`)
-                }
-                if (additionalResults.psychodramaScene.consciousnessStream) {
-                  parts.push(`${additionalResults.psychodramaScene.consciousnessStream}`)
-                }
-                if (additionalResults.psychodramaScene.psychologicalSymbolism) {
-                  parts.push(`${additionalResults.psychodramaScene.psychologicalSymbolism}`)
-                }
-                return parts.join('\n')
-              })()
-            }
-            newScenes.push(psychodramaScene)
-            console.log('🎭 [CHAT-NEW] 心理剧场景准备生图（优先级最高）:', {
-              title: psychodramaScene.title,
-              isPsychodrama: psychodramaScene.isPsychodrama,
-              hasImagePrompt: !!psychodramaScene.imagePrompt
-            })
-            
-            // 🔥 立即为心理剧生图，使用正确的起始索引
-            const psychodramaStartIndex = currentIndex
-            console.log('⚡ [CHAT-NEW] 第2批：心理剧场景立即生图，起始索引:', psychodramaStartIndex)
-            generationPromises.push(generateImagesForNewScenes([psychodramaScene], psychodramaStartIndex, actualPrompt, answersWithContext, questions))
-            currentIndex += 1 // 心理剧场景数量（通常是1个）
-          }
-          
-          // 🎬 假想场景（第二优先级）- 🔥 生成后立即生图
-          if (additionalResults.hypotheticalScene) {
-            // 兼容性处理：可能是数组或单个对象
-            const hypotheticalScenes = Array.isArray(additionalResults.hypotheticalScene) 
-              ? additionalResults.hypotheticalScene 
-              : [additionalResults.hypotheticalScene]
-            
-            const processedHypotheticalScenes: any[] = []
-            hypotheticalScenes.forEach((scene: any) => {
-              ensureDetectionMessage()
-              const hypotheticalScene = {
-                ...scene,
-                isHypothetical: true,
-                imagePrompt: scene.imagePrompt || scene.detailedPrompt,
-                title: scene.title || '假想场景',
-                storyFragment: scene.sceneDescription_CN || scene.sceneDescription_EN || ''
-              }
-              newScenes.push(hypotheticalScene)
-              processedHypotheticalScenes.push(hypotheticalScene)
-              console.log('🎬 [CHAT-NEW] 假想场景准备生图:', {
-                title: hypotheticalScene.title,
-                isHypothetical: hypotheticalScene.isHypothetical,
-                hasImagePrompt: !!hypotheticalScene.imagePrompt,
-                location: hypotheticalScene.location
-              })
-            })
-            
-            // 🔥 立即为假想场景生图，使用正确的起始索引
-            if (processedHypotheticalScenes.length > 0) {
-              const hypotheticalStartIndex = currentIndex
-              console.log(`⚡ [CHAT-NEW] 第3批：假想场景立即生图（共${processedHypotheticalScenes.length}个），起始索引:`, hypotheticalStartIndex)
-              generationPromises.push(generateImagesForNewScenes(processedHypotheticalScenes, hypotheticalStartIndex, actualPrompt, answersWithContext, questions))
-              currentIndex += processedHypotheticalScenes.length
-            }
-          }
-          
-          // 🎯 观点场景（第三优先级）- 🔥 生成后立即生图
-          if (additionalResults.opinionScenes?.length > 0) {
-            const processedOpinionScenes: any[] = []
-            additionalResults.opinionScenes.forEach((scene: any) => {
-              ensureDetectionMessage()
-              // 🔥 确保字段正确传递
-              const opinionScene = {
-                ...scene,
-                isOpinionScene: true,  // 🔥 确保正确标识
-                imagePrompt: scene.imagePrompt,  // 🔥 确保imagePrompt存在
-                opinionText: scene.opinionText || scene.opinion || scene.title?.replace('观点：', ''),  // 🔥 确保opinionText存在
-                storyFragment: scene.storyFragment || ''  // 🔥 只使用storyFragment（人文叙事），不使用sceneDescription_CN（技术性描述）
-              }
-              newScenes.push(opinionScene)
-              processedOpinionScenes.push(opinionScene)
-              console.log('🎯 [CHAT-NEW] 观点场景准备生图:', {
-                title: opinionScene.title,
-                isOpinionScene: opinionScene.isOpinionScene,
-                hasImagePrompt: !!opinionScene.imagePrompt,
-                opinionText: opinionScene.opinionText
-              })
-            })
-            
-            // 🔥 立即为观点场景生图，使用正确的起始索引
-            if (processedOpinionScenes.length > 0) {
-              const opinionStartIndex = currentIndex
-              console.log(`⚡ [CHAT-NEW] 第4批：观点场景立即生图（共${processedOpinionScenes.length}个），起始索引:`, opinionStartIndex)
-              generationPromises.push(generateImagesForNewScenes(processedOpinionScenes, opinionStartIndex, actualPrompt, answersWithContext, questions))
-              currentIndex += processedOpinionScenes.length
-            }
-          }
-          
-          if (detectionMessageShown) {
-            const psychodramaCount = newScenes.filter(scene => scene.isPsychodrama).length
-            const hypotheticalCount = newScenes.filter(scene => scene.isHypothetical).length
-            const opinionCount = newScenes.filter(scene => scene.isOpinionScene).length
-            const summaryParts: string[] = []
-            if (psychodramaCount > 0) summaryParts.push(`心理剧 ${psychodramaCount} 个`)
-            if (hypotheticalCount > 0) summaryParts.push(`假想场景 ${hypotheticalCount} 个`)
-            if (opinionCount > 0) summaryParts.push(`观点场景 ${opinionCount} 个`)
-            const summaryText = summaryParts.length > 0
-              ? `🎯 情绪与观点检测完成：${summaryParts.join('、')}，正在生成图像...`
-              : '🎯 情绪与观点检测完成：未检测到额外场景'
-            console.log('🎯 [CHAT-NEW] 检测结果摘要:', {
-              psychodramaCount,
-              hypotheticalCount,
-              opinionCount
-            })
-            updateDetectionMessage(summaryText)
-          }
-          
-          // 🔥 等待所有批次生成完成，然后保存和重置状态
-          if (generationPromises.length > 0) {
-            Promise.allSettled(generationPromises).then(async () => {
-              console.log('✅ [CHAT-NEW] 所有额外场景已分批生图完成')
-              
-              // 🔥 等待状态更新，确保所有图片数据都已添加到 generatedImagesData
-              await new Promise(resolve => setTimeout(resolve, 1000))
-              
-              // 🔥 重新保存内容，更新images字段（包含所有分批生成的图片）
-              if (savedContentId) {
-                // 🔥 使用ref获取最新的图片数据（避免状态更新延迟问题）
-                const latestImages = generatedImagesDataRef.current
-                console.log('💾 [CHAT-NEW] 更新已保存的内容，添加分批生成的图片...')
-                console.log('💾 [CHAT-NEW] 当前图片总数:', latestImages.length)
-                console.log('💾 [CHAT-NEW] 图片详情:', latestImages.map(img => ({
-                  sceneIndex: img.sceneIndex,
-                  title: img.sceneTitle,
-                  hasUrl: !!img.imageUrl
-                })))
-                
-                try {
-                  // 按逻辑顺序排序
-                  const sortedImages = [...latestImages].sort((a, b) => a.sceneIndex - b.sceneIndex)
-                  
-                  // 更新内容（只更新images字段）
-                  const updateResponse = await fetch(`/api/user/generated-content/${savedContentId}`, {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                      images: sortedImages,
-                      imageCount: sortedImages.length
-                    })
-                  })
-                  
-                  if (updateResponse.ok) {
-                    console.log('✅ [CHAT-NEW] 内容已更新，包含所有分批生成的图片')
-                  } else {
-                    console.error('❌ [CHAT-NEW] 更新内容失败:', await updateResponse.json())
-                  }
-                } catch (error) {
-                  console.error('❌ [CHAT-NEW] 更新内容异常:', error)
-                }
-              }
-              
-              // 🔥 所有批次完成后，重置状态
-              setIsGenerating(false)
-              setIsLoading(false)
-            }).catch((error) => {
-              console.error('❌ [CHAT-NEW] 部分批次生成失败:', error)
-              // 即使有失败，也重置状态
-              setIsGenerating(false)
-              setIsLoading(false)
-            })
-          } else {
-            // 如果没有需要生成的场景，立即重置状态
-            setIsGenerating(false)
-            setIsLoading(false)
-          }
-          
-          // 🔥 延迟显示统一的完成消息（给图片生成时间）
-          if (newScenes.length > 0) {
-            // 统计各类场景数量
-            const psychodramaCount = newScenes.filter((s: any) => s.isPsychodrama).length
-            const hypotheticalCount = newScenes.filter((s: any) => s.isHypothetical).length
-            const opinionCount = newScenes.filter((s: any) => s.isOpinionScene).length
-            
-            // 生成完成消息
-            const completionParts: string[] = []
-            if (psychodramaCount > 0) completionParts.push(`心理剧${psychodramaCount}张`)
-            if (hypotheticalCount > 0) completionParts.push(`假想场景${hypotheticalCount}张`)
-            if (opinionCount > 0) completionParts.push(`观点场景${opinionCount}张`)
-            
-            const completionMessage = `✨ 创作完成！生成了${completionParts.join('、')}`
-            
-            // 延迟3秒显示完成消息（等待大部分图片生成完成）
-            setTimeout(() => {
-              const messageIdToRemove = detectionMessageId
-              setMessages(prev => {
-                const filtered = messageIdToRemove
-                  ? prev.filter(msg => msg.id !== messageIdToRemove)
-                  : prev
-                return [...filtered, {
-                  id: `final-completion-${Date.now()}`,
-                  type: 'system',
-                  content: completionMessage
-                }]
-              })
-              detectionMessageId = undefined
-            }, 3000)
-          } else {
-            // 移除检测提示
-            const messageIdToRemove = detectionMessageId
-            setMessages(prev =>
-              messageIdToRemove
-                ? prev.filter(msg => msg.id !== messageIdToRemove)
-                : prev
-            )
-            detectionMessageId = undefined
-          }
-        }).catch((error) => {
-          console.error('❌ [CHAT-NEW] 后台生成失败:', error)
-          // 移除检测提示
-          const messageIdToRemove = detectionMessageId
-          setMessages(prev =>
-            messageIdToRemove
-              ? prev.filter(msg => msg.id !== messageIdToRemove)
-              : prev
-          )
-          detectionMessageId = undefined
-        })
-      }
-      
-      // 3. ✅ 场景对象已经有storyFragment了，直接用（心理剧补充）
-      scenes.forEach((scene: any) => {
-        if (scene.isPsychodrama && !scene.storyFragment) {
-          const primaryBlock = scene.narrativeBlock?.trim()
-          const hasChinese = (text?: string) => !!text && /[\u4e00-\u9fff]/.test(text)
-          const fragments: string[] = []
-
-          if (primaryBlock) {
-            fragments.push(primaryBlock)
-            if (hasChinese(primaryBlock)) {
-              scene.sceneDescription_CN = primaryBlock
-            } else {
-              scene.sceneDescription_EN = primaryBlock
-            }
-          }
-
-          if (fragments.length === 0) {
-            const narrative = scene.sceneDescription_CN?.trim()
-            if (narrative) {
-              fragments.push(narrative)
-            } else {
-              const parts: string[] = []
-              if (scene.innerMonologue) {
-                parts.push(scene.innerMonologue)
-              }
-              if (scene.surfaceVsInner) {
-                parts.push(scene.surfaceVsInner)
-              }
-              if (scene.consciousnessStream) {
-                parts.push(scene.consciousnessStream)
-              }
-              if (scene.psychologicalSymbolism) {
-                parts.push(scene.psychologicalSymbolism)
-              }
-              fragments.push(parts.join('\n'))
-            }
-          }
-
-          scene.storyFragment = fragments.filter(Boolean).join('\n\n').trim()
-          if (!scene.sceneDescription_CN && hasChinese(scene.storyFragment)) {
-            scene.sceneDescription_CN = scene.storyFragment
-          }
-          if (!scene.sceneDescription_EN && !hasChinese(scene.storyFragment)) {
-            scene.sceneDescription_EN = scene.storyFragment
-          }
-        }
-
-        console.log('🎭 [PSYCHODRAMA] 心理剧文字内容:', {
-          innerMonologue: scene.innerMonologue,
-          surfaceVsInner: scene.surfaceVsInner,
-          consciousnessStream: scene.consciousnessStream,
-          psychologicalSymbolism: scene.psychologicalSymbolism,
-          finalText: scene.storyFragment
-        })
-      })
-      // 普通场景的storyFragment已经由场景生成时生成了，直接用
-      
-      const storyPromise = Promise.resolve()
-      
-      // 更新进度：开始生成图片（已在上面显示）
-      
-      // 💾 清空之前的图片数据，准备收集新的
-      updateGeneratedImagesData(() => [])
-      
-      // ⚡ 流式生成图片：每生成一张立即返回，不阻塞后续流程
-      let completedImages = 0
-      
-      // 🔥 收集所有基础场景图片生成的Promise，确保保存时包含所有图片
-      const baseImagePromises: Promise<void>[] = []
-      
-      // 🔥 收集Promise，等待所有基础场景图片生成完成
-      scenes.forEach((scene: any, i: number) => {
-        const imagePromise = (async () => {
-        const sceneTitle = scene.title || scene.emotionalTrigger || `场景 ${i + 1}`
-        const sceneType = scene.isPsychodrama ? '心理剧' : '场景'
-        
-        
-        // 🔥 添加生成中的占位消息（使用唯一ID）
-        const placeholderId = `base-image-placeholder-${i}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-        setMessages(prev => [...prev, {
-          id: placeholderId,
-          type: 'system',
-          content: `⚡ 正在创作第 ${i + 1} 幅作品...`
-        }])
-        
-        try {
-          // 🔍 调试：检查场景对象的字段
-          console.log(`🔍 [CHAT-NEW] 场景${i + 1}字段检查:`, {
-            title: scene.title,
-            isPsychodrama: scene.isPsychodrama,
-            hasDetailedPrompt: !!scene.detailedPrompt,
-            hasImagePrompt: !!scene.imagePrompt,
-            hasDescription: !!scene.description,
-            detailedPrompt: scene.detailedPrompt?.substring(0, 100) + '...',
-            imagePrompt: scene.imagePrompt?.substring(0, 100) + '...',
-            description: scene.description?.substring(0, 100) + '...'
-          })
-          
-          // 🔥 根据场景类型选择正确的提示词字段
-          let imagePrompt = scene.isPsychodrama 
-            ? scene.imagePrompt  // 心理剧使用imagePrompt
-            : scene.isOpinionScene
-              ? scene.imagePrompt  // 🔥 观点场景使用imagePrompt
-              : scene.isHypothetical
-                ? scene.imagePrompt  // 假定场景使用imagePrompt
-                : scene.detailedPrompt || scene.description  // 普通场景使用detailedPrompt或description
-          
-          // 🔥 调试：打印场景类型和提示词字段
-          console.log(`🔍 [CHAT-NEW] 场景${i + 1}类型识别:`, {
-            title: scene.title,
-            isPsychodrama: scene.isPsychodrama,
-            isOpinionScene: scene.isOpinionScene,
-            isHypothetical: scene.isHypothetical,
-            opinionText: scene.opinionText,
-            hasImagePrompt: !!scene.imagePrompt,
-            hasDetailedPrompt: !!scene.detailedPrompt,
-            selectedPrompt: imagePrompt?.substring(0, 100) + '...'
-          })
-          
-          // 🎭 心理剧特殊处理：添加潜意识/内心独白
-          if (scene.isPsychodrama) {
-            if (!imagePrompt || imagePrompt.trim() === '') {
-            console.warn(`⚠️ [CHAT-NEW] 心理剧场景 ${i + 1} 缺少imagePrompt，使用备用方案`)
-            imagePrompt = `PSYCHODRAMA - Close-up portrait of person with emotional expression showing ${scene.emotionalTrigger || 'internal conflict'}, dramatic lighting, cinematic color grading, photorealistic style. --ar 16:9`
-          }
-          
-            // 🧠 提取情绪关键词强化提示词
-            const allEmotionText = [
-              scene.emotionalTrigger || '',
-              scene.innerMonologue || '',
-              scene.subconsciousDesire || ''
-            ].join(' ')
-            
-            // 使用LLM进行智能情绪检测（心理剧功能）
-            try {
-              const emotionResult = await detectEmotionsWithLLM(allEmotionText)
-              // 只在高置信度且明确情绪时才使用
-              if (emotionResult.emotions.length > 0 && emotionResult.confidence > 0.7) {
-                const emotionEN = translateEmotionsToEnglish(emotionResult.emotions).join(', ')
-                const intensityText = emotionResult.intensity === 'high' ? 'intense' : 
-                                   emotionResult.intensity === 'medium' ? 'moderate' : 'subtle'
-                imagePrompt = `Core emotions: ${emotionEN} (${intensityText} intensity). ` + imagePrompt
-                console.log(`🎭 [EMOTION] 心理剧情绪检测: ${emotionResult.emotions.join(', ')} (${emotionResult.intensity}, 置信度: ${emotionResult.confidence})`)
-              } else {
-                console.log(`🎭 [EMOTION] 情绪检测置信度不足，跳过情绪增强 (置信度: ${emotionResult.confidence})`)
-              }
-            } catch (error) {
-              console.warn('⚠️ [EMOTION] LLM情绪检测失败，跳过情绪增强:', error)
-            }
-          }
-          
-          
-          if (!imagePrompt || imagePrompt.trim() === '') {
-            console.error(`❌ [CHAT-NEW] 场景 ${i + 1} 缺少提示词，跳过`)
-            console.error(`❌ [CHAT-NEW] 场景对象:`, {
-              title: scene.title,
-              isPsychodrama: scene.isPsychodrama,
-              detailedPrompt: scene.detailedPrompt,
-              imagePrompt: scene.imagePrompt,
-              description: scene.description
-            })
-            setMessages(prev => prev.map(msg => 
-              msg.id === placeholderId
-                ? { ...msg, content: `❌ 场景 ${i + 1} 缺少提示词` }
-                : msg
-            ))
-            return // map中使用return代替continue
-          }
-          
-          console.log(`✅ [CHAT-NEW] 场景 ${i + 1} 图片提示词已准备:`, imagePrompt.substring(0, 200) + '...')
-          
-          // 调用SeeDream API生成图片
-          const imageResponse = await fetch('/api/seedream-generate', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              prompt: imagePrompt,
-              negativePrompt: "low quality, blurry, distorted",
-              width: 1024,
-              height: 1024
-            })
-          }).catch(err => {
-            console.error(`❌ [CHAT-NEW] 场景 ${i + 1} 网络错误:`, err)
-            throw new Error(`网络请求失败: ${err.message}`)
-          })
-          
-          if (imageResponse.ok) {
-            const imageData = await imageResponse.json()
-            
-            // 获取场景的故事
-            const sceneStory = scene.storyFragment
-            
-            // 💾 收集图片数据用于保存（基础场景）
-            updateGeneratedImagesData(prev => [...prev, {
-              imageUrl: imageData.imageUrl,
-              story: sceneStory || '',
-              sceneTitle: scene.title || `场景 ${i + 1}`,
-              sceneIndex: i,
-              prompt: sceneStory || '',
-              isPsychodrama: scene.isPsychodrama || false,
-              isHypothetical: scene.isHypothetical || false,
-              isOpinionScene: scene.isOpinionScene || false
-            }])
-            
-            // 更新进度
-            completedImages++
-            
-            // 更新进度
-            setMessages(prev => prev.map(msg => 
-              msg.id === progressId 
-                ? { ...msg, content: `✅ 场景已生成：${sceneNames}\n🎨 创作画面中... ${completedImages}/${scenes.length}` }
-                : msg
-            ))
-            
-            // 替换占位消息为图片+故事的组合
-            const imageId = `image-${i}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-            
-            // 🔄 直接显示图片，不进行预加载（避免预加载问题）
-            console.log(`✅ [CHAT-NEW] 场景 ${i + 1} 图片生成成功，直接显示`)
-            console.log(`🔗 [CHAT-NEW] 图片URL: ${imageData.imageUrl}`)
-            
-            setMessages(prev => prev.map(msg => 
-              msg.id === placeholderId
-                ? {
-                    id: imageId,
-                    type: 'image',
-                    content: sceneTitle,  // 先显示标题
-                    story: sceneStory || '',  // 故事字段（可能为空，并行生成）
-                    imageUrl: imageData.imageUrl,
-                    sceneData: scene,
-                    sceneIndex: i  // 保存场景索引，用于后续更新
-                  }
-                : msg
-            ))
-            
-            // 增加生图计数
-            setGeneratedImagesCount(prev => {
-              const newCount = prev + 1
-              console.log(`📊 [CHAT-NEW] 已生成图片数: ${newCount}/${MAX_GENERATED_IMAGES}`)
-              return newCount
-            })
-            
-            // 🔥 流式返回：图片生成成功，不返回Promise
-          } else {
-            // 生成失败，获取错误信息
-            const errorData = await imageResponse.json().catch(() => ({}))
-            const errorMsg = errorData.error || imageResponse.statusText || '未知错误'
-            console.error(`❌ [CHAT-NEW] 场景 ${i + 1} API错误:`, {
-              status: imageResponse.status,
-              statusText: imageResponse.statusText,
-              error: errorData,
-              imagePrompt: imagePrompt.substring(0, 100) + '...'
-            })
-            
-            setMessages(prev => prev.map(msg => 
-              msg.id === placeholderId
-                ? { ...msg, content: `❌ 第 ${i + 1} 幅创作失败: ${errorMsg} (状态码: ${imageResponse.status})` }
-                : msg
-            ))
-          }
-    } catch (error) {
-          console.error(`❌ [CHAT-NEW] 场景 ${i + 1} 生成失败:`, error)
-          setMessages(prev => prev.map(msg => 
-            msg.id === placeholderId
-              ? { ...msg, content: `❌ 第 ${i + 1} 幅创作失败` }
-              : msg
-          ))
-        }
-        })() // 🔥 立即执行async函数，返回Promise
-        
-        baseImagePromises.push(imagePromise)
-      })
-      
-      // 🔥 等待所有基础场景图片生成完成后再保存
-      console.log('⏳ [CHAT-NEW] 等待所有基础场景图片生成完成...')
-      await Promise.all(baseImagePromises)
-      console.log('✅ [CHAT-NEW] 所有基础场景图片生成完成，开始保存内容')
-      
-      // 只等待故事生成完成
-      const storyResult = await storyPromise
-      
-      // 🔥 流式返回：图片生成情况通过 completedImages 追踪
-      // 不需要等待所有图片，图片会在后台继续生成
-      console.log(`📊 [CHAT-NEW] 故事生成完成，图片正在后台流式生成...`)
-      console.log(`📊 [CHAT-NEW] 当前已完成: ${completedImages}/${scenes.length} 张图片`)
-      
-      // 🔥 不再等待所有图片，立即继续后续流程
-      // 图片会在后台继续生成，生成完成后自动显示
-      
-      // 移除进度消息
-      setMessages(prev => prev.filter(msg => msg.id !== progressId))
-      
-      // 4. 基础场景生成已启动，显示检测通知（图片在后台继续生成）
-      console.log(`✅ [CHAT-NEW] 基础场景生成已启动，共 ${scenes.length} 个场景正在生成图片`)
-      
-      // 🔥 注意：如果有新增场景（观点、心理剧），元数据更新会在新增场景图片生成完成后执行
-      // 如果没有新增场景，在这里执行元数据更新（基础场景图片已完成）
-      // 这样不会影响生图速度
-      
-      console.log('✅ [CHAT-NEW] 基础场景图片已完成：图片+故事配对显示')
-      
-      // 🔥 注意：元数据更新会在以下情况执行：
-      // 1. 如果有新增场景：在 generateImagesForNewScenes 完成后执行
-      // 2. 如果没有新增场景：在基础场景图片完成后执行
-      if (!contentResult.needsAdditionalGeneration) {
-        // 🔥 没有新增场景，在基础场景图片生成完成后立即执行元数据更新
-        console.log('💾 [CHAT-NEW] 没有新增场景，在基础场景图片生成完成后执行元数据更新...')
-        updateMetadataAfterAllImages(actualPrompt, answersWithContext, questions).catch(error => {
-          console.error('❌ [CHAT-NEW] 元数据更新异常（不影响前端）:', error)
-        })
-      }
-      
-      // 🤖 AI自动生成标题（传入聊天记录）
-      const autoTitle = await generateTitle(actualPrompt, scenes, answersWithContext)
-      setMainTitle(autoTitle)
-      console.log('🤖 [CHAT-NEW] AI生成标题:', autoTitle)
-      
-      // 💾 保存生成内容到数据库
-      console.log('💾 [CHAT-NEW] 开始保存生成内容到数据库...')
-      
-      // 🔥 等待状态更新完成，确保获取最新的图片数据
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      // 🔥 使用ref获取最新的图片数据（避免状态更新延迟问题）
-      const latestImages = generatedImagesDataRef.current
-      console.log('💾 [CHAT-NEW] 生成的图片数量:', latestImages.length)
-      console.log('💾 [CHAT-NEW] 图片数据预览:', latestImages.map(img => ({ 
-        sceneTitle: img.sceneTitle, 
-        sceneIndex: img.sceneIndex,
-        hasUrl: !!img.imageUrl 
-      })))
-      try {
-        // 🔥 按逻辑顺序（sceneIndex）排序图片
-        const sortedImages = [...latestImages].sort((a, b) => a.sceneIndex - b.sceneIndex)
-        console.log('📊 [CHAT-NEW] 图片排序:', sortedImages.map(img => ({
-          sceneIndex: img.sceneIndex,
-          title: img.sceneTitle
-        })))
-        
-        // 调用保存API
-        console.log('💾 [CHAT-NEW] 保存sessionId:', currentSessionId)
-        console.log('💾 [CHAT-NEW] 保存标题:', autoTitle)
-        const saveResponse = await fetch('/api/user/generated-content', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            sessionId: currentSessionId,  // 🔥 包含sessionId
-            title: autoTitle, // 🔥 AI生成的标题
-            initialPrompt: actualPrompt,
-            questions: questions.slice(0, answersWithContext.length),
-            answers: answersWithContext,
-            scenes: scenes || {},
-            storyNarrative: contentResult.story?.narrative || '',
-            images: sortedImages, // 🔥 使用排序后的图片
-            category: 'daily'
-          })
-        })
-        
-        if (saveResponse.ok) {
-          const saveResult = await saveResponse.json()
-          console.log('✅ [CHAT-NEW] 内容已保存到数据库:', saveResult.contentId)
-          // 🔥 记录contentId，用于发布
-          setSavedContentId(saveResult.contentId)
-        } else {
-          const errorData = await saveResponse.json()
-          console.error('❌ [CHAT-NEW] 保存内容失败:', errorData)
-        }
-      } catch (saveError) {
-        console.error('❌ [CHAT-NEW] 保存内容异常:', saveError)
-      }
-      
-      // 🔥 注意：元数据更新会延迟到所有图片（包括新增场景）生成完成后执行
-      // 详见 generateImagesForNewScenes 函数末尾
-      
-      // 🔄 清空对话状态，准备下一轮
-      console.log('🔄 [CHAT-NEW] 清空对话状态，准备接收新键入')
-      
-      // 把当前完整对话移到历史背景（包括initialPrompt和所有answers）
-      const allCurrentInputs = [actualPrompt, ...finalAnswers].filter(Boolean)
-      const completedContent = allCurrentInputs.join('。')
-      
-      setContextHistory(prev => {
-        const newHistory = prev ? `${prev}。${completedContent}` : completedContent
-        console.log('📊 [CHAT-NEW] 历史背景已更新:', newHistory)
-        return newHistory
-      })
-      
-      // 清空问答状态
-      setAnswers([])
-      answersRef.current = []  // 🔥 同步重置ref
-      setQuestions([])
-      questionsRef.current = []  // 🔥 同步重置ref
-      setCurrentQuestionIndex(0)
-      setInitialPrompt('') // 清空，下一个输入会成为新的initialPrompt
-      
-      console.log('✅ [CHAT-NEW] 对话状态已清空，等待新键入')
-      
-    } catch (error: any) {
-      // 检查是否是用户主动中止
-      if (error.name === 'AbortError' || error.message?.includes('abort')) {
-        console.log('⏸️ [CHAT-NEW] 用户中止了生成')
-        // 不显示错误消息，已经在 handleStopGeneration 中显示了
-      } else {
-        console.error('💥 [CHAT-NEW] 生成失败:', error)
-        setMessages(prev => [...prev, {
-          id: 'system-error',
-          type: 'system',
-          content: '❌ 创作失败，请重试'
-        }])
-      }
     } finally {
-      // 🔥 如果没有额外场景需要生成，立即重置状态
-      // 如果有额外场景，状态重置由外部统一管理（在 Promise.allSettled 后）
-      if (!contentResult?.needsAdditionalGeneration) {
-        console.log('🔄 [CHAT-NEW] 没有额外场景，重置生成状态')
-        setIsGenerating(false)
-        setIsLoading(false)
-      } else {
-        console.log('⏳ [CHAT-NEW] 有额外场景正在生成，状态重置由外部统一管理')
-      }
-      
-      // 清理 AbortController
-      if (abortControllerRef.current) {
-        abortControllerRef.current = null
-      }
+      setIsGenerating(false)
+      setIsLoading(false)
+      if (abortControllerRef.current) abortControllerRef.current = null
     }
   }
-  
-  // ❌ 已废弃：不再跳转，改为在对话框中生成
-  const goToGeneration = async (customPrompt?: string, finalAnswers?: string[]) => {
-    console.warn('⚠️ [CHAT-NEW] goToGeneration 已废弃！改用 generateInChat')
-    const answersToUse = finalAnswers || answers
-    generateInChat(answersToUse)
-  }
 
-  // 跳过问题直接生成（已废弃，现在使用AI智能判断）
-  const skipToGeneration = () => {
-    console.log('⏭️ [CHAT-NEW] 用户选择跳过问题，直接在对话框中生成')
-    // 使用当前已有的answers生成
-    generateInChat(answers.length > 0 ? answers : [initialPrompt])
-  }
 
   // AI从对话中学习更新元数据
   const updateMetadataFromConversationAPI = async (
@@ -3101,7 +2411,7 @@ AI问题：${aiQuestion}
       
       // 3秒后跳转到首页查看，并刷新已发布内容
       setTimeout(() => {
-        router.push('/home?refresh=true')
+        router.push('/profile?refresh=true')
       }, 3000)
     } catch (error: any) {
       console.error('❌ [PUBLISH] 发布失败:', error)
@@ -3183,10 +2493,10 @@ AI问题：${aiQuestion}
           <div className="flex items-center gap-3">
             <div className="flex items-center mr-2">
               <img 
-                src="/inflow-logo.jpeg" 
+                src="/logo-nexus.jpeg" 
                 alt="logo" 
-                className="w-20 h-14 rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
-                onClick={() => router.push('/home')}
+                className="h-10 w-auto object-contain rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
+                onClick={() => router.push('/profile')}
               />
             </div>
             <button
@@ -3250,7 +2560,7 @@ AI问题：${aiQuestion}
       <div className="max-w-md mx-auto px-4 py-6">
         {step === 'loading' && (
           <div className="flex flex-col items-center justify-center py-12">
-            <Loader2 className="w-8 h-8 text-magazine-primary animate-spin mb-4" />
+            <Loader2 className="w-8 h-8 text-primary animate-spin mb-4" />
             <p className="text-gray-600">Analyzing your input...</p>
           </div>
         )}
@@ -3274,7 +2584,7 @@ AI问题：${aiQuestion}
                       <div className="flex items-center gap-2">
                         <h3 className={`text-base font-medium ${
                         message.sceneData?.isPsychodrama 
-                            ? 'text-magazine-primary'
+                            ? 'text-primary'
                             : message.sceneData?.isHypothetical
                             ? 'text-blue-600'
                             : 'text-gray-800'
@@ -3283,7 +2593,7 @@ AI问题：${aiQuestion}
                           {sceneTitle}
                         </h3>
                         {message.sceneData?.isPsychodrama && (
-                          <span className="text-xs bg-magazine-primary/90 text-white px-2 py-0.5 rounded-full">
+                          <span className="text-xs bg-primary/90 text-white px-2 py-0.5 rounded-full">
                               Psychodrama
                             </span>
                         )}
@@ -3313,7 +2623,7 @@ AI问题：${aiQuestion}
                           </>
                         )}
                         <img 
-                          src={message.imageUrl} 
+                          src={resolveImageUrl(message.imageUrl)} 
                           alt={sceneTitle}
                           className="w-full h-auto max-h-96 object-cover"
                         />
@@ -3352,7 +2662,7 @@ AI问题：${aiQuestion}
                   <div
                     className={`max-w-[80%] rounded-2xl px-4 py-3 ${
                       message.type === 'user'
-                        ? 'bg-magazine-primary text-white'
+                        ? 'bg-primary text-white'
                         : message.type === 'assistant'
                         ? 'bg-white text-gray-800 shadow-sm border'
                         : 'bg-gray-100 text-gray-600'
@@ -3365,50 +2675,127 @@ AI问题：${aiQuestion}
               })}
             </div>
 
-            {/* 直接生图按钮 - 仅在问答阶段显示，创作中时隐藏 */}
+            {/* 直接生成按钮 - 仅在问答阶段显示，创作中时隐藏 */}
             {!isLoading && !isGenerating && questions.length > 0 && answers.length < questions.length && (
-              <div className="flex justify-center mb-4">
-                <button
-                  onClick={() => {
-                    console.log('🎨 [CHAT-NEW] 用户选择直接生图，跳过剩余问题')
-                    console.log('🔍 [CHAT-NEW] 状态检查:', {
-                      isLoading,
-                      isGenerating,
-                      questionsLength: questions.length,
-                      answersLength: answers.length
-                    })
-                    console.log('🔍 [CHAT-NEW] 当前answers state:', answers)
-                    console.log('🔍 [CHAT-NEW] 当前questions state:', questions)
-                    
-                    // 🔥 从messages中提取用户的实际回答
-                    const userAnswersFromMessages = messages
-                      .filter(m => m.type === 'user' && m.content !== initialPrompt) // 排除初始输入
-                      .map(m => m.content)
-                    
-                    console.log('✅ [CHAT-NEW] 从messages提取的用户回答:', userAnswersFromMessages)
-                    console.log('📊 [CHAT-NEW] 提取到 ' + userAnswersFromMessages.length + ' 个回答')
-                    
-                    setIsLoading(true)
-                    setMessages(prev => [...prev, {
-                      id: `system-skip-${Date.now()}`,
-                      type: 'system',
-                      content: '✅ Skipped remaining questions, starting to generate your exclusive scenes...'
-                    }])
-                    setTimeout(() => {
-                      // 🔥 使用从messages提取的回答，而不是空的answers state
-                      generateInChat(userAnswersFromMessages)
-                    }, 500)
-                  }}
-                  className="px-6 py-2.5 bg-magazine-primary text-white rounded-full font-medium shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 flex items-center gap-2 hover:bg-magazine-secondary"
-                >
-                  <span>🎨</span>
-                  <span>Generate Images</span>
-                </button>
+              <div className="flex justify-center mb-4 gap-3">
+                {/* 🔥 Profile生成模式：显示两个选项 */}
+                {autoStart ? (
+                  <>
+                    <button
+                      onClick={() => {
+                        console.log('📝 [CHAT-NEW] 用户选择直接生成Profile')
+                        // 🔥 从messages中提取用户的实际回答
+                        const userAnswersFromMessages = messages
+                          .filter(m => m.type === 'user' && m.content !== initialPrompt)
+                          .map(m => m.content)
+                        
+                        console.log('✅ [CHAT-NEW] 从messages提取的用户回答:', userAnswersFromMessages)
+                        
+                        setIsLoading(true)
+                        setMessages(prev => [...prev, {
+                          id: `system-generate-profile-${Date.now()}`,
+                          type: 'system',
+                          content: '✅ Generating your exclusive profile...'
+                        }])
+                        setTimeout(() => {
+                          generateProfileFromConversation([initialPrompt], userAnswersFromMessages, uploadedImage || undefined)
+                        }, 500)
+                      }}
+                      className="px-6 py-2.5 bg-gradient-to-r from-teal-600 to-cyan-600 text-white rounded-full font-medium shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 flex items-center gap-2"
+                    >
+                      Generate Profile Now
+                    </button>
+                    <button
+                      onClick={() => {
+                        console.log('💬 [CHAT-NEW] 用户选择继续追问')
+                        // 继续生成下一个问题
+                        const userAnswersFromMessages = messages
+                          .filter(m => m.type === 'user' && m.content !== initialPrompt)
+                          .map(m => m.content)
+                        
+                        setIsLoading(true)
+                        setMessages(prev => [...prev, {
+                          id: `assistant-continue-${Date.now()}`,
+                          type: 'assistant',
+                          content: 'Let me ask you another question...'
+                        }])
+                        
+                        // 调用生成问题的逻辑
+                        setTimeout(async () => {
+                          try {
+                            const response = await generateDeepQuestions(initialPrompt, initialPrompt, userAnswersFromMessages, questions)
+                            if (response.success && response.questions && response.questions.length > 0) {
+                              const nextQuestion = response.questions[0]
+                              const updatedQuestions = [...questions, nextQuestion]
+                              setQuestions(updatedQuestions)
+                              questionsRef.current = updatedQuestions
+                              setCurrentQuestionIndex(prev => prev + 1)
+                              setMessages(prev => prev.filter(msg => !msg.id.includes('assistant-continue')).concat([{
+                                id: `question-${Date.now()}`,
+                                type: 'assistant',
+                                content: nextQuestion
+                              }]))
+                            } else {
+                              // 无法生成更多问题，直接生成profile
+                              generateProfileFromConversation([initialPrompt], userAnswersFromMessages, uploadedImage || undefined)
+                            }
+                          } catch (error) {
+                            console.error('❌ [CHAT-NEW] 继续追问失败:', error)
+                            generateProfileFromConversation([initialPrompt], userAnswersFromMessages, uploadedImage || undefined)
+                          } finally {
+                            setIsLoading(false)
+                          }
+                        }, 500)
+                      }}
+                      className="px-6 py-2.5 bg-white border-2 border-teal-600 text-teal-600 rounded-full font-medium shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 flex items-center gap-2 hover:bg-teal-50"
+                    >
+                      Continue Asking
+                    </button>
+                  </>
+                ) : (
+                  /* 场景生成模式：显示直接生图按钮 */
+                  <button
+                    onClick={() => {
+                      console.log('🎨 [CHAT-NEW] 用户选择直接生图，跳过剩余问题')
+                      console.log('🔍 [CHAT-NEW] 状态检查:', {
+                        isLoading,
+                        isGenerating,
+                        questionsLength: questions.length,
+                        answersLength: answers.length
+                      })
+                      console.log('🔍 [CHAT-NEW] 当前answers state:', answers)
+                      console.log('🔍 [CHAT-NEW] 当前questions state:', questions)
+                      
+                      // 🔥 从messages中提取用户的实际回答
+                      const userAnswersFromMessages = messages
+                        .filter(m => m.type === 'user' && m.content !== initialPrompt) // 排除初始输入
+                        .map(m => m.content)
+                      
+                      console.log('✅ [CHAT-NEW] 从messages提取的用户回答:', userAnswersFromMessages)
+                      console.log('📊 [CHAT-NEW] 提取到 ' + userAnswersFromMessages.length + ' 个回答')
+                      
+                      setIsLoading(true)
+                      setMessages(prev => [...prev, {
+                        id: `system-skip-${Date.now()}`,
+                        type: 'system',
+                        content: '✅ Skipped remaining questions, starting to generate your exclusive scenes...'
+                      }])
+                      setTimeout(() => {
+                        // 🔥 使用从messages提取的回答，而不是空的answers state
+                        generateInChat(userAnswersFromMessages)
+                      }, 500)
+                    }}
+                    className="px-6 py-2.5 bg-primary text-white rounded-full font-medium shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 flex items-center gap-2 hover:bg-primary-dark"
+                  >
+                    <span>🎨</span>
+                    <span>Generate Images</span>
+                  </button>
+                )}
               </div>
             )}
 
-            {/* 输入框 - 始终显示，生成过程中禁用输入 */}
-            <div className="sticky bottom-4 bg-white rounded-2xl shadow-lg border border-gray-200 p-4">
+            {/* 输入框 - 始终显示，生成过程中禁用输入（chat-new页面使用自己的输入框，不使用全局对话框） */}
+            <div className="sticky bottom-4 bg-white rounded-2xl shadow-lg border border-gray-200 p-4 z-10">
               <div className="flex gap-2">
                 <input
                   type="text"
@@ -3422,7 +2809,7 @@ AI问题：${aiQuestion}
                       ? 'Generating questions, please wait...'
                       : 'Enter your answer...'
                   }
-                  className="flex-1 px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-magazine-primary focus:border-transparent disabled:bg-gray-50 disabled:text-gray-400"
+                  className="flex-1 px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-gray-50 disabled:text-gray-400"
                   disabled={isLoading || isGenerating}
                 />
                 
@@ -3430,7 +2817,7 @@ AI问题：${aiQuestion}
                 {isGenerating || isLoading ? (
                   <button
                     onClick={handleStopGeneration}
-                    className="px-4 py-2 bg-magazine-primary text-white rounded-xl hover:bg-magazine-secondary transition-colors flex items-center justify-center"
+                    className="px-4 py-2 bg-primary text-white rounded-xl hover:bg-primary-dark transition-colors flex items-center justify-center"
                     title="Stop Generation"
                   >
                     <div className="w-5 h-5 rounded-full border-2 border-white animate-spin border-t-transparent"></div>
@@ -3439,7 +2826,7 @@ AI问题：${aiQuestion}
                   <button
                     onClick={handleSendMessage}
                     disabled={!inputValue.trim()}
-                    className="px-4 py-2 bg-magazine-primary text-white rounded-xl hover:bg-magazine-secondary disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    className="px-4 py-2 bg-primary text-white rounded-xl hover:bg-primary-dark disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
                     <Send className="w-5 h-5" />
                   </button>
@@ -3451,28 +2838,27 @@ AI问题：${aiQuestion}
 
         {step === 'generating' && (
           <div className="flex flex-col items-center justify-center py-12">
-            <Loader2 className="w-8 h-8 text-magazine-primary animate-spin mb-4" />
+            <Loader2 className="w-8 h-8 text-primary animate-spin mb-4" />
             <p className="text-gray-600">Generating your exclusive content...</p>
           </div>
         )}
       </div>
 
-      {/* 发布确认对话框 - 完整预览 */}
-      {showPublishDialog && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full my-8 max-h-[90vh] overflow-y-auto">
-            {/* 头部 */}
-            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between rounded-t-2xl">
-              <h3 className="text-xl font-bold text-gray-800">Publish Preview</h3>
-              <button
-                onClick={() => setShowPublishDialog(false)}
-                className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <X className="w-5 h-5 text-gray-500" />
-              </button>
-            </div>
-            
-            {/* 内容区域 */}
+      {/* 发布确认 - 拉窗式，可缩小 */}
+      <Drawer
+        isOpen={showPublishDialog}
+        onClose={() => setShowPublishDialog(false)}
+        title="Publish Preview"
+        width="max-w-2xl"
+        footer={(
+          <div className="px-6 py-4 flex gap-3">
+            <button onClick={() => setShowPublishDialog(false)} className="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium">Cancel</button>
+            <button onClick={handlePublish} disabled={isPublishing || !publishTitle.trim()} className="flex-1 px-4 py-2.5 bg-gradient-to-r from-teal-500 to-cyan-500 text-white rounded-lg hover:shadow-lg transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+              {isPublishing ? (<><Loader2 className="w-4 h-4 animate-spin" /><span>Publishing...</span></>) : (<><Share2 className="w-4 h-4" /><span>Confirm Publish</span></>)}
+            </button>
+          </div>
+        )}
+      >
             <div className="p-6 space-y-4">
               {/* AI生成的标题 */}
               <div>
@@ -3508,7 +2894,7 @@ AI问题：${aiQuestion}
                     </label>
                     <div className="relative aspect-video bg-gray-100 rounded-lg overflow-hidden border-2 border-teal-300 shadow-md">
                       <img
-                        src={coverImage.imageDataUrl || coverImage.imageUrl}
+                        src={resolveImageUrl(coverImage.imageDataUrl || coverImage.imageUrl)}
                         alt={coverImage.sceneTitle}
                         className="w-full h-full object-cover"
                       />
@@ -3544,7 +2930,7 @@ AI问题：${aiQuestion}
                       {/* 图片部分 */}
                       <div className="relative aspect-video bg-gray-100">
                     <img
-                      src={image.imageDataUrl || image.imageUrl}
+                      src={resolveImageUrl(image.imageDataUrl || image.imageUrl)}
                           alt={image.sceneTitle}
                           className="w-full h-full object-cover"
                         />
@@ -3578,36 +2964,7 @@ AI问题：${aiQuestion}
                 </div>
               </div>
             </div>
-            
-            {/* 底部按钮 */}
-            <div className="sticky bottom-0 bg-white border-t border-gray-200 px-6 py-4 flex gap-3 rounded-b-2xl">
-              <button
-                onClick={() => setShowPublishDialog(false)}
-                className="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handlePublish}
-                disabled={isPublishing || !publishTitle.trim()}
-                className="flex-1 px-4 py-2.5 bg-gradient-to-r from-teal-500 to-cyan-500 text-white rounded-lg hover:shadow-lg transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              >
-                {isPublishing ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Publishing...</span>
-                  </>
-                ) : (
-                  <>
-                    <Share2 className="w-4 h-4" />
-                    <span>Confirm Publish</span>
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      </Drawer>
     </div>
   )
 }

@@ -27,7 +27,7 @@ export default function ContentCard({ data }: ContentCardProps) {
   if (data.type === 'ai-suggestion') {
     const coverImage = data.generatedImage || data.image
     const content = (
-      <div className={`magazine-card ${data.bgColor} p-4 h-full flex flex-col justify-between`}>
+      <div className={`card-base ${data.bgColor} p-4 h-full flex flex-col justify-between`}>
         {coverImage && (
           <div className="relative h-32 w-full mb-4 rounded-lg overflow-hidden">
             <Image
@@ -41,22 +41,22 @@ export default function ContentCard({ data }: ContentCardProps) {
         )}
         
         <div>
-          <h3 className="font-semibold text-lg mb-2 text-magazine-dark">
+          <h3 className="font-semibold text-lg mb-2 text-gray-800">
             {data.title}
           </h3>
-          <p className="text-sm text-magazine-gray mb-4">
+          <p className="text-sm text-gray-500 mb-4">
             {data.subtitle}
           </p>
         </div>
         
         <div className="space-y-3">
           <div className="bg-white rounded-lg p-3">
-            <p className="text-sm text-magazine-dark">
+            <p className="text-sm text-gray-800">
               {data.suggestion}
             </p>
           </div>
           <div className="flex items-center justify-between">
-            <p className="text-xs text-magazine-gray">
+            <p className="text-xs text-gray-500">
               {data.source}
             </p>
           </div>
@@ -78,7 +78,7 @@ export default function ContentCard({ data }: ContentCardProps) {
 
   if (data.moduleLabel && ['INCURRENT', 'INLIFE', 'INSTYLE', 'WEEKEND'].includes(data.moduleLabel)) {
     const currentCard = (
-      <div className="magazine-card relative h-full overflow-hidden text-white">
+      <div className="card-base relative h-full overflow-hidden text-white">
         {data.image && (
           <Image
             src={data.image}
@@ -121,7 +121,7 @@ export default function ContentCard({ data }: ContentCardProps) {
 
   const card = (
     <div
-      className={`magazine-card flex flex-col h-full`}
+      className={`card-base flex flex-col h-full`}
     >
       {data.image && (
         <div className="relative h-48 w-full">
@@ -140,7 +140,7 @@ export default function ContentCard({ data }: ContentCardProps) {
       >
         {data.moduleLabel && (
           <div
-            className={`flex items-center justify-between text-magazine-primary`}
+            className={`flex items-center justify-between text-primary`}
           >
             <span className="text-[10px] uppercase tracking-[0.35em]">
               {data.moduleLabel}
@@ -149,14 +149,14 @@ export default function ContentCard({ data }: ContentCardProps) {
         )}
 
         <h3
-          className={`font-semibold leading-tight text-sm text-magazine-dark`}
+          className={`font-semibold leading-tight text-sm text-gray-800`}
         >
           {data.title}
         </h3>
 
         {data.subtitle && (
           <p
-            className={`text-xs leading-relaxed text-magazine-gray`}
+            className={`text-xs leading-relaxed text-gray-500`}
           >
             {data.subtitle}
           </p>
@@ -164,11 +164,11 @@ export default function ContentCard({ data }: ContentCardProps) {
 
         <div className="flex items-center gap-2 mt-auto">
           <div
-            className="w-4 h-4 bg-magazine-primary rounded-full flex items-center justify-center"
+            className="w-4 h-4 bg-primary rounded-full flex items-center justify-center"
           >
             <span className="text-white text-xs font-bold">{data.authorInitial || 'E'}</span>
           </div>
-          <span className="text-xs text-magazine-gray font-medium">{data.authorName || 'Evelyn'}</span>
+          <span className="text-xs text-gray-500 font-medium">{data.authorName || 'Evelyn'}</span>
         </div>
       </div>
     </div>

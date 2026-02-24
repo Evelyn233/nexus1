@@ -24,9 +24,9 @@ export default function ForgotPasswordPage() {
       <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-2xl shadow-xl">
         <div className="text-center">
           <img 
-            src="/inflow-logo.jpeg" 
+            src="/logo-nexus.jpeg" 
             alt="logo" 
-            className="w-28 h-22 rounded-lg mx-auto"
+            className="h-20 w-auto object-contain rounded-lg mx-auto"
           />
           <h2 className="mt-6 text-2xl font-bold text-gray-900">
             Forgot Password

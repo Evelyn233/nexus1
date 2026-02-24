@@ -25,10 +25,10 @@ export default function DebugUserPage() {
     }
 
     // 2. 检查localStorage数据
-    const currentUser = localStorage.getItem('magazine_current_user')
+    const currentUser = localStorage.getItem('profile_current_user')
     if (currentUser) {
-      const userInfoKey = `magazine_user_info_${currentUser}`
-      const metadataKey = `magazine_user_metadata_${currentUser}`
+      const userInfoKey = `profile_user_info_${currentUser}`
+      const metadataKey = `profile_user_metadata_${currentUser}`
       
       const userInfo = localStorage.getItem(userInfoKey)
       const metadata = localStorage.getItem(metadataKey)
@@ -269,7 +269,7 @@ export default function DebugUserPage() {
         {/* 返回按钮 */}
         <div className="mt-6">
           <button
-            onClick={() => window.location.href = '/home'}
+            onClick={() => window.location.href = '/profile'}
             className="text-blue-600 hover:text-blue-700"
           >
             ← 返回首页

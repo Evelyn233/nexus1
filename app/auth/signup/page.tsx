@@ -9,6 +9,8 @@ export default function SignUpPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const promptParam = searchParams.get('prompt') || ''
+  const imageParam = searchParams.get('image') || ''
+  const callbackUrl = searchParams.get('callbackUrl') || ''
   
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -60,11 +62,14 @@ export default function SignUpPage() {
       })
 
       if (result?.ok) {
-        // 如果有prompt参数，跳转到聊天页面；否则跳转到用户信息收集页面
+        // 新用户注册后直接进入提问/聊天，不强制先建立 profile
         if (promptParam) {
-          router.push(`/chat-new?prompt=${encodeURIComponent(promptParam)}`)
+          const q = `prompt=${encodeURIComponent(promptParam)}${imageParam ? `&image=${encodeURIComponent(imageParam)}` : ''}&autoStart=true`
+          router.push(`/chat-new?${q}`)
+        } else if (callbackUrl && callbackUrl.startsWith('/') && !callbackUrl.includes('/auth/') && !callbackUrl.includes('/user-info')) {
+          router.push(callbackUrl)
         } else {
-        router.push('/user-info') // 跳转到用户信息收集页面
+          router.push('/profile')
         }
       } else {
         router.push('/auth/signin')
@@ -82,9 +87,9 @@ export default function SignUpPage() {
         <div className="text-center">
           <div className="flex items-center justify-center mb-4">
             <img 
-              src="/inflow-logo.jpeg" 
+              src="/logo-nexus.jpeg" 
               alt="logo" 
-              className="w-24 h-20 rounded-lg"
+              className="h-16 w-auto object-contain rounded-lg"
             />
           </div>
           <h2 className="mt-6 text-2xl font-bold text-gray-900">
@@ -206,7 +211,7 @@ export default function SignUpPage() {
         <div className="mt-6 space-y-2">
           <p className="text-center text-sm text-gray-600">
             已有账号？{' '}
-            <Link href="/auth/signin" className="font-medium text-teal-600 hover:text-teal-500">
+            <Link href={callbackUrl ? `/auth/signin?callbackUrl=${encodeURIComponent(callbackUrl)}` : '/auth/signin'} className="font-medium text-teal-600 hover:text-teal-500">
               立即登录
             </Link>
           </p>

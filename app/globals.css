@@ -19,16 +19,29 @@
   }
 }
 
+/* 拉窗式抽屉滑入动画 */
+@keyframes drawer-in {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+.animate-drawer-in {
+  animation: drawer-in 0.25s ease-out forwards;
+}
+
 @layer components {
-  .magazine-card {
+  .card-base {
     @apply bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden;
   }
   
-  .magazine-input {
-    @apply bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-magazine-primary focus:border-transparent;
+  .input-base {
+    @apply bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent;
   }
   
-  .magazine-button {
-    @apply bg-magazine-primary text-white px-6 py-3 rounded-xl font-medium hover:bg-magazine-secondary transition-colors duration-200;
+  .button-base {
+    @apply bg-primary text-white px-6 py-3 rounded-xl font-medium hover:bg-primary-dark transition-colors duration-200;
+  }
+  
+  .clickable-role-area {
+    cursor: pointer !important;
   }
 }

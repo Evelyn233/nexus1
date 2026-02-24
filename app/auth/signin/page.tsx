@@ -5,10 +5,19 @@ import { signIn, useSession } from 'next-auth/react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 
+function getSignInErrorMessage(error: string | undefined): string {
+  if (!error) return '登录失败，请重试'
+  if (error === '请您先注册') return '请您先注册'
+  if (error === '该账号通过第三方登录，请使用 Google/GitHub 登录') return error
+  if (error === '账号或密码错误') return '账号或密码错误'
+  if (error === 'CredentialsSignin') return '账号或密码错误'
+  return error
+}
+
 function SignInForm() {
   const searchParams = useSearchParams()
   const router = useRouter()
-  const callbackUrl = searchParams.get('callbackUrl') || '/home'
+  const callbackUrl = searchParams.get('callbackUrl') || '/profile'
   const isMountedRef = useRef(true)
   const { data: session, status, update } = useSession()
   
@@ -24,6 +33,12 @@ function SignInForm() {
     }
   }, [])
 
+  // 从 URL 读取错误（如从 /auth/error 跳回时）
+  useEffect(() => {
+    const err = searchParams.get('error')
+    if (err) setError(getSignInErrorMessage(decodeURIComponent(err)))
+  }, [searchParams])
+
   // 🔥 监听 session 状态变化，如果已登录则跳转（作为备用保障）
   useEffect(() => {
     if (status === 'authenticated' && session && !hasRedirectedRef.current) {
@@ -36,7 +51,7 @@ function SignInForm() {
       hasRedirectedRef.current = true
       
       // 🔥 清理 callbackUrl，移除所有查询参数，避免嵌套
-      let targetUrl = callbackUrl || '/home'
+      let targetUrl = callbackUrl || '/profile'
       
       // 移除查询参数
       if (targetUrl.includes('?')) {
@@ -45,7 +60,7 @@ function SignInForm() {
       
       // 确保不是登录页
       if (targetUrl.includes('/auth/signin')) {
-        targetUrl = '/home'
+        targetUrl = '/profile'
       }
       
       // 构建干净的 URL，只添加一个时间戳参数
@@ -157,7 +172,8 @@ function SignInForm() {
 
       if (result?.error) {
         console.error('❌ [SIGNIN] 登录失败:', result.error)
-        setError('Email or password is incorrect')
+        const msg = getSignInErrorMessage(result.error)
+        setError(msg)
         setIsLoading(false)
         return
       }
@@ -167,7 +183,7 @@ function SignInForm() {
         hasRedirectedRef.current = true // 标记已跳转，防止useEffect再次跳转
         
         // 🔥 清理 callbackUrl，移除所有查询参数，避免嵌套
-        let targetUrl = callbackUrl || '/home'
+        let targetUrl = callbackUrl || '/profile'
         
         // 移除查询参数
         if (targetUrl.includes('?')) {
@@ -176,7 +192,7 @@ function SignInForm() {
         
         // 确保不是登录页
         if (targetUrl.includes('/auth/signin')) {
-          targetUrl = '/home'
+          targetUrl = '/profile'
         }
         
         console.log('🚀 [SIGNIN] 目标URL:', targetUrl)
@@ -244,7 +260,7 @@ function SignInForm() {
         }, 5000)
       } else {
         console.error('❌ [SIGNIN] 登录响应异常:', result)
-        setError(result?.error || 'Login response was unexpected')
+        setError(getSignInErrorMessage(result?.error) || '登录失败，请重试')
         setIsLoading(false)
       }
     } catch (error) {
@@ -278,9 +294,9 @@ function SignInForm() {
         <div className="text-center">
           <div className="flex items-center justify-center mb-4">
             <img 
-              src="/inflow-logo.jpeg" 
+              src="/logo-nexus.jpeg" 
               alt="logo" 
-              className="w-28 h-22 rounded-lg"
+              className="h-20 w-auto object-contain rounded-lg"
             />
           </div>
           <h2 className="mt-6 text-2xl font-bold text-gray-900">
@@ -292,7 +308,10 @@ function SignInForm() {
         </div>
 
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm">
+          <div
+            role="alert"
+            className="bg-red-50 border border-red-300 text-red-700 px-4 py-3 rounded-lg text-sm font-medium"
+          >
             {error}
           </div>
         )}
@@ -394,7 +413,7 @@ function SignInForm() {
 
         <p className="mt-6 text-center text-sm text-gray-600">
           Don't have an account?{' '}
-          <Link href="/auth/signup" className="font-medium text-teal-600 hover:text-teal-500">
+          <Link href={callbackUrl ? `/auth/signup?callbackUrl=${encodeURIComponent(callbackUrl)}` : '/auth/signup'} className="font-medium text-teal-600 hover:text-teal-500">
             Sign up now
           </Link>
         </p>

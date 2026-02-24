@@ -39,7 +39,6 @@ export default function InputSection({ value, onChange, onSend, onAdd, onImageUp
         onImageUpload?.(file)
       }
     }
-    // 重置input，允许选择同一文件
     e.target.value = ''
     setShowAddMenu(false)
   }
@@ -49,7 +48,6 @@ export default function InputSection({ value, onChange, onSend, onAdd, onImageUp
     if (file) {
       onImageUpload?.(file)
     }
-    // 重置input
     e.target.value = ''
     setShowAddMenu(false)
   }
@@ -59,14 +57,12 @@ export default function InputSection({ value, onChange, onSend, onAdd, onImageUp
     if (file && file.type.startsWith('image/')) {
       onImageToAI?.(file)
     }
-    // 重置input
     e.target.value = ''
     setShowAddMenu(false)
   }
 
-  // 点击外部关闭菜单
   const menuContainerRef = useRef<HTMLDivElement>(null)
-  
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as HTMLElement
@@ -74,26 +70,19 @@ export default function InputSection({ value, onChange, onSend, onAdd, onImageUp
         setShowAddMenu(false)
       }
     }
-
     if (showAddMenu) {
       document.addEventListener('mousedown', handleClickOutside)
-      return () => {
-        document.removeEventListener('mousedown', handleClickOutside)
-      }
+      return () => document.removeEventListener('mousedown', handleClickOutside)
     }
   }, [showAddMenu])
 
   return (
     <div className="relative" ref={menuContainerRef}>
-      {/* 添加菜单 */}
       {showAddMenu && (
         <div className="absolute bottom-full left-0 mb-2 bg-white rounded-lg shadow-lg border border-gray-200 p-2 min-w-[200px] z-50">
           <div className="space-y-1">
             <button
-              onClick={() => {
-                setShowTextInput(true)
-                setShowAddMenu(false)
-              }}
+              onClick={() => { setShowTextInput(true); setShowAddMenu(false) }}
               className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg flex items-center space-x-2"
             >
               <span>✏️</span>
@@ -120,9 +109,7 @@ export default function InputSection({ value, onChange, onSend, onAdd, onImageUp
                 input.accept = 'image/*'
                 input.onchange = (e) => {
                   const file = (e.target as HTMLInputElement).files?.[0]
-                  if (file) {
-                    onImageToAI?.(file)
-                  }
+                  if (file) onImageToAI?.(file)
                 }
                 input.click()
                 setShowAddMenu(false)
@@ -136,7 +123,6 @@ export default function InputSection({ value, onChange, onSend, onAdd, onImageUp
         </div>
       )}
 
-      {/* 文字输入框 */}
       {showTextInput && (
         <div className="mb-2 p-2 bg-gray-50 rounded-lg border border-gray-200">
           <div className="flex items-center space-x-2">
@@ -145,22 +131,19 @@ export default function InputSection({ value, onChange, onSend, onAdd, onImageUp
               value={addValue}
               onChange={(e) => setAddValue(e.target.value)}
               placeholder="Enter content to add..."
-              className="flex-1 px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-magazine-primary"
+              className="flex-1 px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
               onKeyPress={(e) => e.key === 'Enter' && handleAddText()}
               autoFocus
             />
             <button
               onClick={handleAddText}
               disabled={!addValue.trim()}
-              className="px-3 py-1.5 text-sm bg-magazine-primary text-white rounded-lg hover:bg-magazine-secondary disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-3 py-1.5 text-sm bg-primary text-white rounded-lg hover:bg-primary-dark disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Confirm
             </button>
             <button
-              onClick={() => {
-                setShowTextInput(false)
-                setAddValue('')
-              }}
+              onClick={() => { setShowTextInput(false); setAddValue('') }}
               className="px-3 py-1.5 text-sm text-gray-500 hover:text-gray-700"
             >
               Cancel
@@ -169,22 +152,8 @@ export default function InputSection({ value, onChange, onSend, onAdd, onImageUp
         </div>
       )}
 
-      {/* 隐藏的文件输入 */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        onChange={handleFileSelect}
-        className="hidden"
-      />
-      <input
-        ref={cameraInputRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        onChange={handleCameraCapture}
-        className="hidden"
-      />
+      <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileSelect} className="hidden" />
+      <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" onChange={handleCameraCapture} className="hidden" />
 
       <form onSubmit={handleSubmit} className="flex items-center space-x-2">
         <button
@@ -195,21 +164,22 @@ export default function InputSection({ value, onChange, onSend, onAdd, onImageUp
         >
           ➕ Add
         </button>
-      <input
-        type="text"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder="Share your thoughts, emotions, or life..."
-        className="magazine-input flex-1"
-      />
-      <button
-        type="submit"
-        disabled={!value.trim()}
-        className="magazine-button whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        Send
-      </button>
-    </form>
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="和 AI 聊聊这个人"
+          className="input-base flex-1"
+        />
+        <button
+          type="submit"
+          disabled={!value.trim()}
+          className="button-base whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Send
+        </button>
+      </form>
+      <p className="mt-2 text-xs text-gray-500 text-center">您的输入将不会发送给 profile 主人。</p>
     </div>
   )
 }

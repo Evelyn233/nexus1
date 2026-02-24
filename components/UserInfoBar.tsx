@@ -72,7 +72,7 @@ function UserInfoBarContent() {
         <div className="flex items-center space-x-0.5">
           {/* 返回Home按钮 */}
           <button
-            onClick={() => router.push('/home')}
+            onClick={() => router.push('/profile')}
             className="p-1 text-gray-600 hover:text-teal-600 hover:bg-teal-50 rounded transition-colors"
             title="返回主页"
           >
