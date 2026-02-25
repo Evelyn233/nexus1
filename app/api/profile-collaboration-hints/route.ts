@@ -22,7 +22,7 @@ export async function GET() {
       take: 50,
     })
 
-    const targetIds = [...new Set(hints.map((h) => h.targetUserId))]
+    const targetIds = Array.from(new Set(hints.map((h) => h.targetUserId)))
     const users = await prisma.user.findMany({
       where: { OR: [{ id: { in: targetIds } }, { profileSlug: { in: targetIds } }] },
       select: { id: true, name: true, profileSlug: true },

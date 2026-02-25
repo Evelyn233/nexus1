@@ -7,7 +7,7 @@ import { getProfileContext } from '@/lib/profileContext'
 export const dynamic = 'force-dynamic'
 
 /** 获取 profile 主人的 userId：优先 targetUserId，其次当前登录用户，再 AppConfig，env，最后首个用户 */
-export async function getProfileOwnerId(
+async function getProfileOwnerId(
   targetUserId?: string | null,
   sessionUserId?: string | null
 ): Promise<string | null> {

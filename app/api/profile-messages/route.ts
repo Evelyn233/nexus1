@@ -5,8 +5,15 @@ import prisma, { withRetry } from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
 
+type ProfileMessageRow = {
+  id: string
+  text: string
+  createdAt: Date
+  fromUser: { id: string; name: string | null; image: string | null } | null
+}
+
 // Prisma Client 需包含 profileMessage（运行 npx prisma generate 后才有）
-const profileMessage = 'profileMessage' in prisma ? (prisma as { profileMessage: { findMany: (args: object) => Promise<unknown[]>; create: (args: object) => Promise<{ id: string; text: string; createdAt: Date }> } }).profileMessage : undefined
+const profileMessage = 'profileMessage' in prisma ? (prisma as unknown as { profileMessage: any }).profileMessage : undefined
 
 /** GET: 获取当前用户收到的 profile 消息（收件箱） */
 export async function GET() {
@@ -23,9 +30,10 @@ export async function GET() {
     if (!session?.user?.email) {
       return NextResponse.json({ error: '未登录' }, { status: 401 })
     }
+    const email = session.user.email
 
     const user = await withRetry(() =>
-      prisma.user.findUnique({ where: { email: session.user.email } })
+      prisma.user.findUnique({ where: { email } })
     )
     if (!user) {
       return NextResponse.json({ error: '用户不存在' }, { status: 404 })
@@ -40,11 +48,11 @@ export async function GET() {
       },
       orderBy: { createdAt: 'desc' },
       take: 100
-    }))
+    })) as ProfileMessageRow[]
 
     return NextResponse.json({
       success: true,
-      messages: messages.map((m) => ({
+      messages: messages.map((m: ProfileMessageRow) => ({
         id: m.id,
         text: m.text,
         createdAt: m.createdAt,
@@ -78,8 +86,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'toUserId and text are required' }, { status: 400 })
     }
 
-    const fromUserId = session?.user?.email
-      ? (await withRetry(() => prisma.user.findUnique({ where: { email: session.user.email } })))?.id ?? null
+    const email = session?.user?.email ?? undefined
+    const fromUserId = email
+      ? (await withRetry(() => prisma.user.findUnique({ where: { email } })))?.id ?? null
       : null
 
     const msg = await withRetry(() => profileMessage.create({
@@ -88,7 +97,7 @@ export async function POST(request: NextRequest) {
         ...(fromUserId != null ? { fromUserId } : {}),
         text: String(text).trim()
       }
-    }))
+    })) as { id: string; text: string; createdAt: Date }
 
     return NextResponse.json({ success: true, message: { id: msg.id, text: msg.text, createdAt: msg.createdAt } })
   } catch (e) {

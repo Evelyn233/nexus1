@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic'
 
 const RATINGS: QuestionRating[] = ['milder', 'sharper', 'keep', 'more_personal', 'other']
 
-function getUserId(session: { user?: { id?: string; email?: string } }): Promise<string | null> {
+function getUserId(session: { user?: { id?: string | null; email?: string | null } }): Promise<string | null> {
   const id = (session?.user as any)?.id
   const email = session?.user?.email
   if (id) return prisma.user.findUnique({ where: { id }, select: { id: true } }).then(u => u?.id ?? null)
@@ -179,8 +179,8 @@ async function appendDailyQAToProfile(
     showInPreview: false,
     saveToDb: false,
   })
-  const mergedInsights = [...new Set([...existingInsights, ...insights])]
-  const mergedTags = tags.length ? [...new Set([...existingTags, ...tags])] : existingTags
+  const mergedInsights = Array.from(new Set([...existingInsights, ...insights]))
+  const mergedTags = tags.length ? Array.from(new Set([...existingTags, ...tags])) : existingTags
 
   pd.qaList = qaList
   pd.insights = mergedInsights

@@ -60,8 +60,9 @@ async function getProfileContextInternal(ownerId: string | null, full: boolean):
     parts.push(`【目标】${(user as { selfGoals: string }).selfGoals.trim()}`)
   }
   if (!user.profileData) {
-    if (full && user.metadata) {
-      const meta = user.metadata as { coreTraits?: string; communicationStyle?: string } | null
+    const maybeMetadata = (user as { metadata?: { coreTraits?: string; communicationStyle?: string } | null }).metadata
+    if (full && maybeMetadata) {
+      const meta = maybeMetadata
       if (meta?.coreTraits) parts.push(`特质：${meta.coreTraits}`)
     }
     return parts.length ? parts.join('\n') : '暂无更多公开信息。'
@@ -77,7 +78,9 @@ async function getProfileContextInternal(ownerId: string | null, full: boolean):
       for (const p of pd.projects as { text?: string; visibility?: string; peopleNeeded?: string[] }[]) {
         const t = (p.text ?? '').trim()
         if (t) collabWhatArr.push(t)
-        if (Array.isArray(p.peopleNeeded)) collabWhoArr.push(...p.peopleNeeded.filter((s): s is string => typeof s === 'string' && s.trim()))
+        if (Array.isArray(p.peopleNeeded)) {
+          collabWhoArr.push(...p.peopleNeeded.filter((s): s is string => typeof s === 'string' && s.trim().length > 0))
+        }
       }
     } else {
       const oldWhat = Array.isArray(pd?.collaborationPossibility)
@@ -133,8 +136,9 @@ async function getProfileContextInternal(ownerId: string | null, full: boolean):
         .map((l: { title?: string; url: string }) => (l.title ? `${l.title}: ${l.url}` : l.url))
       if (links.length > 0) parts.push(links.join('；'))
     }
-    if (full && user.metadata) {
-      const meta = user.metadata as { coreTraits?: string; communicationStyle?: string } | null
+    const maybeMetadata = (user as { metadata?: { coreTraits?: string; communicationStyle?: string } | null }).metadata
+    if (full && maybeMetadata) {
+      const meta = maybeMetadata
       if (meta?.coreTraits) parts.push(`【元数据】${meta.coreTraits}`)
     }
   } catch (_) {}

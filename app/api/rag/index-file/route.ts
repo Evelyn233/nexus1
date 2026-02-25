@@ -6,13 +6,25 @@ import { insertRagChunk } from '@/lib/ragNeon'
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
 
-/** 从 PDF 提取文本（pdf-parse v2: PDFParse + getText） */
+/** 从 PDF 提取文本（直接使用 pdfjs-dist，避免 pdf-parse 版本冲突） */
 async function extractPdfText(buffer: Buffer): Promise<string> {
   try {
-    const { PDFParse } = await import('pdf-parse')
-    const parser = new PDFParse({ data: new Uint8Array(buffer) })
-    const result = await parser.getText()
-    return (result?.text ?? '')?.trim() || ''
+    const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs')
+    const loadingTask = pdfjs.getDocument(new Uint8Array(buffer))
+    const pdf = await loadingTask.promise
+    const pageTexts: string[] = []
+
+    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum += 1) {
+      const page = await pdf.getPage(pageNum)
+      const textContent = await page.getTextContent()
+      const line = (textContent.items as Array<{ str?: string }>)
+        .map((item) => item.str || '')
+        .join(' ')
+        .trim()
+      if (line) pageTexts.push(line)
+    }
+
+    return pageTexts.join('\n').trim()
   } catch {
     return ''
   }

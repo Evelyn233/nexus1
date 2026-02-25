@@ -18,12 +18,13 @@ export async function initializeUserSession(session: Session | null) {
     console.warn('⚠️ [AUTH-BRIDGE] 没有session或用户信息')
     return null
   }
+  const email = session.user.email
 
   try {
     // 从Prisma获取完整用户信息（包括元数据）；P2024 连接池超时时重试一次
     const dbUser = await withRetry(() =>
       prisma.user.findUnique({
-        where: { email: session.user.email },
+        where: { email },
         include: { metadata: true }
       }),
       1
@@ -34,7 +35,7 @@ export async function initializeUserSession(session: Session | null) {
       return null
     }
 
-    const userName = dbUser.name || session.user.name || session.user.email.split('@')[0]
+    const userName = dbUser.name || session.user.name || email.split('@')[0]
     
     // 检查birthDate是否为有效的JSON格式
     let hasValidBirthDate = false
@@ -86,10 +87,11 @@ export async function checkUserDetailedInfo(session: Session | null): Promise<bo
   if (!session?.user?.email) {
     return false
   }
+  const email = session.user.email
 
   try {
     const dbUser = await prisma.user.findUnique({
-      where: { email: session.user.email }
+      where: { email }
     })
 
     return !!(dbUser && dbUser.gender && dbUser.birthDate)

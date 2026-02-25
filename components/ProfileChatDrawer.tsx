@@ -69,11 +69,11 @@ export default function ProfileChatDrawer({
       
       // 累积 insights（去重）
       const existingInsights = Array.isArray(existing.insights) ? existing.insights.filter((x): x is string => typeof x === 'string') : []
-      const mergedInsights = [...new Set([...existingInsights, ...patch.insights])]
+      const mergedInsights = Array.from(new Set([...existingInsights, ...patch.insights]))
       
       // 累积 tags（去重）
       const existingTags = Array.isArray(existing.tags) ? existing.tags.filter((x): x is string => typeof x === 'string') : []
-      const mergedTags = [...new Set([...existingTags, ...patch.tags])]
+      const mergedTags = Array.from(new Set([...existingTags, ...patch.tags]))
       // 不把新 tag 直接放到卡片：保留原有 selectedTags，没有则 []，不自动用新 tag 填
       const selectedTags = Array.isArray(existing.selectedTags) ? existing.selectedTags : []
       
@@ -210,8 +210,8 @@ Use first-person for profile fields. Be concise. Return ONLY a valid JSON object
       const existingTags = Array.isArray(existingData.tags) ? existingData.tags.filter((x): x is string => typeof x === 'string') : []
       const existingSelectedTags = Array.isArray(existingData.selectedTags) ? existingData.selectedTags.filter((x): x is string => typeof x === 'string') : []
       
-      const mergedInsights = [...new Set([...existingInsights, ...insights])]
-      const mergedTags = [...new Set([...existingTags, ...newTags])]
+      const mergedInsights = Array.from(new Set([...existingInsights, ...insights]))
+      const mergedTags = Array.from(new Set([...existingTags, ...newTags]))
       // 保留用户已选的 selectedTags，新增的 tags 如果还没选过，可以追加（但保持用户已有选择）
       const mergedSelectedTags = existingSelectedTags.length > 0 
         ? existingSelectedTags 
@@ -305,7 +305,7 @@ Use first-person for profile fields. Be concise. Return ONLY a valid JSON object
           setQuestions([q])
           questionsRef.current = [q]
           setMessages(prev => {
-            const next = [...prev, { id: `q-${Date.now()}`, type: 'assistant', content: q }]
+            const next: ChatMsg[] = [...prev, { id: `q-${Date.now()}`, type: 'assistant', content: q }]
             return next
           })
           generateInsightsOnly(initialPrompt, []).then(({ insights, tags }) => {

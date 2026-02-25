@@ -15,8 +15,8 @@ type ProjectItem = {
 
 function normalizeInteractions(raw: unknown): ProjectInteractions {
   const obj = raw && typeof raw === 'object' ? raw as Record<string, unknown> : {}
-  const likes = Array.isArray(obj.likes) ? obj.likes.filter((x): x is string => typeof x === 'string' && x.trim()) : []
-  const favorites = Array.isArray(obj.favorites) ? obj.favorites.filter((x): x is string => typeof x === 'string' && x.trim()) : []
+  const likes = Array.isArray(obj.likes) ? obj.likes.filter((x): x is string => typeof x === 'string' && x.trim().length > 0) : []
+  const favorites = Array.isArray(obj.favorites) ? obj.favorites.filter((x): x is string => typeof x === 'string' && x.trim().length > 0) : []
   const comments = Array.isArray(obj.comments)
     ? obj.comments
         .map((c) => {
@@ -28,9 +28,16 @@ function normalizeInteractions(raw: unknown): ProjectInteractions {
           const createdAt = typeof it.createdAt === 'number' ? it.createdAt : Date.now()
           const userName = typeof it.userName === 'string' ? it.userName : undefined
           if (!id || !userId || !text) return null
-          return { id, userId, userName, text, createdAt }
+          const normalized: InteractionComment = {
+            id,
+            userId,
+            text,
+            createdAt,
+            ...(userName ? { userName } : {}),
+          }
+          return normalized
         })
-        .filter((v): v is InteractionComment => !!v)
+        .filter((v): v is InteractionComment => v !== null)
     : []
   comments.sort((a, b) => a.createdAt - b.createdAt)
   return { likes, favorites, comments }

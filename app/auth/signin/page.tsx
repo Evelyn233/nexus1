@@ -260,7 +260,7 @@ function SignInForm() {
         }, 5000)
       } else {
         console.error('❌ [SIGNIN] 登录响应异常:', result)
-        setError(getSignInErrorMessage(result?.error) || '登录失败，请重试')
+        setError(getSignInErrorMessage(result?.error ?? undefined) || '登录失败，请重试')
         setIsLoading(false)
       }
     } catch (error) {

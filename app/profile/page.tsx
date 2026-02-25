@@ -617,7 +617,7 @@ export default function ProfilePage() {
                     : undefined,
                   createdAt: typeof x.createdAt === 'number' ? x.createdAt : Date.now(),
                 }))
-                .filter((p) => p.text)
+                .filter((p: { text: string }) => p.text)
             )
           } else {
             // Migrate from old collaborationPossibility + peopleToCollaborateWith
@@ -631,14 +631,28 @@ export default function ProfilePage() {
                 }
               })
             } else if (pd.collaborationPossibility && typeof pd.collaborationPossibility === 'string') {
-              pd.collaborationPossibility.split(/\n/).map((s) => s.trim()).filter(Boolean).forEach((s) => what.push({ text: s, visibility: 'public', showOnPlaza: true, peopleNeeded: [], createdAt: Date.now() }))
+              pd.collaborationPossibility
+                .split(/\n/)
+                .map((s: string) => s.trim())
+                .filter(Boolean)
+                .forEach((s: string) => what.push({ text: s, visibility: 'public', showOnPlaza: true, peopleNeeded: [], createdAt: Date.now() }))
             }
             const whoArr = Array.isArray(pd.peopleToCollaborateWith)
               ? (pd.peopleToCollaborateWith as unknown[]).map((x) => (typeof x === 'object' && x && 'text' in (x as object) ? (x as { text: string }).text : String(x))).filter(Boolean)
-              : (pd.peopleToCollaborateWith && typeof pd.peopleToCollaborateWith === 'string') ? pd.peopleToCollaborateWith.split(/\n/).map((s) => s.trim()).filter(Boolean) : []
+              : (pd.peopleToCollaborateWith && typeof pd.peopleToCollaborateWith === 'string')
+                ? pd.peopleToCollaborateWith.split(/\n/).map((s: string) => s.trim()).filter(Boolean)
+                : []
             if (whoArr.length > 0 && what.length > 0) {
               const firstPublic = what.findIndex((p) => p.visibility === 'public')
-              if (firstPublic >= 0) what[firstPublic] = { ...what[firstPublic], peopleNeeded: whoArr.map((text) => ({ text: String(text).trim() })).filter((x) => x.text), createdAt: what[firstPublic].createdAt ?? Date.now() }
+              if (firstPublic >= 0) {
+                what[firstPublic] = {
+                  ...what[firstPublic],
+                  peopleNeeded: whoArr
+                    .map((text: string) => ({ text: String(text).trim() }))
+                    .filter((x: { text: string }) => x.text),
+                  createdAt: what[firstPublic].createdAt ?? Date.now(),
+                }
+              }
             }
             if (what.length > 0) setProjectsList(what)
           }
@@ -988,8 +1002,8 @@ Return ONLY a valid JSON object with keys "tags" and "insights". No other text.`
       const newInsights = Array.isArray(rawIns)
         ? rawIns.filter((x): x is string => typeof x === 'string').map(s => s.trim()).filter(Boolean)
         : []
-      const mergedTags = [...new Set([...tags, ...newTags])]
-      const mergedInsights = [...new Set([...insights, ...newInsights])]
+      const mergedTags = Array.from(new Set([...tags, ...newTags]))
+      const mergedInsights = Array.from(new Set([...insights, ...newInsights]))
       setTags(mergedTags)
       setInsights(mergedInsights)
       const msg = `生成了 ${newTags.length} 个 tag、${newInsights.length} 个 insight`
@@ -3582,7 +3596,7 @@ Return ONLY a valid JSON object with keys "tags" and "insights". No other text.`
                         <li key={key}>
                           <button
                             type="button"
-                            onClick={() => openSocialEdit(key, addModalTarget === 'links')}
+                            onClick={() => openSocialEdit(key, false)}
                             className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-b-0"
                           >
                             {iconImage ? (

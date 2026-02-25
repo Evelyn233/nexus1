@@ -431,7 +431,9 @@ export default function PublicProfilePage() {
                         <div>
                           <p className="text-[10px] text-gray-500 mb-0.5">What I want to do</p>
                           <div className="flex flex-wrap gap-1">
-                            {(Array.isArray(profile.collaborationPossibility) ? profile.collaborationPossibility : [profile.collaborationPossibility]).map((item: string, i: number) => (
+                            {(Array.isArray(profile.collaborationPossibility) ? profile.collaborationPossibility : [profile.collaborationPossibility])
+                              .filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
+                              .map((item: string, i: number) => (
                               <span key={i} className="inline-flex px-2 py-0.5 rounded-lg text-[11px] font-medium bg-teal-100 text-teal-800 border border-teal-200">{item}</span>
                             ))}
                           </div>
@@ -441,7 +443,9 @@ export default function PublicProfilePage() {
                         <div>
                           <p className="text-[10px] text-gray-500 mb-0.5">I&apos;m looking for</p>
                           <div className="flex flex-wrap gap-1">
-                            {(Array.isArray(profile.peopleToCollaborateWith) ? profile.peopleToCollaborateWith : [profile.peopleToCollaborateWith]).map((item: string, i: number) => (
+                            {(Array.isArray(profile.peopleToCollaborateWith) ? profile.peopleToCollaborateWith : [profile.peopleToCollaborateWith])
+                              .filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
+                              .map((item: string, i: number) => (
                               <span key={i} className="inline-flex px-2 py-0.5 rounded-lg text-[11px] font-medium bg-amber-100 text-amber-800 border border-amber-200">{item}</span>
                             ))}
                           </div>

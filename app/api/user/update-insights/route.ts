@@ -6,7 +6,7 @@ import { generateInsightsFromQA } from '@/lib/insightsFromQA'
 
 export const dynamic = 'force-dynamic'
 
-function getUserId(session: { user?: { id?: string; email?: string } }): Promise<string | null> {
+function getUserId(session: { user?: { id?: string | null; email?: string | null } }): Promise<string | null> {
   const id = (session?.user as { id?: string })?.id
   const email = session?.user?.email
   if (id) return prisma.user.findUnique({ where: { id }, select: { id: true } }).then(u => u?.id ?? null)
@@ -55,8 +55,8 @@ export async function POST(request: Request) {
     }
     const existingInsights = Array.isArray(pd.insights) ? (pd.insights as string[]) : []
     const existingTags = Array.isArray(pd.tags) ? (pd.tags as string[]) : []
-    const mergedInsights = [...new Set([...existingInsights, ...extracted.insights])]
-    const mergedTags = extracted.tags.length ? [...new Set([...existingTags, ...extracted.tags])] : existingTags
+    const mergedInsights = Array.from(new Set([...existingInsights, ...extracted.insights]))
+    const mergedTags = extracted.tags.length ? Array.from(new Set([...existingTags, ...extracted.tags])) : existingTags
 
     pd.insights = mergedInsights
     if (mergedTags.length) pd.tags = mergedTags

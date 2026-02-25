@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic'
 
 export type FavoriteProfile = {
   userId: string
-  name?: string
+  name?: string | null
   avatar?: string | null
   profileSlug?: string | null
   oneSentenceDesc?: string | null
@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
     const { action, userId, name, avatar, profileSlug, oneSentenceDesc } = body as {
       action: 'add' | 'remove'
       userId: string
-      name?: string
+      name?: string | null
       avatar?: string | null
       profileSlug?: string | null
       oneSentenceDesc?: string | null

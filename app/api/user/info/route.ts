@@ -21,10 +21,11 @@ export async function GET() {
         { status: 401 }
       )
     }
+    const email = session.user.email
 
     // 🔥 直接从数据库获取用户（包含ID）
     const user = await withRetry(() => prisma.user.findUnique({
-      where: { email: session.user.email },
+      where: { email },
       include: { metadata: true }
     }))
 
