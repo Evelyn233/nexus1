@@ -14,8 +14,9 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json().catch(() => ({}))
     const text = typeof body?.text === 'string' ? body.text.trim() : ''
-    if (!text) {
-      return NextResponse.json({ error: '内容不能为空' }, { status: 400 })
+    const image = typeof body?.image === 'string' ? body.image.trim() : ''
+    if (!text && !image) {
+      return NextResponse.json({ error: 'Content or image is required' }, { status: 400 })
     }
 
     const user = await prisma.user.findUnique({
@@ -28,6 +29,7 @@ export async function POST(request: NextRequest) {
     const projects = Array.isArray(pd.projects) ? [...(pd.projects as Record<string, unknown>[])] : []
     projects.push({
       text,
+      image: image || undefined,
       visibility: 'public',
       showOnPlaza: true,
       peopleNeeded: [],

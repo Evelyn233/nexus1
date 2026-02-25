@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { User, Sparkles, LayoutGrid, HeartHandshake, List, MessageCircle, Heart, Bookmark } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
+import { resolveImageUrl } from '@/lib/resolveImageUrl'
 
 type SquareItem = {
   userId: string
@@ -13,6 +14,7 @@ type SquareItem = {
   oneSentenceDesc?: string | null
   project: {
     text: string
+    image?: string
     peopleNeeded: { text: string; detail?: string }[]
     createdAt: number
     interaction: {
@@ -48,6 +50,8 @@ export default function SquarePage() {
   const [needDetail, setNeedDetail] = useState<{ title: string; detail?: string; userName?: string | null; projectText?: string } | null>(null)
   const [showPublishModal, setShowPublishModal] = useState(false)
   const [publishText, setPublishText] = useState('')
+  const [publishImageData, setPublishImageData] = useState<string | null>(null)
+  const [publishImageName, setPublishImageName] = useState<string>('')
   const [publishing, setPublishing] = useState(false)
 
   const updateItemInteraction = (targetUserId: string, createdAt: number, interaction: SquareItem['project']['interaction']) => {
@@ -126,14 +130,32 @@ export default function SquarePage() {
 
   const handleSubmitPublish = async () => {
     const text = publishText.trim()
-    if (!text || publishing) return
+    if ((!text && !publishImageData) || publishing) return
     setPublishing(true)
     try {
+      let image: string | undefined
+      if (publishImageData) {
+        const uploadRes = await fetch('/api/image/upload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            imageData: publishImageData,
+            filename: publishImageName || `square-${Date.now()}.jpg`,
+          }),
+        })
+        const uploadData = await uploadRes.json().catch(() => ({}))
+        if (!uploadRes.ok || !uploadData?.url) {
+          alert(uploadData?.error || 'Image upload failed')
+          return
+        }
+        image = uploadData.url as string
+      }
+
       const res = await fetch('/api/square/publish', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ text }),
+        body: JSON.stringify({ text, image }),
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
@@ -142,6 +164,8 @@ export default function SquarePage() {
       }
       setShowPublishModal(false)
       setPublishText('')
+      setPublishImageData(null)
+      setPublishImageName('')
       await loadFeed()
     } finally {
       setPublishing(false)
@@ -236,7 +260,16 @@ export default function SquarePage() {
                   </span>
                 </div>
                 <div>
-                  <p className="text-[11px] font-medium text-teal-800 mb-1">{item.project.text}</p>
+                  {item.project.text ? (
+                    <p className="text-[11px] font-medium text-teal-800 mb-1">{item.project.text}</p>
+                  ) : null}
+                  {item.project.image ? (
+                    <img
+                      src={resolveImageUrl(item.project.image)}
+                      alt="Published"
+                      className="mt-1 w-full max-h-80 object-cover rounded-lg border border-gray-200"
+                    />
+                  ) : null}
                   {(item.project.peopleNeeded ?? []).length > 0 && (
                     <div>
                       <p className="text-[10px] text-gray-500 mb-0.5">I&apos;m looking for</p>
@@ -363,6 +396,46 @@ export default function SquarePage() {
               rows={4}
               className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-teal-400/40"
             />
+            <div className="mt-3">
+              <label className="inline-flex items-center px-3 py-2 text-sm rounded-lg border border-gray-300 bg-white hover:bg-gray-50 cursor-pointer">
+                Add image
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0]
+                    if (!file) return
+                    const reader = new FileReader()
+                    reader.onload = () => {
+                      const result = typeof reader.result === 'string' ? reader.result : ''
+                      setPublishImageData(result || null)
+                      setPublishImageName(file.name)
+                    }
+                    reader.readAsDataURL(file)
+                  }}
+                />
+              </label>
+              {publishImageData ? (
+                <div className="mt-2">
+                  <img
+                    src={publishImageData}
+                    alt="Preview"
+                    className="w-full max-h-56 object-cover rounded-lg border border-gray-200"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPublishImageData(null)
+                      setPublishImageName('')
+                    }}
+                    className="mt-2 text-xs text-red-600 hover:underline"
+                  >
+                    Remove image
+                  </button>
+                </div>
+              ) : null}
+            </div>
             <div className="mt-3 flex justify-end gap-2">
               <button type="button" onClick={() => setShowPublishModal(false)} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">
                 Cancel
@@ -370,7 +443,7 @@ export default function SquarePage() {
               <button
                 type="button"
                 onClick={handleSubmitPublish}
-                disabled={!publishText.trim() || publishing}
+                disabled={(!publishText.trim() && !publishImageData) || publishing}
                 className="px-4 py-2 text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 rounded-lg disabled:opacity-50"
               >
                 {publishing ? 'Publishing...' : 'Publish'}

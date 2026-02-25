@@ -8,7 +8,14 @@ export const dynamic = 'force-dynamic'
 type PeopleNeededItem = { text: string; detail?: string }
 type InteractionComment = { id: string; userId: string; userName?: string; text: string; createdAt: number }
 type ProjectInteractions = { likes: string[]; favorites: string[]; comments: InteractionComment[] }
-type Project = { text?: string; visibility?: string; showOnPlaza?: boolean; peopleNeeded?: Array<string | { text?: string; detail?: string }>; createdAt?: number }
+type Project = {
+  text?: string
+  image?: string
+  visibility?: string
+  showOnPlaza?: boolean
+  peopleNeeded?: Array<string | { text?: string; detail?: string }>
+  createdAt?: number
+}
 
 type FeedItem = {
   userId: string
@@ -17,6 +24,7 @@ type FeedItem = {
   oneSentenceDesc: string | null
   project: {
     text: string
+    image?: string
     peopleNeeded: PeopleNeededItem[]
     createdAt: number
     interaction: {
@@ -96,13 +104,15 @@ export async function GET() {
       if (Array.isArray(pd.projects)) {
         for (const p of pd.projects as Project[]) {
           const text = (p.text ?? '').trim()
-          if (text && p.showOnPlaza === true) {
+          const image = typeof p.image === 'string' && p.image.trim() ? p.image.trim() : undefined
+          if ((text || image) && p.showOnPlaza === true) {
             const createdAt = typeof p.createdAt === 'number' ? p.createdAt : Date.now()
             const interactions = normalizeInteractions((p as Record<string, unknown>).interactions)
             flatItems.push({
               ...userInfo,
               project: {
                 text,
+                image,
                 peopleNeeded: Array.isArray(p.peopleNeeded)
                   ? p.peopleNeeded
                       .map((item) => {
