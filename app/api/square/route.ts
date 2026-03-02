@@ -149,8 +149,7 @@ export async function GET() {
               rawStageEnteredAt && typeof rawStageEnteredAt === 'object'
                 ? (Object.fromEntries(
                     Object.entries(rawStageEnteredAt as Record<string, unknown>)
-                      .filter(([, v]): v is number => typeof v === 'number')
-                      .map(([k, v]) => [k, v])
+                      .filter((entry): entry is [string, number] => typeof entry[1] === 'number')
                   ) as Record<string, number>)
                 : undefined
             const hasStageEnteredAt = stageEnteredAt && Object.keys(stageEnteredAt).length > 0
