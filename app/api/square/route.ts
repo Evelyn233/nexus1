@@ -147,11 +147,11 @@ export async function GET() {
             const rawStageEnteredAt = (p as Record<string, unknown>).stageEnteredAt
             const stageEnteredAt: Record<string, number> | undefined =
               rawStageEnteredAt && typeof rawStageEnteredAt === 'object'
-                ? Object.fromEntries(
+                ? (Object.fromEntries(
                     Object.entries(rawStageEnteredAt as Record<string, unknown>)
                       .filter(([, v]): v is number => typeof v === 'number')
                       .map(([k, v]) => [k, v])
-                  )
+                  ) as Record<string, number>)
                 : undefined
             const hasStageEnteredAt = stageEnteredAt && Object.keys(stageEnteredAt).length > 0
 
