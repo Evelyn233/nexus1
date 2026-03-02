@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
     const projectTitle = typeof body?.projectTitle === 'string' ? body.projectTitle.trim() : ''
     const currentStage = typeof body?.currentStage === 'string' ? body.currentStage.trim() : ''
     const stageOrder = Array.isArray(body?.stageOrder)
-      ? (body.stageOrder as string[]).filter((s): s is string => typeof s === 'string' && s.trim()).map((s) => s.trim())
+      ? (body.stageOrder as string[]).filter((s): s is string => typeof s === 'string' && s.trim().length > 0).map((s) => s.trim())
       : STAGES
 
     const allowedStages = stageOrder.length > 0 ? stageOrder : STAGES
