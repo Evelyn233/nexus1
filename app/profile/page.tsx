@@ -741,7 +741,7 @@ export default function ProfilePage() {
                           }
                           return null
                         })
-                        .filter((v): v is { text: string; detail?: string } => !!v)
+                        .filter((v): v is PeopleNeededItem => v !== null)
                     : undefined,
                   detail: typeof x.detail === 'string' ? x.detail.trim() : undefined,
                   references: Array.isArray(x.references)
