@@ -33,6 +33,7 @@ export async function POST(request: NextRequest) {
       visibility: 'public',
       showOnPlaza: true,
       peopleNeeded: [],
+      stage: 'Idea',
       createdAt: Date.now(),
     })
 

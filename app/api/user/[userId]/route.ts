@@ -156,22 +156,46 @@ export async function GET(
           bio: (pd?.bio && typeof pd.bio === 'string') ? pd.bio.trim() || null : null,
           myLink: (pd?.myLink && typeof pd.myLink === 'string') ? pd.myLink.trim() || null : null,
           projects: (() => {
+            const ALLOWED_STAGES = ['Idea', 'Planning']
+            const allowedSet = new Set(ALLOWED_STAGES)
             if (Array.isArray(pd?.projects)) {
-              return (pd.projects as { text?: string; showOnPlaza?: boolean; peopleNeeded?: Array<string | { text?: string }> }[])
-                .filter((p) => (p.text ?? '').trim() && p.showOnPlaza === true)
-                .map((p) => ({
-                  text: (p.text ?? '').trim(),
-                  peopleNeeded: Array.isArray(p.peopleNeeded)
-                    ? p.peopleNeeded
-                        .map((x) => typeof x === 'string' ? x.trim() : String(x?.text ?? '').trim())
-                        .filter(Boolean)
+              return (pd.projects as { text?: string; visibility?: string; showOnPlaza?: boolean; peopleNeeded?: Array<string | { text?: string }>; createdAt?: number; stage?: string; stageOrder?: string[]; stageEnteredAt?: Record<string, number>; creators?: string[] }[])
+                .filter((p) => (p.text ?? '').trim() && p.visibility !== 'hidden' && p.showOnPlaza === true)
+                .map((p) => {
+                  const rawOrder = Array.isArray(p.stageOrder) && p.stageOrder.length > 0
+                    ? p.stageOrder.filter((s): s is string => typeof s === 'string' && s.trim()).map((s) => s.trim())
+                    : ALLOWED_STAGES
+                  const stageOrder = rawOrder.filter((s) => allowedSet.has(s)).length > 0
+                    ? rawOrder.filter((s) => allowedSet.has(s))
+                    : ALLOWED_STAGES
+                  const rawStage = typeof p.stage === 'string' && p.stage.trim() ? p.stage.trim() : undefined
+                  const stage = rawStage && allowedSet.has(rawStage) ? rawStage : undefined
+                  const rawEntered = p.stageEnteredAt && typeof p.stageEnteredAt === 'object'
+                    ? Object.fromEntries(Object.entries(p.stageEnteredAt).filter(([, v]) => typeof v === 'number').map(([k, v]) => [k, v as number]))
+                    : {}
+                  const stageEnteredAt = Object.fromEntries(Object.entries(rawEntered).filter(([k]) => allowedSet.has(k.trim())))
+                  const creators = Array.isArray(p.creators)
+                    ? p.creators.filter((c): c is string => typeof c === 'string' && c.trim().length > 0).map((c) => c.trim())
                     : []
-                }))
+                  return {
+                    text: (p.text ?? '').trim(),
+                    createdAt: typeof p.createdAt === 'number' ? p.createdAt : Date.now(),
+                    peopleNeeded: Array.isArray(p.peopleNeeded)
+                      ? p.peopleNeeded
+                          .map((x) => typeof x === 'string' ? x.trim() : String(x?.text ?? '').trim())
+                          .filter(Boolean)
+                      : [],
+                    stage,
+                    stageOrder,
+                    stageEnteredAt,
+                    creators,
+                  }
+                })
             }
             return null
           })(),
           collaborationPossibility: (() => {
-            const projs = Array.isArray(pd?.projects) ? (pd.projects as { text?: string; showOnPlaza?: boolean }[]).filter((p) => (p.text ?? '').trim() && p.showOnPlaza === true).map((p) => (p.text ?? '').trim()) : null
+            const projs = Array.isArray(pd?.projects) ? (pd.projects as { text?: string; visibility?: string; showOnPlaza?: boolean }[]).filter((p) => (p.text ?? '').trim() && p.visibility !== 'hidden' && p.showOnPlaza === true).map((p) => (p.text ?? '').trim()) : null
             if (projs && projs.length > 0) return projs
             if (!Array.isArray(pd?.collaborationPossibility)) return (pd?.collaborationPossibility && typeof pd.collaborationPossibility === 'string') ? pd.collaborationPossibility.trim() || null : null
             return (pd.collaborationPossibility as unknown[])
@@ -181,8 +205,8 @@ export async function GET(
           })(),
           peopleToCollaborateWith: (() => {
             const projs = Array.isArray(pd?.projects)
-              ? (pd.projects as { showOnPlaza?: boolean; peopleNeeded?: Array<string | { text?: string }> }[])
-                  .filter((p) => p.showOnPlaza === true)
+              ? (pd.projects as { visibility?: string; showOnPlaza?: boolean; peopleNeeded?: Array<string | { text?: string }> }[])
+                  .filter((p) => p.visibility !== 'hidden' && p.showOnPlaza === true)
                   .flatMap((p) => (p.peopleNeeded ?? []).map((x) => typeof x === 'string' ? x.trim() : String(x?.text ?? '').trim()).filter(Boolean))
               : null
             if (projs && projs.length > 0) return projs

@@ -27,7 +27,7 @@ export async function initializeUserSession(session: Session | null) {
         where: { email },
         include: { metadata: true }
       }),
-      1
+      3
     )
 
     if (!dbUser) {

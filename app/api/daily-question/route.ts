@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import prisma from '@/lib/prisma'
+import prisma, { withRetry } from '@/lib/prisma'
 import { getQuestionForDate, getTodayStart, type QuestionRating, type QuestionDimension } from '@/lib/dailyQuestion'
 import { generateInsightsFromQA } from '@/lib/insightsFromQA'
 
@@ -12,17 +12,17 @@ const RATINGS: QuestionRating[] = ['milder', 'sharper', 'keep', 'more_personal',
 function getUserId(session: { user?: { id?: string | null; email?: string | null } }): Promise<string | null> {
   const id = (session?.user as any)?.id
   const email = session?.user?.email
-  if (id) return prisma.user.findUnique({ where: { id }, select: { id: true } }).then(u => u?.id ?? null)
-  if (email) return prisma.user.findFirst({ where: { email }, select: { id: true } }).then(u => u?.id ?? null)
+  if (id) return withRetry(() => prisma.user.findUnique({ where: { id }, select: { id: true } })).then(u => u?.id ?? null)
+  if (email) return withRetry(() => prisma.user.findFirst({ where: { email }, select: { id: true } })).then(u => u?.id ?? null)
   return Promise.resolve(null)
 }
 
 /** 获取某用户的 profile 摘要（用于与问题方向结合生成下一题） */
 async function getProfileSummaryForUser(userId: string): Promise<string> {
-  const user = await prisma.user.findUnique({
+  const user = await withRetry(() => prisma.user.findUnique({
     where: { id: userId },
     include: { metadata: true },
-  })
+  }))
   if (!user) return '暂无公开档案。'
   const parts: string[] = []
   if (user.name) parts.push(`姓名：${user.name}`)
@@ -71,16 +71,16 @@ async function getProfileSummaryForUser(userId: string): Promise<string> {
 /** 获取用户最新动态：最近几轮每日一问的 Q&A + profileData 里的洞察/标签，用于出题时延续和追问 */
 async function getLatestDynamicsForUser(userId: string): Promise<string> {
   const [recentResponses, user] = await Promise.all([
-    prisma.userDailyQuestionResponse.findMany({
+    withRetry(() => prisma.userDailyQuestionResponse.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
       take: 5,
       select: { questionText: true, answer: true, createdAt: true },
-    }),
-    prisma.user.findUnique({
+    })),
+    withRetry(() => prisma.user.findUnique({
       where: { id: userId },
       select: { profileData: true },
-    }),
+    })),
   ])
   const parts: string[] = []
   if (recentResponses.length > 0) {
@@ -154,10 +154,10 @@ async function appendDailyQAToProfile(
   insights: string[],
   tags: string[]
 ): Promise<void> {
-  const user = await prisma.user.findUnique({
+  const user = await withRetry(() => prisma.user.findUnique({
     where: { id: userId },
     select: { profileData: true },
-  })
+  }))
   if (!user) return
   let pd: Record<string, unknown> = {}
   if (user.profileData) {

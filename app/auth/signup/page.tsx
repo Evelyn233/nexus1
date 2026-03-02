@@ -69,7 +69,7 @@ export default function SignUpPage() {
         } else if (callbackUrl && callbackUrl.startsWith('/') && !callbackUrl.includes('/auth/') && !callbackUrl.includes('/user-info')) {
           router.push(callbackUrl)
         } else {
-          router.push('/profile')
+          router.push('/home')
         }
       } else {
         router.push('/auth/signin')

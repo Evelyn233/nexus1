@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS "collaboration_hints" (
     "targetUserId" TEXT NOT NULL,
     "hint" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "collaboration_hints_pkey" PRIMARY KEY ("id")
 );

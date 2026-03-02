@@ -81,14 +81,14 @@ export default function LandingPage() {
         {/* Hero */}
         <section className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 sm:pt-28 pb-16 text-center">
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.1]">
-            Where Creators{' '}
-            <span className="text-teal-400">Actually Collaborate</span>
+            <span className="text-teal-400">Project-Driven Collaboration</span>{' '}
+            for Creators
           </h1>
           <p className="mt-4 text-lg sm:text-xl text-teal-300 font-medium">
-            让北美华人创作者快速开始合作
+            Build real projects. Find the right collaborators. Ship faster.
           </p>
           <p className="mt-6 text-xl sm:text-2xl text-gray-400 max-w-2xl mx-auto leading-relaxed">
-            A new kind of creator profile — designed to help you not just showcase yourself, but actually collaborate and make things happen.
+            A project-first profile system that helps you showcase real work, attract the right people, and move from idea to execution.
           </p>
           <p className="mt-4 text-gray-500 max-w-2xl mx-auto">
             Films. Documentaries. Music. Podcasts. Interviews. Research. Nexus helps you connect, collaborate, and execute across disciplines and platforms. Built for creators who move ideas from concept to reality.
@@ -110,26 +110,19 @@ export default function LandingPage() {
         <section className="border-y border-white/10 py-16 sm:py-20">
           <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
             <h2 className="text-2xl font-bold text-center mb-10">Key Features</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <p className="text-center text-gray-400 mb-10">Built for project-driven collaboration: show your work, signal what you need, and find people who can contribute.</p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="p-6 rounded-2xl bg-gradient-to-br from-teal-500/10 to-cyan-500/5 border border-teal-500/20">
-                <h3 className="text-lg font-semibold text-teal-400 mb-2">Dynamic Profiles</h3>
-                <p className="text-gray-400 text-sm">Go beyond static portfolios. Nexus captures what you can actually produce, your creative style, workflow, and the channels where your content lives — social media, streaming platforms, research outlets.</p>
+                <h3 className="text-lg font-semibold text-teal-400 mb-2">Showcase Your Projects</h3>
+                <p className="text-gray-400 text-sm">Present what you actually create, from ideas to finished output, so people understand your strengths at a glance.</p>
               </div>
               <div className="p-6 rounded-2xl bg-gradient-to-br from-teal-500/10 to-cyan-500/5 border border-teal-500/20">
-                <h3 className="text-lg font-semibold text-teal-400 mb-2">Signal-Based Matching</h3>
-                <p className="text-gray-400 text-sm">Find collaborators based on compatibility of projects, working style, and intent — not just surface-level interests. Nexus understands what you can contribute and what kind of collaborators you need.</p>
+                <h3 className="text-lg font-semibold text-teal-400 mb-2">Start Project Collaboration</h3>
+                <p className="text-gray-400 text-sm">Match with people who can complement your role and help you execute, whether you are producing, building, or distributing.</p>
               </div>
               <div className="p-6 rounded-2xl bg-gradient-to-br from-teal-500/10 to-cyan-500/5 border border-teal-500/20">
-                <h3 className="text-lg font-semibold text-teal-400 mb-2">Project-Ready Connections</h3>
-                <p className="text-gray-400 text-sm">Move seamlessly from discovery to collaboration. No endless chatting or networking — connect with the right people and start creating together.</p>
-              </div>
-              <div className="p-6 rounded-2xl bg-gradient-to-br from-teal-500/10 to-cyan-500/5 border border-teal-500/20">
-                <h3 className="text-lg font-semibold text-teal-400 mb-2">Cross-Disciplinary Collaboration</h3>
-                <p className="text-gray-400 text-sm">Work with creators across media, tech, art, music, and research — enabling hybrid projects that wouldn&apos;t happen on single-discipline platforms.</p>
-              </div>
-              <div className="p-6 rounded-2xl bg-gradient-to-br from-teal-500/10 to-cyan-500/5 border border-teal-500/20 md:col-span-2">
-                <h3 className="text-lg font-semibold text-teal-400 mb-2">Collaboration-Driven Intelligence</h3>
-                <p className="text-gray-400 text-sm">Nexus uses AI to map your creative outputs and workflows into a structured graph, helping you and your collaborators see where projects can start, grow, and get delivered efficiently.</p>
+                <h3 className="text-lg font-semibold text-teal-400 mb-2">Publish Collaboration Signals</h3>
+                <p className="text-gray-400 text-sm">Post clear collaboration intent to Plaza, so the right partners can discover you and jump into the project quickly.</p>
               </div>
             </div>
           </div>

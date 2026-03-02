@@ -64,78 +64,106 @@ export const prisma = globalForPrisma.prisma ?? new PrismaClient({
   },
 })
 
+// 连接锁：保证同时只有一个重连操作，避免并发竞争
+const globalForLock = globalThis as unknown as { prismaConnecting?: Promise<void> }
+
+function isEngineNotConnected(error: any): boolean {
+  return String(error?.message ?? '').includes('Engine is not yet connected')
+}
+
+async function ensureConnected(error?: any): Promise<void> {
+  if (globalForLock.prismaConnecting) {
+    await globalForLock.prismaConnecting
+    return
+  }
+  const p = (async () => {
+    try {
+      if (error && isEngineNotConnected(error)) {
+        // 引擎尚未就绪：不要 disconnect，只等待引擎完成初始化
+        await new Promise(resolve => setTimeout(resolve, 3500))
+        console.log('✅ [PRISMA] 等待引擎初始化完成，重试查询...')
+      } else {
+        await prisma.$disconnect().catch(() => {})
+        await new Promise(resolve => setTimeout(resolve, 800))
+        await prisma.$connect()
+        await new Promise(resolve => setTimeout(resolve, 1500))
+        console.log('✅ [PRISMA] 重新连接成功，重试查询...')
+      }
+    } catch (e: any) {
+      console.error('❌ [PRISMA] 重新连接失败:', e?.message ?? e)
+      throw e
+    } finally {
+      globalForLock.prismaConnecting = undefined
+    }
+  })()
+  globalForLock.prismaConnecting = p
+  await p
+}
+
+function isConnectionError(error: any): boolean {
+  const errStr = String(error?.message ?? error ?? '')
+  return (
+    error?.code === 'P1001' ||
+    error?.code === 'P1017' ||
+    error?.code === 'P2024' ||
+    errStr.includes('Closed') ||
+    errStr.includes('kind: Closed') ||
+    errStr.includes("Can't reach database server") ||
+    errStr.includes('数据库连接失败') ||
+    errStr.includes('connection pool') ||
+    errStr.includes('unexpected eof') ||
+    errStr.includes('Engine is not yet connected')
+  )
+}
+
 // 🔥 包装 Prisma 查询，自动处理连接错误和重试
 export async function withRetry<T>(
   query: () => Promise<T>,
-  maxRetries: number = 2
+  maxRetries: number = 3
 ): Promise<T> {
-  let lastError: any
-  
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
-      await prisma.$connect()
       return await query()
     } catch (error: any) {
-      lastError = error
-      
-      // 检查是否是连接/池错误（含 P2024 连接池超时、P1017 连接已关闭、Neon 的 kind: Closed）
-      const errStr = String(error?.message ?? error ?? '')
-      const isConnectionError = 
-        error?.code === 'P1001' ||
-        error?.code === 'P1017' ||
-        error?.code === 'P2024' ||
-        errStr.includes('Closed') ||
-        errStr.includes('kind: Closed') ||
-        errStr.includes("Can't reach database server") ||
-        errStr.includes('数据库连接失败') ||
-        errStr.includes('connection pool') ||
-        errStr.includes('unexpected eof') ||
-        errStr.includes('Engine is not yet connected')
-      
-      // 如果不是连接错误，或者已经重试过，直接抛出
-      if (!isConnectionError || attempt >= maxRetries) {
+      if (!isConnectionError(error) || attempt >= maxRetries) {
         throw error
       }
-      
-      // 尝试重新连接
-      console.warn(`⚠️ [PRISMA] 检测到连接错误，尝试重新连接 (尝试 ${attempt + 1}/${maxRetries + 1})...`)
-      try {
-        await prisma.$disconnect().catch(() => {}) // 忽略断开错误
-        await new Promise(resolve => setTimeout(resolve, 500)) // 等待500ms
-        await prisma.$connect()
-        console.log('✅ [PRISMA] 重新连接成功，重试查询...')
-      } catch (reconnectError: any) {
-        console.error('❌ [PRISMA] 重新连接失败:', reconnectError.message)
-        throw reconnectError
-      }
+      console.warn(`⚠️ [PRISMA] 检测到连接错误，尝试重新连接 (尝试 ${attempt + 1}/${maxRetries})...`)
+      await ensureConnected(error)
+      // 每次重试加一点抖动，避免并发请求同时冲击刚恢复的连接
+      await new Promise(resolve => setTimeout(resolve, attempt * 300))
     }
   }
-  
-  throw lastError
+  throw new Error('[PRISMA] withRetry: 超过最大重试次数')
 }
 
 // 单例必须始终挂到 global，避免热更新/多实例重复创建连接
 globalForPrisma.prisma = prisma
 
+// 模块加载后立即预热引擎，减少首批请求 "Engine is not yet connected"
+const globalForEager = globalThis as unknown as { prismaEagerStarted?: boolean }
+if (!globalForEager.prismaEagerStarted) {
+  globalForEager.prismaEagerStarted = true
+  void prisma.$connect().catch(() => {})
+}
+
 // 添加连接健康检查（仅在开发环境，且只执行一次，避免 HMR 重复建连导致连接池耗尽）
 const globalForPrismaHealth = globalThis as unknown as { prismaHealthCheckDone?: boolean }
 if (process.env.NODE_ENV !== 'production' && !globalForPrismaHealth.prismaHealthCheckDone) {
   globalForPrismaHealth.prismaHealthCheckDone = true
+  // 延迟 2s 再做健康检查，避免和首批请求竞争连接
   setTimeout(async () => {
     try {
       await prisma.$connect()
-      const count = await prisma.user.count()
-      console.log(`✅ [PRISMA] 数据库连接正常，当前有 ${count} 个用户`)
+      await prisma.$queryRaw`SELECT 1`
+      console.log('✅ [PRISMA] 数据库连接正常')
     } catch (error: any) {
       console.error('❌ [PRISMA] 数据库连接失败:', error.message)
       const dbUrl = process.env.DATABASE_URL
       console.error('🔍 [PRISMA] DATABASE_URL:', dbUrl ? `${dbUrl.substring(0, 30)}...` : '未设置')
-      console.error('💡 [PRISMA] 提示：')
-      console.error('  1. Neon 免费版会休眠：打开 https://console.neon.tech 进入 inflow_db 项目即可唤醒')
-      console.error('  2. 检查网络/VPN，确保能访问 *.neon.tech')
-      console.error('  3. 使用 Pooled 连接串（主机名带 -pooler），URL 需含 ?sslmode=require')
+      console.error('💡 提示：Neon 免费版会休眠，打开 https://console.neon.tech 进入项目即可唤醒')
     }
-  }, 100) // 延迟 100ms 建立连接，减少首请求 "Engine is not yet connected"
+  }, 2000)
 }
 
 // 优雅关闭连接（应用退出时）；只注册一次，避免 Next 开发模式 HMR 重复注册导致 MaxListenersExceededWarning

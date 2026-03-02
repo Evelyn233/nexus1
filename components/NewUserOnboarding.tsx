@@ -55,7 +55,7 @@ export default function NewUserOnboarding({ isOpen, onClose, onComplete }: NewUs
     }
   }
 
-  const canNext = step === 1 ? !!photoDataUrl : true
+  const canNext = step === 1 ? !!photoDataUrl : intro.trim().length > 0
 
   if (!isOpen) return null
 
@@ -109,14 +109,15 @@ export default function NewUserOnboarding({ isOpen, onClose, onComplete }: NewUs
             </div>
             <div className="rounded-xl bg-gray-50 border border-gray-100 p-4 mb-4">
               <p className="text-sm text-gray-700">
-                你好～简单介绍一下自己吧，一句话就好。例如：我在上海做 AI 产品，喜欢艺术电影和独立音乐。
+                Tell us what kind of service you want to produce or provide. One clear sentence is perfect.
+                For example: "I produce short-form brand videos for AI startups and provide creative direction."
               </p>
             </div>
-            <h2 className="text-xl font-semibold text-gray-800 text-center mb-2">简单介绍一下自己</h2>
+            <h2 className="text-xl font-semibold text-gray-800 text-center mb-2">What service do you want to produce or provide?</h2>
             <textarea
               value={intro}
               onChange={(e) => setIntro(e.target.value)}
-              placeholder="一句话介绍自己…"
+              placeholder="e.g. I provide product strategy and growth support for early-stage teams."
               className="w-full min-h-[100px] px-4 py-3 border border-gray-200 rounded-xl text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-400/50 focus:border-teal-400 resize-none"
               maxLength={300}
             />
@@ -126,17 +127,17 @@ export default function NewUserOnboarding({ isOpen, onClose, onComplete }: NewUs
         <button
           type="button"
           onClick={handleNext}
-          disabled={step === 1 && !canNext}
+          disabled={!canNext}
           className="mt-8 w-full py-3 rounded-xl bg-teal-500 text-white font-medium flex items-center justify-center gap-2 hover:bg-teal-600 disabled:opacity-50 disabled:pointer-events-none transition-colors"
         >
           {step === 2 ? (
             <>
               <Check className="w-5 h-5" />
-              完成
+              Finish
             </>
           ) : (
             <>
-              下一步
+              Next
               <ChevronRight className="w-5 h-5" />
             </>
           )}
@@ -148,7 +149,7 @@ export default function NewUserOnboarding({ isOpen, onClose, onComplete }: NewUs
             onClick={onClose}
             className="mt-3 w-full py-2 text-sm text-gray-500 hover:text-gray-700"
           >
-            跳过，稍后再说
+            Skip for now
           </button>
         )}
       </div>

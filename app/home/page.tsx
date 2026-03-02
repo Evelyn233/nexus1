@@ -32,12 +32,11 @@ export default function HomePage() {
   const [showNewUserOnboarding, setShowNewUserOnboarding] = useState(false)
   const [shareLinkCopied, setShareLinkCopied] = useState(false)
   useEffect(() => {
-    if (session) {
-      setShowNewUserOnboarding(false)
-      return
-    }
-    if (typeof window !== 'undefined' && !getOnboardingDone()) {
+    if (typeof window === 'undefined') return
+    if (session && !getOnboardingDone()) {
       setShowNewUserOnboarding(true)
+    } else {
+      setShowNewUserOnboarding(false)
     }
   }, [session])
   // 检查 URL 参数，如果有 openHistory=true，自动打开历史记录侧边栏
@@ -125,7 +124,7 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* 新用户导引：未登录时先上传照片 + 简单自我介绍 */}
+      {/* 新用户导引：注册后先上传照片 + 简要介绍，再进入聊天式完善 */}
       <NewUserOnboarding
         isOpen={showNewUserOnboarding}
         onClose={() => setShowNewUserOnboarding(false)}
@@ -141,6 +140,10 @@ export default function HomePage() {
               // intro 已由 NewUserOnboarding 存到 newUserOnboardingIntro，profile 加载时会用作一句话陈述
             } catch (_) {}
           }
+          const base = intro?.trim()
+            ? `I’m onboarding to build my profile. Here is my quick intro: "${intro.trim()}". Please ask me what I want to produce, build, or provide as a service, then help me polish it for my profile.`
+            : 'I’m onboarding to build my profile. Please ask me what I want to produce, build, or provide as a service, then help me polish it for my profile.'
+          router.push(`/chat-new?prompt=${encodeURIComponent(base)}&autoStart=true`)
         }}
       />
       {/* 历史记录侧边栏 */}

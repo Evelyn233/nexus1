@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/hooks/useAuth'
 import { signOut } from 'next-auth/react'
-import { ArrowLeft, Calendar, LogOut, X, Share2, Plus, Lightbulb, Search, ChevronRight, MoreVertical, ShoppingBag, Heart, Play, Mail, FileText, List, Link2, Tag, MessageSquare, Eye, EyeOff, Database, Trash2, Camera, Bookmark, HeartHandshake, Briefcase, GraduationCap, Pencil, LayoutGrid, Sparkles } from 'lucide-react'
+import { ArrowLeft, Calendar, LogOut, X, Share2, Plus, Lightbulb, Search, ChevronRight, ChevronDown, MoreVertical, ShoppingBag, Heart, Play, Mail, FileText, List, Link2, Tag, MessageSquare, Eye, EyeOff, Database, Trash2, Camera, Bookmark, HeartHandshake, Briefcase, GraduationCap, Pencil, LayoutGrid, Sparkles, Paperclip, ExternalLink } from 'lucide-react'
 import { ALL_SOCIAL_PLATFORMS, getPlatformByKey, getPlaceholder, SUGGESTED_PLATFORM_KEYS } from '@/lib/socialPlatforms'
 import type { SocialCategory } from '@/lib/socialPlatforms'
 import { resolveImageUrl } from '@/lib/resolveImageUrl'
@@ -68,8 +68,78 @@ export default function ProfilePage() {
   const [expForm, setExpForm] = useState<Omit<ExperienceItem, 'id'> & { id?: string }>({ title: '', company: '', employmentType: '', location: '', startDate: '', endDate: '', current: false, description: '' })
   const [eduForm, setEduForm] = useState<Omit<EducationItem, 'id'> & { id?: string }>({ school: '', degree: '', fieldOfStudy: '', startDate: '', endDate: '', grade: '', description: '' })
 
-  type PeopleNeededItem = { text: string; detail?: string }
-  const [projectsList, setProjectsList] = useState<{ text: string; visibility: 'individual' | 'public'; showOnPlaza: boolean; peopleNeeded?: PeopleNeededItem[]; createdAt?: number }[]>([])
+  type PeopleNeededItem = { text: string; detail?: string; stageTag?: string; contentTag?: string }
+  type ProjectReference = { title: string; url: string; cover?: string; stageTag?: string; contentTag?: string }
+  const STAGE_RECOMMENDED_TAGS = ['Idea', 'Planning'] as const
+  function inferStageFromPeopleNeeded(peopleNeeded: PeopleNeededItem[]): string {
+    const text = peopleNeeded.map((p) => (p.text + ' ' + (p.detail ?? '')).toLowerCase()).join(' ')
+    if (/co-founder|founding partner|cofounder|idea partner|advisor|consultant|mentor|strategist/.test(text)) return 'Planning'
+    return 'Idea'
+  }
+  function stageDisplayLabel(stage: string | undefined): string {
+    return (stage ?? '').trim() || 'Idea'
+  }
+  type ProjectAttachment = { url: string; name: string; addedAt?: number; stageTag?: string; contentTag?: string }
+  type ProjectItem = {
+    text: string
+    visibility: 'individual' | 'public' | 'hidden'
+    showOnPlaza: boolean
+    peopleNeeded?: PeopleNeededItem[]
+    detail?: string
+    references?: ProjectReference[]
+    detailImage?: string
+    attachments?: ProjectAttachment[]
+    stage?: string
+    stageOrder?: string[]
+    stageEnteredAt?: Record<string, number>
+    aiSuggestedStages?: string[]
+    creators?: string[]
+    createdAt?: number
+  }
+  const [projectsList, setProjectsList] = useState<ProjectItem[]>([])
+  const [projectMetaEditor, setProjectMetaEditor] = useState<{
+    projectIndex: number
+    text: string
+    detail: string
+    references: ProjectReference[]
+    detailImage: string
+    attachments: ProjectAttachment[]
+    linkInput: string
+    stage: string
+    stageOrder: string[]
+    stageInput: string
+    stageEnteredAt: Record<string, number>
+    creators: string[]
+    creatorInput: string
+    peopleNeeded: PeopleNeededItem[]
+    openToInput: string
+  } | null>(null)
+  const [projectMetaFetching, setProjectMetaFetching] = useState(false)
+  const [projectMetaUploading, setProjectMetaUploading] = useState(false)
+  const [projectMetaAttachmentUploading, setProjectMetaAttachmentUploading] = useState(false)
+  const [stageSuggestions, setStageSuggestions] = useState<string[]>([])
+  const [stageSuggestionsLoading, setStageSuggestionsLoading] = useState(false)
+  const [inviteEmailLoading, setInviteEmailLoading] = useState(false)
+  const [inviteEmailError, setInviteEmailError] = useState<string | null>(null)
+  const [inviteEmailSent, setInviteEmailSent] = useState(false)
+  useEffect(() => {
+    if (!projectMetaEditor) {
+      setInviteEmailError(null)
+      setInviteEmailSent(false)
+    }
+  }, [projectMetaEditor])
+  const [tagConfirmDialog, setTagConfirmDialog] = useState<{
+    type: 'ref' | 'att' | 'people'
+    key: string
+    suggestStage: string
+    suggestTag: string
+    editStage: string
+    editTag: string
+    suggestUpdateStage: boolean
+    updateStage: boolean
+  } | null>(null)
+  const [tagAnalyzing, setTagAnalyzing] = useState(false)
+  const [projectMetaAttachmentMenuIndex, setProjectMetaAttachmentMenuIndex] = useState<number | null>(null)
   const [projectInput, setProjectInput] = useState('')
   const [editingProjectIndex, setEditingProjectIndex] = useState<number | null>(null)
   const [editingProjectValue, setEditingProjectValue] = useState('')
@@ -99,7 +169,11 @@ export default function ProfilePage() {
   const topLeftMenuRef = useRef<HTMLDivElement>(null)
   const [previewCardMenuOpen, setPreviewCardMenuOpen] = useState(false)
   const [shareLinkCopied, setShareLinkCopied] = useState(false)
+  const [projectMetaEditorMenuOpen, setProjectMetaEditorMenuOpen] = useState(false)
+  const [projectVisibilityDropdownIndex, setProjectVisibilityDropdownIndex] = useState<number | null>(null)
   const previewCardMenuRef = useRef<HTMLDivElement>(null)
+  const projectMetaEditorMenuRef = useRef<HTMLDivElement>(null)
+  const projectVisibilityDropdownRef = useRef<HTMLDivElement>(null)
   const profilePhotoInputRef = useRef<HTMLInputElement>(null)
   const qaSectionRef = useRef<HTMLDivElement>(null)
   const oneSentenceTextareaRef = useRef<HTMLTextAreaElement>(null)
@@ -109,13 +183,14 @@ export default function ProfilePage() {
   const [showMessagesModal, setShowMessagesModal] = useState(false) // 收到的消息层（别人问我的问题）
   const [showFavoritesModal, setShowFavoritesModal] = useState(false)
   const [showPotentialConnectionModal, setShowPotentialConnectionModal] = useState(false)
-  const [viewedPotentialConnections, setViewedPotentialConnections] = useState<{ targetUserId: string; targetName?: string; hint: string; possibleTopics?: string[]; viewedAt: string }[]>([])
+  const [viewedPotentialConnections, setViewedPotentialConnections] = useState<{ targetUserId: string; targetName?: string; hint: string; possibleTopics?: string[]; viewedAt: string; source?: 'viewed' | 'engage' }[]>([])
   const [favoriteProfiles, setFavoriteProfiles] = useState<{ userId: string; name?: string; avatar?: string | null; profileSlug?: string | null; oneSentenceDesc?: string | null }[]>([])
   const [showSendMessageModal, setShowSendMessageModal] = useState(false) // 发消息给 TA 弹窗（RAG 无结果时）
   const [sendMessageDraft, setSendMessageDraft] = useState('') // 弹窗内可编辑的内容
   const [profileMessages, setProfileMessages] = useState<{ id: string; text: string; createdAt: string; from: { id: string; name: string; image: string | null } | null }[]>([])
   const [sendToEvelynFeedback, setSendToEvelynFeedback] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
   const [lastSeenMessageCount, setLastSeenMessageCount] = useState(0) // 红点：未读数 = profileMessages.length - lastSeenMessageCount
+  const [showProjectsModal, setShowProjectsModal] = useState(false) // 右上角三点 → Project：已发布的项目列表
   const [showDatabaseSourcesModal, setShowDatabaseSourcesModal] = useState(false) // 增加数据库：Word / LinkedIn / 个人网页 / Notion 等
   const [databaseSources, setDatabaseSources] = useState<{ id: string; type: string; url: string; title?: string }[]>([])
   const [newDatabaseSourceType, setNewDatabaseSourceType] = useState('linkedin')
@@ -408,7 +483,7 @@ export default function ProfilePage() {
       oneSentenceDesc: oneSentenceDesc || '',
       userSay: userSay ?? null,
       projects: projectsList,
-      collaborationPossibility: projectsList.map((p) => ({ text: p.text, visibility: p.visibility, showOnPlaza: p.showOnPlaza, peopleNeeded: p.peopleNeeded, createdAt: p.createdAt })), // backward compat
+      collaborationPossibility: projectsList.map((p) => ({ text: p.text, visibility: p.visibility, showOnPlaza: p.showOnPlaza, peopleNeeded: p.peopleNeeded, detail: p.detail, references: p.references, detailImage: p.detailImage, attachments: p.attachments, stage: p.stage, stageOrder: p.stageOrder, stageEnteredAt: p.stageEnteredAt, creators: p.creators, createdAt: p.createdAt })), // backward compat
       peopleToCollaborateWith: projectsList.filter((p) => p.visibility === 'public').flatMap((p) => (p.peopleNeeded ?? []).map((n) => n.text)), // backward compat
       howToEngageMeOnline,
       howToEngageMeOffline,
@@ -465,6 +540,15 @@ export default function ProfilePage() {
   }, [])
 
   useEffect(() => {
+    if (!projectMetaEditor) {
+      setStageSuggestions([])
+    } else {
+      const proj = projectsList[projectMetaEditor.projectIndex]
+      setStageSuggestions(proj?.aiSuggestedStages ?? [])
+    }
+  }, [projectMetaEditor, projectsList])
+
+  useEffect(() => {
     const onComplete = () => loadUserData()
     window.addEventListener('profileChat:completed', onComplete)
     return () => window.removeEventListener('profileChat:completed', onComplete)
@@ -497,6 +581,28 @@ export default function ProfilePage() {
     document.addEventListener('click', onDocClick)
     return () => document.removeEventListener('click', onDocClick)
   }, [previewCardMenuOpen])
+
+  useEffect(() => {
+    if (!projectMetaEditorMenuOpen) return
+    const onDocClick = (e: MouseEvent) => {
+      if (projectMetaEditorMenuRef.current && !projectMetaEditorMenuRef.current.contains(e.target as Node)) {
+        setProjectMetaEditorMenuOpen(false)
+      }
+    }
+    document.addEventListener('click', onDocClick)
+    return () => document.removeEventListener('click', onDocClick)
+  }, [projectMetaEditorMenuOpen])
+
+  useEffect(() => {
+    if (projectVisibilityDropdownIndex === null) return
+    const onDocClick = (e: MouseEvent) => {
+      if (projectVisibilityDropdownRef.current && !projectVisibilityDropdownRef.current.contains(e.target as Node)) {
+        setProjectVisibilityDropdownIndex(null)
+      }
+    }
+    document.addEventListener('click', onDocClick)
+    return () => document.removeEventListener('click', onDocClick)
+  }, [projectVisibilityDropdownIndex])
 
   // 一句话介绍框高度随内容贴合，完整显示、不出现滚动条
   const resizeOneSentence = useCallback(() => {
@@ -595,9 +701,9 @@ export default function ProfilePage() {
             setProjectsList(
               pd.projects
                 .filter((x: unknown) => x && typeof x === 'object' && 'text' in (x as object))
-                .map((x: { text?: string; visibility?: string; showOnPlaza?: boolean; peopleNeeded?: Array<string | { text?: string; detail?: string }>; createdAt?: number }) => ({
+                .map((x: { text?: string; visibility?: string; showOnPlaza?: boolean; peopleNeeded?: Array<string | { text?: string; detail?: string }>; detail?: string; references?: Array<{ title?: string; url?: string; cover?: string }>; detailImage?: string; attachments?: Array<{ url?: string; name?: string; addedAt?: number }>; stage?: string; stageOrder?: string[]; stageEnteredAt?: Record<string, number>; creators?: string[]; createdAt?: number }) => ({
                   text: String(x.text ?? '').trim(),
-                  visibility: (x.visibility === 'public' ? 'public' : 'individual') as 'individual' | 'public',
+                  visibility: (x.visibility === 'public' ? 'public' : x.visibility === 'hidden' ? 'hidden' : 'individual') as 'individual' | 'public' | 'hidden',
                   showOnPlaza: x.showOnPlaza === true || (x.visibility === 'public' && x.showOnPlaza !== false),
                   peopleNeeded: Array.isArray(x.peopleNeeded)
                     ? x.peopleNeeded
@@ -609,19 +715,56 @@ export default function ProfilePage() {
                           if (item && typeof item === 'object') {
                             const text = String(item.text ?? '').trim()
                             const detail = typeof item.detail === 'string' ? item.detail.trim() : ''
-                            return text ? { text, detail: detail || undefined } : null
+                            const stageTag = typeof (item as any).stageTag === 'string' ? (item as any).stageTag.trim() : undefined
+                            const contentTag = typeof (item as any).contentTag === 'string' ? (item as any).contentTag.trim() : undefined
+                            return text ? { text, detail: detail || undefined, stageTag: stageTag || undefined, contentTag: contentTag || undefined } : null
                           }
                           return null
                         })
                         .filter((v): v is { text: string; detail?: string } => !!v)
                     : undefined,
+                  detail: typeof x.detail === 'string' ? x.detail.trim() : undefined,
+                  references: Array.isArray(x.references)
+                    ? x.references
+                        .map((r) => {
+                          const url = typeof r?.url === 'string' ? r.url.trim() : ''
+                          const title = typeof r?.title === 'string' ? r.title.trim() : ''
+                          const cover = typeof r?.cover === 'string' ? r.cover.trim() : ''
+                          if (!url) return null
+                          return {
+                            title: title || url,
+                            url,
+                            ...(cover ? { cover } : {}),
+                            ...(typeof r?.stageTag === 'string' && r.stageTag.trim() ? { stageTag: r.stageTag.trim() } : {}),
+                            ...(typeof r?.contentTag === 'string' && r.contentTag.trim() ? { contentTag: r.contentTag.trim() } : {}),
+                          }
+                        })
+                        .filter((v): v is ProjectReference => !!v)
+                    : undefined,
+                  detailImage: typeof x.detailImage === 'string' ? x.detailImage.trim() : undefined,
+                  attachments: Array.isArray(x.attachments)
+                    ? x.attachments
+                        .map((a): ProjectAttachment | null => (a && typeof a.url === 'string' && a.url.trim() ? { url: a.url.trim(), name: typeof a.name === 'string' ? a.name.trim() || a.url : a.url, addedAt: typeof a.addedAt === 'number' ? a.addedAt : undefined, ...(typeof a.stageTag === 'string' && a.stageTag.trim() ? { stageTag: a.stageTag.trim() } : {}), ...(typeof a.contentTag === 'string' && a.contentTag.trim() ? { contentTag: a.contentTag.trim() } : {}) } : null))
+                        .filter((v): v is ProjectAttachment => !!v)
+                    : undefined,
+                  stage: typeof x.stage === 'string' && x.stage.trim() ? x.stage.trim() : undefined,
+                  stageOrder: Array.isArray(x.stageOrder) && x.stageOrder.length > 0
+                    ? x.stageOrder.filter((s): s is string => typeof s === 'string' && s.trim().length > 0).map((s) => s.trim())
+                    : undefined,
+                  stageEnteredAt: x.stageEnteredAt && typeof x.stageEnteredAt === 'object'
+                    ? Object.fromEntries(Object.entries(x.stageEnteredAt).filter(([, v]) => typeof v === 'number').map(([k, v]) => [k, v as number]))
+                    : undefined,
+                  aiSuggestedStages: Array.isArray((x as { aiSuggestedStages?: string[] }).aiSuggestedStages)
+                    ? (x as { aiSuggestedStages: string[] }).aiSuggestedStages.filter((s): s is string => typeof s === 'string' && s.trim().length > 0).map((s) => s.trim())
+                    : undefined,
+                  creators: Array.isArray(x.creators) ? x.creators.filter((s): s is string => typeof s === 'string' && s.trim().length > 0).map((s) => s.trim()) : undefined,
                   createdAt: typeof x.createdAt === 'number' ? x.createdAt : Date.now(),
                 }))
                 .filter((p: { text: string }) => p.text)
             )
           } else {
             // Migrate from old collaborationPossibility + peopleToCollaborateWith
-            const what: { text: string; visibility: 'individual' | 'public'; showOnPlaza: boolean; peopleNeeded?: { text: string; detail?: string }[]; createdAt?: number }[] = []
+            const what: ProjectItem[] = []
             if (Array.isArray(pd.collaborationPossibility)) {
               pd.collaborationPossibility.forEach((x: unknown) => {
                 const text = typeof x === 'object' && x && 'text' in (x as object) ? String((x as { text: string }).text).trim() : (typeof x === 'string' ? (x as string).trim() : '')
@@ -1354,54 +1497,12 @@ Return ONLY a valid JSON object with keys "tags" and "insights". No other text.`
     e.target.value = ''
     setNewWorkIntroCoverUploading(true)
     try {
-      let dataUrl: string
-      const objectUrl = URL.createObjectURL(file)
-      try {
-        dataUrl = await new Promise<string>((resolve, reject) => {
-          const img = new Image()
-          img.onload = () => {
-            const maxW = 800
-            const w = img.width
-            const h = img.height
-            const scale = w > maxW ? maxW / w : 1
-            const cw = Math.round(w * scale)
-            const ch = Math.round(h * scale)
-            const canvas = document.createElement('canvas')
-            canvas.width = cw
-            canvas.height = ch
-            const ctx = canvas.getContext('2d')
-            if (!ctx) {
-              const r = new FileReader()
-              r.onload = () => resolve(r.result as string)
-              r.onerror = () => reject(new Error('Failed to read file'))
-              r.readAsDataURL(file)
-              return
-            }
-            ctx.drawImage(img, 0, 0, cw, ch)
-            canvas.toBlob(
-              (blob) => {
-                if (!blob) {
-                  const r = new FileReader()
-                  r.onload = () => resolve(r.result as string)
-                  r.onerror = () => reject(new Error('Failed to read file'))
-                  r.readAsDataURL(file)
-                  return
-                }
-                const r = new FileReader()
-                r.onload = () => resolve(r.result as string)
-                r.onerror = () => reject(new Error('Failed to read blob'))
-                r.readAsDataURL(blob)
-              },
-              'image/jpeg',
-              0.85
-            )
-          }
-          img.onerror = () => reject(new Error('Failed to load image'))
-          img.src = objectUrl
-        })
-      } finally {
-        URL.revokeObjectURL(objectUrl)
-      }
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => resolve(reader.result as string)
+        reader.onerror = () => reject(new Error('Failed to read file'))
+        reader.readAsDataURL(file)
+      })
       const res = await fetch('/api/image/upload', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1421,6 +1522,272 @@ Return ONLY a valid JSON object with keys "tags" and "insights". No other text.`
       setNewWorkIntroCoverUploading(false)
     }
   }
+
+  const handleProjectMetaFetchLink = useCallback(async () => {
+    if (!projectMetaEditor) return
+    const url = projectMetaEditor.linkInput.trim()
+    if (!url || !/^https?:\/\//i.test(url)) return
+    setProjectMetaFetching(true)
+    try {
+      const res = await fetch('/api/link-metadata', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        alert('Failed to fetch link preview: ' + (data.error || res.status))
+        return
+      }
+      const nextRef: ProjectReference = {
+        title: (typeof data?.name === 'string' && data.name.trim()) ? data.name.trim() : url,
+        url,
+        cover: typeof data?.cover === 'string' && data.cover.trim() ? data.cover.trim() : undefined,
+      }
+      setProjectMetaEditor((prev) => {
+        if (!prev) return prev
+        const dedup = prev.references.filter((r) => r.url !== nextRef.url)
+        const mergedDetail = prev.detail.trim() || (typeof data?.description === 'string' ? data.description.trim() : '')
+        return {
+          ...prev,
+          detail: mergedDetail,
+          references: [...dedup, nextRef],
+          linkInput: '',
+        }
+      })
+      // 异步分析标签，不阻塞添加流程
+      triggerAnalyzeTag({
+        type: 'ref',
+        key: nextRef.url,
+        title: nextRef.title,
+        url: nextRef.url,
+        description: typeof data?.description === 'string' ? data.description.trim() : '',
+        projectTitle: projectMetaEditor.text,
+        currentStage: projectMetaEditor.stage,
+        stageOrder: projectMetaEditor.stageOrder,
+      })
+    } catch {
+      alert('Failed to fetch link preview')
+    } finally {
+      setProjectMetaFetching(false)
+    }
+  }, [projectMetaEditor])
+
+  const generateStageSuggestions = useCallback(async (projectTitle: string, replace = false) => {
+    if (!projectTitle.trim() || !projectMetaEditor) return
+    setStageSuggestionsLoading(true)
+    try {
+      const res = await fetch('/api/generate-stages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projectTitle: projectTitle.trim() }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (res.ok && Array.isArray(data.stages) && data.stages.length > 0) {
+        const newStages = data.stages as string[]
+        const result = replace
+          ? newStages
+          : (() => {
+              const existing = projectsList[projectMetaEditor.projectIndex]?.aiSuggestedStages ?? []
+              const merged = [...existing]
+              for (const s of newStages) {
+                if (!merged.some((x) => x.toLowerCase() === s.toLowerCase())) merged.push(s)
+              }
+              return merged
+            })()
+        setStageSuggestions(result)
+        const idx = projectMetaEditor.projectIndex
+        const next = [...projectsList]
+        if (next[idx]) {
+          next[idx] = { ...next[idx], aiSuggestedStages: result }
+          setProjectsList(next)
+          saveProfileDataToDb(getProfileDataFromState({ projects: next }))
+        }
+      }
+    } catch {
+      // silently fail
+    } finally {
+      setStageSuggestionsLoading(false)
+    }
+  }, [projectMetaEditor, projectsList, saveProfileDataToDb, getProfileDataFromState])
+
+  const triggerAnalyzeTag = useCallback(async (params: {
+    type: 'ref' | 'att' | 'people'
+    key: string
+    title?: string
+    url?: string
+    description?: string
+    name?: string
+    peopleText?: string
+    projectTitle?: string
+    currentStage?: string
+    stageOrder?: string[]
+  }) => {
+    setTagAnalyzing(true)
+    try {
+      const res = await fetch('/api/analyze-content-tag', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: params.type === 'ref' ? 'link' : params.type === 'att' ? 'attachment' : 'people',
+          title: params.title,
+          url: params.url,
+          description: params.description,
+          name: params.name,
+          peopleText: params.peopleText,
+          projectTitle: params.projectTitle,
+          currentStage: params.currentStage,
+          stageOrder: params.stageOrder,
+        }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (res.ok && data.stage && data.tag) {
+        setTagConfirmDialog({
+          type: params.type,
+          key: params.key,
+          suggestStage: data.stage,
+          suggestTag: data.tag,
+          editStage: data.stage,
+          editTag: data.tag,
+          suggestUpdateStage: Boolean(data.suggestUpdateStage),
+          updateStage: false,
+        })
+      }
+    } catch {
+      // 分析失败时静默忽略
+    } finally {
+      setTagAnalyzing(false)
+    }
+  }, [])
+
+  const handleTagConfirm = useCallback(() => {
+    if (!tagConfirmDialog) return
+    const { type, key, editStage, editTag, updateStage } = tagConfirmDialog
+    setProjectMetaEditor((prev) => {
+      if (!prev) return prev
+      const stageUpdate = updateStage
+        ? { stage: editStage, stageEnteredAt: { ...prev.stageEnteredAt, [editStage]: Date.now() } }
+        : {}
+      if (type === 'ref') {
+        return {
+          ...prev,
+          ...stageUpdate,
+          references: prev.references.map((r) =>
+            r.url === key ? { ...r, stageTag: editStage, contentTag: editTag } : r
+          ),
+        }
+      } else if (type === 'att') {
+        return {
+          ...prev,
+          ...stageUpdate,
+          attachments: prev.attachments.map((a) =>
+            a.url === key ? { ...a, stageTag: editStage, contentTag: editTag } : a
+          ),
+        }
+      } else {
+        // people — apply tags to the matching item, and optionally update project stage
+        return {
+          ...prev,
+          ...stageUpdate,
+          peopleNeeded: prev.peopleNeeded.map((p) =>
+            p.text === key ? { ...p, stageTag: editStage, contentTag: editTag } : p
+          ),
+        }
+      }
+    })
+    setTagConfirmDialog(null)
+  }, [tagConfirmDialog])
+
+  const handleProjectMetaUploadImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !projectMetaEditor) return
+    e.target.value = ''
+    setProjectMetaUploading(true)
+    try {
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const r = new FileReader()
+        r.onload = () => resolve(r.result as string)
+        r.onerror = () => reject(new Error('Failed to read image'))
+        r.readAsDataURL(file)
+      })
+      const res = await fetch('/api/image/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageData: dataUrl, filename: file.name }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok || !data?.url) {
+        alert('Image upload failed: ' + (data.error || res.status))
+        return
+      }
+      setProjectMetaEditor((prev) => (prev ? { ...prev, detailImage: data.url } : prev))
+    } catch {
+      alert('Image upload failed')
+    } finally {
+      setProjectMetaUploading(false)
+    }
+  }
+
+  const handleProjectMetaUploadAttachment = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !projectMetaEditor) return
+    e.target.value = ''
+    setProjectMetaAttachmentUploading(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      const res = await fetch('/api/file/upload', { method: 'POST', body: formData })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok || !data?.url) {
+        alert('Upload failed: ' + (data.error || res.status))
+        return
+      }
+      const attName = data.originalName || file.name
+      const attUrl = data.url
+      setProjectMetaEditor((prev) =>
+        prev ? { ...prev, attachments: [...prev.attachments, { url: attUrl, name: attName, addedAt: Date.now() }] } : prev
+      )
+      triggerAnalyzeTag({
+        type: 'att',
+        key: attUrl,
+        name: attName,
+        projectTitle: projectMetaEditor.text,
+        currentStage: projectMetaEditor.stage,
+        stageOrder: projectMetaEditor.stageOrder,
+      })
+    } catch {
+      alert('Upload failed')
+    } finally {
+      setProjectMetaAttachmentUploading(false)
+    }
+  }
+
+  const saveProjectMetaEditor = useCallback(() => {
+    if (!projectMetaEditor) return
+    const next = [...projectsList]
+    const idx = projectMetaEditor.projectIndex
+    if (!next[idx]) {
+      setProjectMetaEditor(null)
+      return
+    }
+    next[idx] = {
+      ...next[idx],
+      text: projectMetaEditor.text.trim() || next[idx].text,
+      detail: projectMetaEditor.detail.trim() || undefined,
+      references: projectMetaEditor.references.length > 0 ? projectMetaEditor.references : undefined,
+      detailImage: projectMetaEditor.detailImage.trim() || undefined,
+      attachments: projectMetaEditor.attachments.length > 0 ? projectMetaEditor.attachments : undefined,
+      stage: projectMetaEditor.stage,
+      stageOrder: projectMetaEditor.stageOrder.length > 0 ? projectMetaEditor.stageOrder : undefined,
+      stageEnteredAt: Object.keys(projectMetaEditor.stageEnteredAt).length > 0 ? projectMetaEditor.stageEnteredAt : undefined,
+      creators: projectMetaEditor.creators.length > 0 ? projectMetaEditor.creators : undefined,
+      peopleNeeded: projectMetaEditor.peopleNeeded.length > 0 ? projectMetaEditor.peopleNeeded : undefined,
+    }
+    setProjectsList(next)
+    saveProfileDataToDb(getProfileDataFromState({ projects: next }))
+    setProjectMetaEditor(null)
+    setProjectMetaAttachmentMenuIndex(null)
+  }, [projectMetaEditor, projectsList, saveProfileDataToDb, getProfileDataFromState])
 
   const saveSocialLink = () => {
     if (!editingSocial) return
@@ -1533,6 +1900,628 @@ Return ONLY a valid JSON object with keys "tags" and "insights". No other text.`
           <button type="button" onClick={() => setPlazaToastMessage(null)} className="ml-1 p-0.5 rounded hover:bg-white/20" aria-label="关闭">
             <X className="w-3.5 h-3.5" />
           </button>
+        </div>
+      )}
+      {projectMetaEditor && (
+        <div className="fixed inset-0 z-[111] bg-black/45 flex items-center justify-center p-4" onClick={() => { setProjectMetaEditor(null); setProjectMetaEditorMenuOpen(false) }}>
+          <div className="w-full max-w-md bg-white rounded-xl shadow-xl p-4 max-h-[86vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-gray-900">Edit project information</h3>
+              <div className="flex items-center gap-1">
+                <div className="relative" ref={projectMetaEditorMenuRef}>
+                  <button
+                    type="button"
+                    onClick={() => setProjectMetaEditorMenuOpen((o) => !o)}
+                    className="p-1.5 rounded hover:bg-gray-100 text-gray-500"
+                    aria-label="More options"
+                  >
+                    <MoreVertical className="w-4 h-4" />
+                  </button>
+                  {projectMetaEditorMenuOpen && (
+                    <div className="absolute right-0 top-full mt-1 py-1 bg-white rounded-lg shadow-lg border border-gray-200 min-w-[120px] z-10">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const slug = getSharePath(userInfo?.profileSlug, userInfo?.name, userInfo?.id)
+                          const url = typeof window !== 'undefined' ? `${window.location.origin}/u/${slug}/project/${projectsList[projectMetaEditor.projectIndex]?.createdAt ?? Date.now()}` : ''
+                          if (url && navigator.clipboard?.writeText) {
+                            navigator.clipboard.writeText(url)
+                            setShareLinkCopied(true)
+                            setTimeout(() => setShareLinkCopied(false), 2000)
+                          }
+                          setProjectMetaEditorMenuOpen(false)
+                        }}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-left text-[12px] text-gray-700 hover:bg-gray-50"
+                      >
+                        <Share2 className="w-3.5 h-3.5 shrink-0" />
+                        {shareLinkCopied ? '已复制' : '复制链接'}
+                      </button>
+                    </div>
+                  )}
+                </div>
+                <button type="button" className="p-1 rounded hover:bg-gray-100" onClick={() => setProjectMetaEditor(null)} aria-label="Close">
+                  <X className="w-4 h-4 text-gray-500" />
+                </button>
+              </div>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <p className="text-[11px] text-gray-500 mb-1">Project title</p>
+                <input
+                  type="text"
+                  value={projectMetaEditor.text}
+                  onChange={(e) => setProjectMetaEditor((prev) => prev ? { ...prev, text: e.target.value } : prev)}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-400/40"
+                />
+                <div className="flex items-center justify-between mt-2 mb-1">
+                  <p className="text-[11px] text-gray-500">Stage <span className="text-gray-400 font-normal">· click to select current</span></p>
+                  <button
+                    type="button"
+                    onClick={() => generateStageSuggestions(projectMetaEditor.text)}
+                    disabled={!projectMetaEditor.text.trim() || stageSuggestionsLoading}
+                    className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] rounded-full border border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  >
+                    {stageSuggestionsLoading ? (
+                      <span className="w-2.5 h-2.5 rounded-full border-2 border-violet-400 border-t-transparent animate-spin" />
+                    ) : (
+                      <Sparkles className="w-2.5 h-2.5" />
+                    )}
+                    {stageSuggestionsLoading ? 'Generating…' : 'AI suggest'}
+                  </button>
+                </div>
+                <div className="space-y-2">
+                  {/* 已在进行的进度：连线展示 */}
+                  <div className="flex flex-wrap items-center gap-0 min-h-[32px]">
+                    {projectMetaEditor.stageOrder.length === 0 && (
+                      <span className="text-[10px] text-gray-400">Add below or pick from AI suggested</span>
+                    )}
+                    {projectMetaEditor.stageOrder.map((s, idx) => {
+                      const currentIdx = projectMetaEditor.stageOrder.findIndex((x) => x.toLowerCase() === (projectMetaEditor.stage || 'Idea').toLowerCase())
+                      const isCustom = currentIdx < 0 && (projectMetaEditor.stage ?? '').trim().length > 0
+                      const litCount = currentIdx >= 0 ? currentIdx + 1 : (isCustom ? projectMetaEditor.stageOrder.length : 1)
+                      const isLit = idx < litCount
+                      return (
+                        <div key={`${s}-${idx}`} className="flex items-center">
+                          <div className="flex flex-col items-center shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => setProjectMetaEditor((prev) => prev ? { ...prev, stage: s, stageEnteredAt: { ...prev.stageEnteredAt, [s]: Date.now() } } : prev)}
+                              className={`flex items-center justify-center gap-1 px-2 py-1 rounded-full border-2 transition-colors ${
+                                isLit ? 'border-teal-500 bg-teal-500 text-white' : 'border-gray-200 bg-gray-50 text-gray-500 hover:bg-gray-100'
+                              }`}
+                            >
+                              <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isLit ? 'bg-white' : 'bg-gray-300'}`} />
+                              <span className="text-[10px] font-medium">{s}</span>
+                            </button>
+                            {(() => {
+                              const key = Object.keys(projectMetaEditor.stageEnteredAt).find((k) => k.toLowerCase() === s.toLowerCase()) ?? s
+                              const ts = projectMetaEditor.stageEnteredAt[key] ?? (idx === 0 ? (projectsList[projectMetaEditor.projectIndex]?.createdAt ?? Date.now()) : undefined)
+                              return ts != null ? (
+                                <span className="text-[9px] text-gray-400 mt-1">
+                                  {`${new Date(ts).getDate()}/${new Date(ts).getMonth() + 1}/${String(new Date(ts).getFullYear()).slice(-2)}`}
+                                </span>
+                              ) : null
+                            })()}
+                          </div>
+                          {idx < projectMetaEditor.stageOrder.length - 1 && (
+                            <div className={`w-4 h-0.5 shrink-0 mx-0.5 ${idx < litCount - 1 ? 'bg-teal-500' : 'bg-gray-200'}`} aria-hidden />
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                  {/* Custom */}
+                  <div>
+                    <p className="text-[10px] text-gray-400 mb-1">Custom</p>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={projectMetaEditor.stageInput}
+                        onChange={(e) => setProjectMetaEditor((prev) => prev ? { ...prev, stageInput: e.target.value } : prev)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault()
+                            const v = projectMetaEditor.stageInput.trim()
+                            if (v && projectMetaEditor) {
+                              const exists = projectMetaEditor.stageOrder.some((x) => x.toLowerCase() === v.toLowerCase())
+                              if (!exists) {
+                                setProjectMetaEditor({ ...projectMetaEditor, stageOrder: [...projectMetaEditor.stageOrder, v], stageInput: '' })
+                              }
+                            }
+                          }
+                        }}
+                        placeholder="Type stage, Enter to add"
+                        className="flex-1 px-2 py-1.5 text-[11px] border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-teal-400/40"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const v = projectMetaEditor?.stageInput.trim()
+                          if (v && projectMetaEditor) {
+                            const exists = projectMetaEditor.stageOrder.some((x) => x.toLowerCase() === v.toLowerCase())
+                            if (!exists) {
+                              setProjectMetaEditor({ ...projectMetaEditor, stageOrder: [...projectMetaEditor.stageOrder, v], stageInput: '' })
+                            }
+                          }
+                        }}
+                        disabled={!projectMetaEditor?.stageInput.trim()}
+                        className="px-2 py-1.5 text-[11px] rounded-lg border border-teal-300 bg-teal-50 text-teal-700 hover:bg-teal-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        添加
+                      </button>
+                    </div>
+                  </div>
+                  {/* AI 推荐：放在自定义下面，松散无连线 */}
+                  {stageSuggestions.length > 0 && (
+                    <div className="pt-2 mt-2 border-t border-gray-100">
+                      <p className="text-[10px] text-gray-400 mb-1.5 flex items-center gap-1">
+                        <Sparkles className="w-2.5 h-2.5 text-violet-400" />
+                        AI suggested (click to add)
+                        <button
+                          type="button"
+                          onClick={() => generateStageSuggestions(projectMetaEditor.text, true)}
+                          disabled={stageSuggestionsLoading}
+                          className="ml-auto px-2 py-0.5 text-[10px] rounded border border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {stageSuggestionsLoading ? '…' : 'Change'}
+                        </button>
+                      </p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {stageSuggestions.map((s) => {
+                          const alreadyAdded = projectMetaEditor.stageOrder.some((x) => x.toLowerCase() === s.toLowerCase())
+                          return (
+                            <button
+                              key={s}
+                              type="button"
+                              disabled={alreadyAdded}
+                              onClick={() => {
+                                if (!alreadyAdded) {
+                                  setProjectMetaEditor((prev) => prev ? { ...prev, stageOrder: [...prev.stageOrder, s] } : prev)
+                                }
+                              }}
+                              className={`px-2.5 py-1 rounded-full text-[10px] font-medium border transition-colors ${
+                                alreadyAdded ? 'border-teal-200 bg-teal-50 text-teal-500 opacity-50 cursor-default' : 'border-violet-200 bg-white text-violet-700 hover:bg-violet-50 hover:border-violet-300 cursor-pointer'
+                              }`}
+                            >
+                              {alreadyAdded ? '✓ ' : '+ '}{s}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
+                  {stageSuggestionsLoading && (
+                    <div className="flex items-center gap-1.5 text-[10px] text-violet-500 mt-1">
+                      <span className="w-2.5 h-2.5 rounded-full border-2 border-violet-400 border-t-transparent animate-spin" />
+                      AI generating stages…
+                    </div>
+                  )}
+                </div>
+                <p className="text-[11px] text-gray-500 mt-2 mb-1">Creators</p>
+                <div className="flex items-center gap-2 mb-1">
+                  <p className="text-[10px] text-gray-400 shrink-0">Initiator {userInfo?.name ?? 'me'}</p>
+                  <div className="flex flex-1 min-w-0 rounded-lg border border-gray-300 overflow-hidden">
+                    <input
+                      type="text"
+                      value={projectMetaEditor.creatorInput}
+                      onChange={(e) => {
+                        setProjectMetaEditor((prev) => prev ? { ...prev, creatorInput: e.target.value } : prev)
+                        setInviteEmailError(null)
+                        setInviteEmailSent(false)
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault()
+                          const v = projectMetaEditor?.creatorInput.trim()
+                          if (!v || !projectMetaEditor) return
+                          const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)
+                          if (isEmail) {
+                            // trigger send (same as button click)
+                            ;(async () => {
+                              const proj = projectsList[projectMetaEditor.projectIndex]
+                              const projectName = projectMetaEditor.text || proj?.text || 'Project'
+                              const slug = getSharePath(userInfo?.profileSlug, userInfo?.name, userInfo?.id ?? '')
+                              const projectLink = typeof window !== 'undefined' ? `${window.location.origin}/u/${slug}/project/${proj?.createdAt ?? ''}` : ''
+                              if (!projectLink || !projectLink.includes('/project/')) {
+                                setInviteEmailError('Project link not ready')
+                                return
+                              }
+                              setInviteEmailLoading(true)
+                              setInviteEmailError(null)
+                              setInviteEmailSent(false)
+                              try {
+                                const res = await fetch('/api/invite-email', {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ inviteeEmail: v, projectName, projectLink }),
+                                })
+                                const data = await res.json().catch(() => ({}))
+                                if (res.ok && data.success) {
+                                  setInviteEmailSent(true)
+                                  setProjectMetaEditor((p) => p ? { ...p, creators: [...p.creators, v], creatorInput: '' } : p)
+                                } else {
+                                  setInviteEmailError(data.hint ? `${data.error || 'Failed to send invite'}. ${data.hint}` : (data.error || 'Failed to send invite'))
+                                }
+                              } catch {
+                                setInviteEmailError('Failed to send invite')
+                              } finally {
+                                setInviteEmailLoading(false)
+                              }
+                            })()
+                          } else {
+                            setProjectMetaEditor({ ...projectMetaEditor, creators: [...projectMetaEditor.creators, v], creatorInput: '' })
+                          }
+                        }
+                      }}
+                      placeholder="Email or name to invite"
+                      className="flex-1 min-w-0 px-2 py-1.5 text-[11px] outline-none focus:ring-0 border-0"
+                    />
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const v = projectMetaEditor?.creatorInput.trim()
+                        if (!v || !projectMetaEditor) return
+                        const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)
+                        if (isEmail) {
+                          const proj = projectsList[projectMetaEditor.projectIndex]
+                          const projectName = projectMetaEditor.text || proj?.text || 'Project'
+                          const slug = getSharePath(userInfo?.profileSlug, userInfo?.name, userInfo?.id ?? '')
+                          const projectLink = typeof window !== 'undefined' ? `${window.location.origin}/u/${slug}/project/${proj?.createdAt ?? ''}` : ''
+                          if (!projectLink || !projectLink.includes('/project/')) {
+                            setInviteEmailError('Project link not ready')
+                            return
+                          }
+                          setInviteEmailLoading(true)
+                          setInviteEmailError(null)
+                          setInviteEmailSent(false)
+                          try {
+                            const res = await fetch('/api/invite-email', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ inviteeEmail: v, projectName, projectLink }),
+                            })
+                            const data = await res.json().catch(() => ({}))
+                            if (res.ok && data.success) {
+                              setInviteEmailSent(true)
+                              setProjectMetaEditor((p) => p ? { ...p, creators: [...p.creators, v], creatorInput: '' } : p)
+                            } else {
+                              setInviteEmailError(data.hint ? `${data.error || 'Failed to send invite'}. ${data.hint}` : (data.error || 'Failed to send invite'))
+                            }
+                          } catch {
+                            setInviteEmailError('Failed to send invite')
+                          } finally {
+                            setInviteEmailLoading(false)
+                          }
+                        } else {
+                          setProjectMetaEditor({ ...projectMetaEditor, creators: [...projectMetaEditor.creators, v], creatorInput: '' })
+                        }
+                      }}
+                      disabled={!projectMetaEditor?.creatorInput.trim() || inviteEmailLoading}
+                      className="px-3 py-1.5 text-[11px] border-l border-teal-300 bg-teal-50/80 text-teal-700 hover:bg-teal-100 disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-1"
+                    >
+                      {inviteEmailLoading ? (
+                        <span className="w-3 h-3 rounded-full border-2 border-teal-400 border-t-transparent animate-spin" />
+                      ) : null}
+                      Invite
+                    </button>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-1 mb-1">
+                  {(projectMetaEditor.creators ?? []).map((c, ci) => (
+                    <span key={ci} className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] bg-teal-50 text-teal-700 border border-teal-200">
+                      {c}
+                      <button
+                        type="button"
+                        onClick={() => setProjectMetaEditor((prev) => prev ? { ...prev, creators: prev.creators.filter((_, i) => i !== ci) } : prev)}
+                        className="p-0.5 rounded hover:bg-teal-100 text-teal-600"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+                {inviteEmailError && <p className="text-[10px] text-red-600 mb-1">{inviteEmailError}</p>}
+                {inviteEmailSent && <p className="text-[10px] text-teal-600 mb-1">Invite sent successfully</p>}
+                <p className="text-[11px] text-gray-500 mt-3 mb-1">Open to</p>
+                <p className="text-[10px] text-gray-400 mb-1">People you&apos;re open to collaborate with (click chip to edit)</p>
+                <div className="flex flex-wrap gap-1.5 mb-1">
+                  {(projectMetaEditor.peopleNeeded ?? []).map((p, pi) => (
+                    <span key={pi} className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-[10px] bg-amber-50 text-amber-800 border border-amber-200">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPeopleNeedEditor({ projectIndex: projectMetaEditor.projectIndex, whoIndex: pi, text: p.text, detail: p.detail ?? '' })
+                          setProjectMetaEditor(null)
+                        }}
+                        className="text-left hover:underline"
+                      >
+                        {p.text}
+                        {!!p.detail && <span className="text-[9px] text-amber-700/80"> ⓘ</span>}
+                      </button>
+                      {(p.stageTag || p.contentTag) && (
+                        <span className="flex items-center gap-1 shrink-0">
+                          {p.stageTag && (
+                            <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full border-2 border-teal-500 bg-teal-500 text-white text-[9px] font-medium">
+                              <span className="w-1 h-1 rounded-full bg-white shrink-0" />
+                              {p.stageTag}
+                            </span>
+                          )}
+                          {p.contentTag && (
+                            <span className="px-1.5 py-0.5 rounded-full bg-violet-100 text-violet-700 border border-violet-200 text-[9px] font-medium">{p.contentTag}</span>
+                          )}
+                        </span>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => setProjectMetaEditor((prev) => prev ? { ...prev, peopleNeeded: prev.peopleNeeded.filter((_, i) => i !== pi) } : prev)}
+                        className="p-0.5 rounded hover:bg-amber-100 text-amber-600 shrink-0"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={projectMetaEditor.openToInput}
+                    onChange={(e) => setProjectMetaEditor((prev) => prev ? { ...prev, openToInput: e.target.value } : prev)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault()
+                        const v = projectMetaEditor?.openToInput.trim()
+                        if (v && projectMetaEditor) {
+                          setProjectMetaEditor({ ...projectMetaEditor, peopleNeeded: [...projectMetaEditor.peopleNeeded, { text: v }], openToInput: '' })
+                          triggerAnalyzeTag({ type: 'people', key: v, peopleText: v, projectTitle: projectMetaEditor.text, currentStage: projectMetaEditor.stage, stageOrder: projectMetaEditor.stageOrder })
+                        }
+                      }
+                    }}
+                    placeholder="e.g. video or podcast guests interested in AI"
+                    className="flex-1 px-2 py-1.5 text-[11px] border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-teal-400/40"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const v = projectMetaEditor?.openToInput.trim()
+                      if (v && projectMetaEditor) {
+                        setProjectMetaEditor({ ...projectMetaEditor, peopleNeeded: [...projectMetaEditor.peopleNeeded, { text: v }], openToInput: '' })
+                        triggerAnalyzeTag({ type: 'people', key: v, peopleText: v, projectTitle: projectMetaEditor.text, currentStage: projectMetaEditor.stage, stageOrder: projectMetaEditor.stageOrder })
+                      }
+                    }}
+                    disabled={!projectMetaEditor?.openToInput.trim()}
+                    className="px-2 py-1.5 text-[11px] rounded-lg border border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100 disabled:opacity-50"
+                  >
+                    Add
+                  </button>
+                </div>
+              </div>
+              <div className="flex flex-wrap items-end gap-2">
+                <div className="flex-1 min-w-[120px]">
+                  <p className="text-[10px] text-gray-500 mb-0.5">Description</p>
+                  <input
+                    type="text"
+                    value={projectMetaEditor.detail}
+                    onChange={(e) => setProjectMetaEditor((prev) => prev ? { ...prev, detail: e.target.value } : prev)}
+                    placeholder="Short description..."
+                    className="w-full px-2 py-1.5 text-[11px] border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-400/40"
+                  />
+                </div>
+                <div className="flex-1 min-w-[120px]">
+                  <p className="text-[10px] text-gray-500 mb-0.5">Link</p>
+                  <div className="flex gap-1">
+                    <input
+                      type="url"
+                      value={projectMetaEditor.linkInput}
+                      onChange={(e) => setProjectMetaEditor((prev) => prev ? { ...prev, linkInput: e.target.value } : prev)}
+                      placeholder="https://..."
+                      className="flex-1 min-w-0 px-2 py-1.5 text-[11px] border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-400/40"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleProjectMetaFetchLink}
+                      disabled={!projectMetaEditor.linkInput.trim() || projectMetaFetching}
+                      className="px-2 py-1.5 text-[11px] rounded-lg border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 disabled:opacity-50 shrink-0"
+                    >
+                      {projectMetaFetching ? '...' : 'Add'}
+                    </button>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-[10px] text-gray-500 mb-0.5">Picture</p>
+                  <label className="inline-flex items-center px-2 py-1.5 text-[11px] rounded-lg border border-gray-300 bg-white hover:bg-gray-50 cursor-pointer">
+                    Upload
+                    <input type="file" accept="image/*" className="hidden" onChange={handleProjectMetaUploadImage} />
+                  </label>
+                </div>
+                {(projectMetaUploading || projectMetaAttachmentUploading) && <span className="text-[10px] text-gray-500">Uploading...</span>}
+              </div>
+              {projectMetaEditor.detailImage && (
+                <div className="mt-2 flex items-center gap-2">
+                  <img src={resolveImageUrl(projectMetaEditor.detailImage)} alt="" className="w-12 h-12 rounded object-cover border border-gray-200" />
+                  <button type="button" onClick={() => setProjectMetaEditor((prev) => prev ? { ...prev, detailImage: '' } : prev)} className="text-[10px] text-red-600 hover:underline">Remove</button>
+                </div>
+              )}
+              {(projectMetaEditor.references ?? []).length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {projectMetaEditor.references.map((ref, idx) => (
+                    <span key={`${ref.url}-${idx}`} className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] bg-gray-100 border border-gray-200">
+                      {ref.cover ? <img src={resolveImageUrl(ref.cover)} alt="" className="w-5 h-5 rounded object-cover" /> : null}
+                      <span className="truncate max-w-[100px]">{ref.title || ref.url}</span>
+                      {ref.stageTag && (
+                        <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full border-2 border-teal-500 bg-teal-500 text-white text-[9px] font-medium shrink-0">
+                          <span className="w-1 h-1 rounded-full bg-white shrink-0" />
+                          {ref.stageTag}
+                        </span>
+                      )}
+                      {ref.contentTag && (
+                        <span className="px-1 py-0.5 rounded bg-violet-100 text-violet-700 border border-violet-200 text-[9px] font-medium shrink-0">{ref.contentTag}</span>
+                      )}
+                      <button type="button" onClick={() => setProjectMetaEditor((prev) => prev ? { ...prev, references: prev.references.filter((_, i) => i !== idx) } : prev)} className="p-0.5 rounded hover:bg-gray-200 text-gray-500"><X className="w-3 h-3" /></button>
+                    </span>
+                  ))}
+                </div>
+              )}
+              <div className="mt-3">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="flex items-center gap-1.5 text-[11px] font-medium text-gray-700">
+                    <Paperclip className="w-3.5 h-3.5" />
+                    Attachments
+                  </span>
+                  <label className="px-2.5 py-1 text-[11px] rounded-lg border border-gray-300 bg-gray-50 text-gray-700 hover:bg-gray-100 cursor-pointer">
+                    Add
+                    <input type="file" className="hidden" onChange={handleProjectMetaUploadAttachment} />
+                  </label>
+                </div>
+                <p className="text-[10px] text-gray-500 mb-2">Files</p>
+                {(projectMetaEditor.attachments ?? []).length === 0 ? (
+                  <p className="text-[10px] text-gray-400 italic">No attachments yet</p>
+                ) : (
+                  <div className="space-y-2">
+                    {projectMetaEditor.attachments.map((att, idx) => {
+                      const ext = (att.name.split('.').pop() || '').toUpperCase().slice(0, 4)
+                      const typeLabel = ext === 'PDF' ? 'PDF' : ext ? ext : 'FILE'
+                      const addedText = att.addedAt ? (() => {
+                        const mins = Math.floor((Date.now() - att.addedAt) / 60000)
+                        if (mins < 1) return 'Just now'
+                        if (mins < 60) return `Added ${mins} minute${mins === 1 ? '' : 's'} ago`
+                        const hrs = Math.floor(mins / 60)
+                        return `Added ${hrs} hour${hrs === 1 ? '' : 's'} ago`
+                      })() : ''
+                      return (
+                        <div key={`${att.url}-${idx}`} className="flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50/50 px-2.5 py-2">
+                          <span className="px-1.5 py-0.5 rounded text-[9px] font-medium bg-gray-200 text-gray-600 border-b border-gray-300">{typeLabel}</span>
+                          <div className="flex-1 min-w-0">
+                            <a href={resolveImageUrl(att.url)} target="_blank" rel="noopener noreferrer" className="text-[11px] font-medium text-gray-800 hover:underline truncate block">{att.name}</a>
+                            <div className="flex items-center gap-1 mt-0.5 flex-wrap">
+                              {addedText && <p className="text-[10px] text-gray-500">{addedText}</p>}
+                              {att.stageTag && (
+                                <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full border-2 border-teal-500 bg-teal-500 text-white text-[9px] font-medium">
+                                  <span className="w-1 h-1 rounded-full bg-white shrink-0" />
+                                  {att.stageTag}
+                                </span>
+                              )}
+                              {att.contentTag && <span className="px-1 py-0.5 rounded bg-violet-100 text-violet-700 border border-violet-200 text-[9px] font-medium">{att.contentTag}</span>}
+                            </div>
+                          </div>
+                          <a href={resolveImageUrl(att.url)} target="_blank" rel="noopener noreferrer" className="p-1 rounded hover:bg-gray-200 text-gray-500" title="Open"><ExternalLink className="w-3.5 h-3.5" /></a>
+                          <div className="relative">
+                            <button
+                              type="button"
+                              onClick={() => setProjectMetaAttachmentMenuIndex((prev) => (prev === idx ? null : idx))}
+                              className="p-1 rounded hover:bg-gray-200 text-gray-500"
+                              title="More"
+                            >
+                              <MoreVertical className="w-3.5 h-3.5" />
+                            </button>
+                            {projectMetaAttachmentMenuIndex === idx && (
+                              <>
+                                <div className="fixed inset-0 z-10" onClick={() => setProjectMetaAttachmentMenuIndex(null)} aria-hidden="true" />
+                                <div className="absolute right-0 top-full mt-0.5 py-1 bg-white rounded-lg shadow-lg border border-gray-200 min-w-[120px] z-20">
+                                  <button type="button" onClick={() => { setProjectMetaAttachmentMenuIndex(null) }} className="w-full px-3 py-2 text-left text-[11px] hover:bg-gray-50 text-gray-800">Edit</button>
+                                  <button type="button" onClick={() => { setProjectMetaAttachmentMenuIndex(null) }} className="w-full px-3 py-2 text-left text-[11px] hover:bg-gray-50 text-gray-800">Comment</button>
+                                  <a href={resolveImageUrl(att.url)} download={att.name} target="_blank" rel="noopener noreferrer" onClick={() => setProjectMetaAttachmentMenuIndex(null)} className="block w-full px-3 py-2 text-left text-[11px] hover:bg-gray-50 text-gray-800">Download</a>
+                                  <button type="button" onClick={() => { setProjectMetaEditor((prev) => prev ? { ...prev, attachments: prev.attachments.filter((_, i) => i !== idx) } : prev); setProjectMetaAttachmentMenuIndex(null) }} className="w-full px-3 py-2 text-left text-[11px] hover:bg-gray-50 text-red-600">Remove</button>
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="mt-4 flex justify-end gap-2">
+              <button type="button" onClick={() => { setProjectMetaEditor(null); setProjectMetaAttachmentMenuIndex(null) }} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">Cancel</button>
+              <button type="button" onClick={saveProjectMetaEditor} className="px-4 py-2 text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 rounded-lg">Save</button>
+            </div>
+            {tagAnalyzing && (
+              <div className="mt-2 flex items-center gap-1.5 text-[11px] text-gray-400">
+                <span className="w-3 h-3 rounded-full border-2 border-teal-400 border-t-transparent animate-spin" />
+                AI analyzing…
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+      {/* AI 标签确认弹窗 — 独立浮层，覆盖在主 modal 上 */}
+      {tagConfirmDialog && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4" onClick={() => setTagConfirmDialog(null)}>
+          <div className="w-full max-w-xs bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            {/* 顶部色条 */}
+            <div className="h-1 bg-gradient-to-r from-teal-400 to-violet-400" />
+            <div className="p-4 space-y-3">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <p className="text-[11px] text-gray-400 mb-0.5">AI 判断这个{tagConfirmDialog.type === 'ref' ? '链接' : tagConfirmDialog.type === 'att' ? '附件' : '找人需求'}属于</p>
+                  <div className="flex items-center gap-2 flex-wrap mt-1.5">
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-teal-100 border border-teal-200 text-teal-800 text-[11px] font-semibold">
+                      <span className="w-1.5 h-1.5 rounded-full bg-teal-500 shrink-0" />
+                      {tagConfirmDialog.editStage}
+                    </span>
+                    <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-violet-100 border border-violet-200 text-violet-800 text-[11px] font-semibold">
+                      {tagConfirmDialog.editTag}
+                    </span>
+                  </div>
+                </div>
+                <button type="button" onClick={() => setTagConfirmDialog(null)} className="text-gray-300 hover:text-gray-500 shrink-0 mt-0.5">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              {/* 可编辑区 */}
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <label className="block text-[9px] text-gray-400 mb-0.5">进度阶段</label>
+                  <input
+                    type="text"
+                    value={tagConfirmDialog.editStage}
+                    onChange={(e) => setTagConfirmDialog((d) => d ? { ...d, editStage: e.target.value } : d)}
+                    className="w-full px-2 py-1 text-[11px] border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-teal-400/40 bg-gray-50"
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="block text-[9px] text-gray-400 mb-0.5">内容标签</label>
+                  <input
+                    type="text"
+                    value={tagConfirmDialog.editTag}
+                    onChange={(e) => setTagConfirmDialog((d) => d ? { ...d, editTag: e.target.value } : d)}
+                    className="w-full px-2 py-1 text-[11px] border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-violet-400/40 bg-gray-50"
+                  />
+                </div>
+              </div>
+              {/* 是否更新项目进度 */}
+              {tagConfirmDialog.suggestUpdateStage && (
+                <label className="flex items-start gap-2 cursor-pointer select-none bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-2">
+                  <input
+                    type="checkbox"
+                    checked={tagConfirmDialog.updateStage}
+                    onChange={(e) => setTagConfirmDialog((d) => d ? { ...d, updateStage: e.target.checked } : d)}
+                    className="mt-0.5 w-3.5 h-3.5 rounded accent-amber-500 shrink-0"
+                  />
+                  <span className="text-[11px] text-amber-800 leading-snug">
+                    项目当前进度与此不同，是否同时更新为 <strong className="font-semibold">{tagConfirmDialog.editStage}</strong>？
+                  </span>
+                </label>
+              )}
+              <div className="flex gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={handleTagConfirm}
+                  className="flex-1 py-2 text-[12px] font-semibold rounded-xl bg-teal-600 text-white hover:bg-teal-700 transition-colors"
+                >
+                  确认
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTagConfirmDialog(null)}
+                  className="px-4 py-2 text-[12px] rounded-xl border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors"
+                >
+                  跳过
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
       {peopleNeedEditor && (
@@ -1824,6 +2813,14 @@ Return ONLY a valid JSON object with keys "tags" and "insights". No other text.`
                 </button>
                 {previewCardMenuOpen && (
                   <div className="absolute right-0 top-full mt-1 min-w-[160px] py-1 bg-white rounded-lg border border-gray-200 shadow-lg">
+                    <button
+                      type="button"
+                      onClick={() => { setPreviewCardMenuOpen(false); setShowProjectsModal(true) }}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
+                    >
+                      <LayoutGrid className="w-4 h-4 text-teal-500 shrink-0" />
+                      Project{projectsList.filter((p) => p.showOnPlaza && p.visibility !== 'hidden').length > 0 ? ` (${projectsList.filter((p) => p.showOnPlaza && p.visibility !== 'hidden').length})` : ''}
+                    </button>
                     <label className="relative block w-full cursor-pointer hover:bg-gray-50 min-h-[44px]">
                       <span className="flex items-center gap-2 px-3 py-2 text-left text-sm text-gray-700 w-full pointer-events-none">
                         <Camera className="w-4 h-4 text-teal-500 shrink-0" />
@@ -1961,9 +2958,9 @@ Return ONLY a valid JSON object with keys "tags" and "insights". No other text.`
                 </div>
               </div>
             </div>
-            {/* What I want to do (and look for a partner): add flow = choose Public/Individual first, then options. Storage section. */}
+            {/* Projects (and who you're looking for): choose Public/Individual first, then options. */}
             <div className="flex flex-col w-full px-4 pt-2 pb-2 shrink-0 border-t border-white/50">
-              <p className="text-xs text-gray-500 mb-2">What I want to do (and look for a partner)</p>
+              <p className="text-xs text-gray-500 mb-2">Projects (and who you&apos;re looking for)</p>
               <div className="space-y-3">
                 {projectsList.map((proj, i) => (
                   <div key={i} className="rounded-lg border border-white/80 bg-white/90 p-2 space-y-1.5">
@@ -2001,61 +2998,164 @@ Return ONLY a valid JSON object with keys "tags" and "insights". No other text.`
                         />
                       ) : (
                         <>
-                          <span onClick={() => { setEditingProjectIndex(i); setEditingProjectValue(proj.text) }} className="cursor-pointer hover:underline text-[11px] font-medium text-gray-800">{proj.text}</span>
-                          <span className="text-[10px] text-gray-400">·</span>
+                          <span
+                            onClick={() => {
+                              setProjectMetaAttachmentMenuIndex(null)
+                              setProjectMetaEditor({
+                                projectIndex: i,
+                                text: proj.text,
+                                detail: proj.detail ?? '',
+                                references: [...(proj.references ?? [])],
+                                detailImage: proj.detailImage ?? '',
+                                attachments: [...(proj.attachments ?? [])],
+                                linkInput: '',
+                                stage: proj.stage?.trim() || inferStageFromPeopleNeeded(proj.peopleNeeded ?? []),
+                                stageOrder: (proj.stageOrder?.length ? proj.stageOrder.filter((s) => STAGE_RECOMMENDED_TAGS.includes(s as any)) : [...STAGE_RECOMMENDED_TAGS]).filter(Boolean).length > 0
+                                  ? (proj.stageOrder?.length ? proj.stageOrder.filter((s) => STAGE_RECOMMENDED_TAGS.includes(s as any)) : [...STAGE_RECOMMENDED_TAGS]).filter(Boolean)
+                                  : [...STAGE_RECOMMENDED_TAGS],
+                                stageInput: '',
+                                stageEnteredAt: (() => {
+                                  const cur = proj.stage?.trim() || inferStageFromPeopleNeeded(proj.peopleNeeded ?? [])
+                                  const entered = proj.stageEnteredAt ?? {}
+                                  if (!entered[cur] && proj.createdAt) return { ...entered, [cur]: proj.createdAt }
+                                  return entered
+                                })(),
+                                creators: proj.creators ?? [],
+                                creatorInput: '',
+                                peopleNeeded: proj.peopleNeeded ?? [],
+                                openToInput: '',
+                              })
+                            }}
+                            className="cursor-pointer hover:underline text-[11px] font-medium text-gray-800"
+                            title="Click to edit project description, links, and image"
+                          >
+                            {proj.text}
+                          </span>
+                          <div
+                            className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full border border-teal-500 bg-teal-500 text-white text-[9px] font-medium shrink-0"
+                            title={stageDisplayLabel(proj.stage)}
+                          >
+                            <span className="w-1 h-1 rounded-full bg-white shrink-0" />
+                            <span>{stageDisplayLabel(proj.stage)}</span>
+                          </div>
+                          {proj.visibility !== 'hidden' && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const next = [...projectsList]
+                                const isPublic = proj.visibility === 'public'
+                                next[i] = {
+                                  ...next[i],
+                                  visibility: isPublic ? 'individual' : 'public',
+                                  showOnPlaza: isPublic ? false : true,
+                                }
+                                setProjectsList(next)
+                                saveProfileDataToDb(getProfileDataFromState({ projects: next }))
+                              }}
+                              className={`px-1.5 py-0.5 rounded text-[10px] shrink-0 cursor-pointer hover:opacity-80 transition-opacity ${proj.visibility === 'public' ? 'bg-amber-100 text-amber-700 border border-amber-200' : 'bg-gray-100 text-gray-600 border border-gray-200'}`}
+                              title="Click to toggle public / individual"
+                            >
+                              {proj.visibility === 'public' ? 'public' : 'individual'}
+                            </button>
+                          )}
+                          <div className="relative" ref={projectVisibilityDropdownIndex === i ? projectVisibilityDropdownRef : null}>
+                            <button
+                              type="button"
+                              onClick={() => setProjectVisibilityDropdownIndex((prev) => (prev === i ? null : i))}
+                              className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] cursor-pointer hover:opacity-80 ${
+                                proj.visibility === 'hidden'
+                                  ? 'bg-gray-200 text-gray-500'
+                                  : proj.showOnPlaza
+                                    ? 'bg-amber-100 text-amber-700'
+                                    : 'bg-teal-100 text-teal-700'
+                              }`}
+                              title="Select visibility"
+                            >
+                              {proj.visibility === 'hidden' ? 'Hidden' : proj.showOnPlaza ? 'Plaza' : 'Profile'}
+                              <ChevronDown className="w-3 h-3" />
+                            </button>
+                            {projectVisibilityDropdownIndex === i && (
+                              <div className="absolute left-0 top-full mt-1 py-1 bg-white rounded-lg shadow-lg border border-gray-200 min-w-[100px] z-10">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const next = [...projectsList]
+                                    next[i] = { ...next[i], visibility: 'individual' as const, showOnPlaza: false }
+                                    setProjectsList(next)
+                                    saveProfileDataToDb(getProfileDataFromState({ projects: next }))
+                                    setProjectVisibilityDropdownIndex(null)
+                                  }}
+                                  className={`w-full px-3 py-2 text-left text-[11px] hover:bg-gray-50 ${!proj.showOnPlaza && proj.visibility !== 'hidden' ? 'bg-teal-50 text-teal-700' : 'text-gray-700'}`}
+                                >
+                                  Profile
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const next = [...projectsList]
+                                    next[i] = { ...next[i], visibility: 'public' as const, showOnPlaza: true }
+                                    setProjectsList(next)
+                                    saveProfileDataToDb(getProfileDataFromState({ projects: next }))
+                                    setProjectVisibilityDropdownIndex(null)
+                                  }}
+                                  className={`w-full px-3 py-2 text-left text-[11px] hover:bg-gray-50 ${proj.showOnPlaza ? 'bg-amber-50 text-amber-700' : 'text-gray-700'}`}
+                                >
+                                  Plaza
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const next = [...projectsList]
+                                    next[i] = { ...next[i], visibility: 'hidden' as const, showOnPlaza: false }
+                                    setProjectsList(next)
+                                    saveProfileDataToDb(getProfileDataFromState({ projects: next }))
+                                    setProjectVisibilityDropdownIndex(null)
+                                  }}
+                                  className={`w-full px-3 py-2 text-left text-[11px] hover:bg-gray-50 ${proj.visibility === 'hidden' ? 'bg-gray-100 text-gray-700' : 'text-gray-700'}`}
+                                >
+                                  Hidden
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                          {(proj.attachments ?? []).length > 0 && (
+                            <span className="inline-flex items-center gap-0.5 text-gray-600 shrink-0">
+                              <Paperclip className="w-3 h-3" />
+                              {(proj.attachments ?? []).length}
+                            </span>
+                          )}
+                          {(proj.references ?? []).length > 0 && (
+                            <span className="px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 text-[10px] shrink-0">{(proj.references ?? []).length} link(s)</span>
+                          )}
                           <button
                             type="button"
                             onClick={() => {
-                              const next = [...projectsList]
-                              const nextVisibility = proj.visibility === 'public' ? 'individual' as const : 'public' as const
-                              next[i] = { ...next[i], visibility: nextVisibility, showOnPlaza: nextVisibility === 'public' ? true : proj.showOnPlaza }
-                              setProjectsList(next)
-                              saveProfileDataToDb(getProfileDataFromState({ projects: next }))
+                              const slug = getSharePath(userInfo?.profileSlug, userInfo?.name, userInfo?.id)
+                              const url = typeof window !== 'undefined' ? `${window.location.origin}/u/${slug}/project/${proj.createdAt ?? Date.now()}` : ''
+                              if (url && navigator.clipboard?.writeText) {
+                                navigator.clipboard.writeText(url)
+                                setShareLinkCopied(true)
+                                setTimeout(() => setShareLinkCopied(false), 2000)
+                              }
                             }}
-                            className={`px-1.5 py-0.5 rounded text-[10px] cursor-pointer hover:opacity-80 ${proj.visibility === 'public' ? 'bg-teal-100 text-teal-700' : 'bg-gray-100 text-gray-600'}`}
-                            title="Click to switch to Public / Individual"
+                            className="p-0.5 rounded hover:bg-teal-100 text-teal-600"
+                            title="Copy project share link"
                           >
-                            {proj.visibility}
+                            <Share2 className="w-3 h-3" />
                           </button>
-                          {proj.showOnPlaza ? (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (!confirm('要切换到 Profile 吗？切换后将从 Plaza（广场）移除。')) return
-                                const next = [...projectsList]
-                                next[i] = { ...next[i], showOnPlaza: false }
-                                setProjectsList(next)
-                                saveProfileDataToDb(getProfileDataFromState({ projects: next }))
-                                setPlazaToastMessage('已切换到 Profile，并从广场移除')
-                                setTimeout(() => setPlazaToastMessage(null), 4000)
-                              }}
-                              className="px-1.5 py-0.5 rounded text-[10px] bg-amber-100 text-amber-700 cursor-pointer hover:opacity-80"
-                              title="当前在 Plaza，点击切换到 Profile"
-                            >
-                              Plaza
-                            </button>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const next = [...projectsList]
-                                next[i] = { ...next[i], showOnPlaza: true }
-                                setProjectsList(next)
-                                saveProfileDataToDb(getProfileDataFromState({ projects: next }))
-                              }}
-                              className="px-1.5 py-0.5 rounded text-[10px] bg-gray-100 text-gray-600 cursor-pointer hover:opacity-80"
-                              title="当前在 Profile，点击切换到 Plaza"
-                            >
-                              Profile
-                            </button>
-                          )}
                           <button type="button" onClick={() => { const next = projectsList.filter((_, j) => j !== i); setProjectsList(next); saveProfileDataToDb(getProfileDataFromState({ projects: next })) }} className="p-0.5 rounded hover:bg-red-100 text-red-500" aria-label="Remove"><X className="w-3 h-3" /></button>
                         </>
                       )}
                     </div>
+                    {(proj.detail?.trim() || proj.detailImage) && (
+                      <div className="flex flex-wrap items-center gap-1 text-[10px] text-gray-500">
+                        {proj.detail?.trim() ? <span className="px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">description</span> : null}
+                        {proj.detailImage ? <span className="px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">picture</span> : null}
+                      </div>
+                    )}
                     {proj.visibility === 'public' && (
-                      <div>
-                        <p className="text-[10px] text-gray-500 mb-1">I&apos;m looking for (click chip to edit details)</p>
+                      <div className="mt-1">
+                        <p className="text-[10px] text-gray-500 mb-1">Open to (click chip to edit)</p>
                         <div className="flex flex-wrap gap-1 mb-1">
                           {(proj.peopleNeeded ?? []).map((who, wi) => (
                             <button
@@ -2085,7 +3185,7 @@ Return ONLY a valid JSON object with keys "tags" and "insights". No other text.`
                 <div className="flex gap-1 items-center rounded-lg border border-white/80 bg-white/90 overflow-hidden focus-within:ring-2 focus-within:ring-teal-400/50">
                   <input
                     type="text"
-                    placeholder="e.g. Looking for interviewees for a documentary"
+                    placeholder="e.g. Building a documentary project and looking for interviewees"
                     value={projectInput}
                     onChange={(e) => setProjectInput(e.target.value)}
                     onKeyDown={(e) => {
@@ -2698,7 +3798,7 @@ Return ONLY a valid JSON object with keys "tags" and "insights". No other text.`
         </div>
       )}
 
-      {/* 潜在合作：看过的 profile 及合作提示 */}
+      {/* 潜在合作：看过的 profile 及收到的 Engage 申请 */}
       {showPotentialConnectionModal && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
@@ -2709,7 +3809,7 @@ Return ONLY a valid JSON object with keys "tags" and "insights". No other text.`
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between p-4 border-b border-gray-200">
-              <h3 className="font-semibold text-gray-900">潜在合作 · 看过的</h3>
+              <h3 className="font-semibold text-gray-900">潜在合作</h3>
               <button
                 type="button"
                 onClick={() => setShowPotentialConnectionModal(false)}
@@ -2721,7 +3821,7 @@ Return ONLY a valid JSON object with keys "tags" and "insights". No other text.`
             </div>
             <div className="overflow-y-auto p-4 space-y-3">
               {viewedPotentialConnections.length === 0 ? (
-                <p className="text-sm text-gray-500">暂无。访问他人 profile 时会自动加入合作提示。</p>
+                <p className="text-sm text-gray-500">暂无。你看过的合作提示和别人发给你的 Engage 申请会显示在这里。</p>
               ) : (
                 viewedPotentialConnections.map((v) => {
                   const linkUserId = /^[a-zA-Z0-9_-]+$/.test(v.targetUserId) ? v.targetUserId : v.targetUserId
@@ -2732,9 +3832,14 @@ Return ONLY a valid JSON object with keys "tags" and "insights". No other text.`
                       className="flex flex-col gap-1.5 p-3 rounded-xl bg-gray-50 border border-gray-100 hover:bg-gray-100 transition-colors"
                     >
                       <div className="flex items-center justify-between">
-                        <p className="font-medium text-gray-900">TA：{v.targetName || 'Anonymous'}</p>
+                        <p className="font-medium text-gray-900">
+                          {v.source === 'engage' ? 'Applicant' : 'TA'}：{v.targetName || 'Anonymous'}
+                        </p>
                         <ChevronRight className="w-5 h-5 text-gray-400 shrink-0" />
                       </div>
+                      {v.source === 'engage' && (
+                        <p className="text-[10px] text-teal-600 font-medium">New engage request</p>
+                      )}
                       <div className="text-xs text-gray-600 space-y-1">
                         <p>{v.hint}</p>
                         {v.possibleTopics && v.possibleTopics.length > 0 && (
@@ -2855,6 +3960,48 @@ Return ONLY a valid JSON object with keys "tags" and "insights". No other text.`
               >
                 {sendToEvelynFeedback === 'sending' ? '发送中…' : sendToEvelynFeedback === 'sent' ? '已发送 ✓' : 'Send'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 右上角三点 → Project：已发布的项目列表 */}
+      {showProjectsModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={() => setShowProjectsModal(false)}>
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-4 border-b border-gray-200 shrink-0">
+              <h3 className="font-semibold text-gray-900">Project</h3>
+              <button type="button" onClick={() => setShowProjectsModal(false)} className="p-1 rounded-lg text-gray-500 hover:bg-gray-100" aria-label="Close">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <p className="px-4 py-2 text-xs text-gray-500 border-b border-gray-100">已发布到 Plaza 的项目</p>
+            <div className="flex-1 overflow-y-auto p-4">
+              {projectsList.filter((p) => p.showOnPlaza && p.visibility !== 'hidden').length === 0 ? (
+                <p className="text-sm text-gray-500">暂无已发布项目。在 Activity 中将项目设为 Plaza 即可发布。</p>
+              ) : (
+                <ul className="space-y-2">
+                  {projectsList
+                    .filter((p) => p.showOnPlaza && p.visibility !== 'hidden')
+                    .map((proj, i) => (
+                      <li key={proj.createdAt ?? i}>
+                        <Link
+                          href={userInfo?.id ? `/u/${userInfo.id}/project/${proj.createdAt ?? ''}` : '#'}
+                          className="block p-3 rounded-lg border border-gray-200 hover:border-teal-300 hover:bg-teal-50/50 transition-colors"
+                          onClick={() => setShowProjectsModal(false)}
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium text-gray-800">{proj.text}</span>
+                            <span className="px-1.5 py-0.5 rounded text-[9px] bg-teal-100 text-teal-700 border border-teal-200">
+                              {(proj.stage ?? '').trim() || 'Idea'}
+                            </span>
+                          </div>
+                          <p className="mt-1 text-xs text-gray-500">点击查看项目详情</p>
+                        </Link>
+                      </li>
+                    ))}
+                </ul>
+              )}
             </div>
           </div>
         </div>
@@ -3625,7 +4772,7 @@ Return ONLY a valid JSON object with keys "tags" and "insights". No other text.`
         </div>
       )}
 
-      {/* Add activity modal: choose Public/Individual first, then options */}
+      {/* Add project modal: choose Public/Individual first, then options */}
       {showAddActivityModal && (
         <div
           className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50"
@@ -3636,12 +4783,12 @@ Return ONLY a valid JSON object with keys "tags" and "insights". No other text.`
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-gray-900">Add activity</h3>
+              <h3 className="font-semibold text-gray-900">Add project</h3>
               <button type="button" onClick={() => { setShowAddActivityModal(false); setAddActivityDraft(''); setAddActivityInputFromModal(''); setAddActivityVisibility(null); setAddActivityNeedPeople(null); setAddActivityPeopleList([]); setAddActivityPeopleInput(''); setAddActivityEditingWhoIndex(null); setAddActivityShowOnPlaza(null) }} className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100"><X className="w-5 h-5" /></button>
             </div>
             {!addActivityDraft.trim() ? (
               <div className="space-y-3">
-                <p className="text-xs text-gray-500">What I want to do (and optionally look for a partner). Describe your activity:</p>
+                <p className="text-xs text-gray-500">Describe your project (and optionally who you&apos;re looking for):</p>
                 <input
                   type="text"
                   placeholder="e.g. Building a startup, looking for a co-founder"

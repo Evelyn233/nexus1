@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
+import Link from 'next/link'
 import { Share2, Image as ImageIcon, MessageSquare, Send, Database, Lightbulb, Link2, ChevronRight, X, Heart, Briefcase, GraduationCap } from 'lucide-react'
 import ProfileQADrawer from '@/components/ProfileQADrawer'
 import { getPlatformByKey } from '@/lib/socialPlatforms'
@@ -11,8 +12,10 @@ import { resolveImageUrl } from '@/lib/resolveImageUrl'
 export default function PublicProfilePage() {
   const params = useParams()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { isAuthenticated } = useAuth()
   const userId = params.userId as string
+  const projectCreatedAt = searchParams.get('project')
 
   const [user, setUser] = useState<any>(null)
   const [profile, setProfile] = useState<{
@@ -22,7 +25,7 @@ export default function PublicProfilePage() {
     headline?: string | null
     bio?: string | null
     myLink?: string | null
-    projects?: { text: string; peopleNeeded?: string[] }[] | null
+    projects?: { text: string; createdAt?: number; peopleNeeded?: string[]; creators?: string[]; stage?: string; stageOrder?: string[]; stageEnteredAt?: Record<string, number> }[] | null
     collaborationPossibility?: string | string[] | null
     peopleToCollaborateWith?: string | string[] | null
     howToEngageMeOnline?: string | null
@@ -55,6 +58,15 @@ export default function PublicProfilePage() {
       setShareUrl(`${window.location.origin}/u/${userId}`)
     }
   }, [userId])
+
+  // Scroll to project when ?project=createdAt is present
+  useEffect(() => {
+    if (!projectCreatedAt || !profile.projects?.length) return
+    const el = document.getElementById(`project-${projectCreatedAt}`)
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
+  }, [projectCreatedAt, profile.projects])
 
   // 获取当前用户是否已收藏此名片
   useEffect(() => {
@@ -303,7 +315,12 @@ export default function PublicProfilePage() {
       {/* Header */}
       <div className="bg-white/80 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="w-10" />
+          <Link
+            href="/square"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors"
+          >
+            Plaza
+          </Link>
           <h1 className="text-xl font-bold text-gray-900">Profile</h1>
           <div className="flex items-center gap-2">
             <button
@@ -413,18 +430,143 @@ export default function PublicProfilePage() {
                 <p className="text-xs text-gray-500 mb-1.5">What I want to do (and look for a partner)</p>
                 <div className="space-y-2">
                   {Array.isArray(profile.projects) && profile.projects.length > 0 ? (
-                    profile.projects.map((proj: { text: string; peopleNeeded?: string[] }, pi: number) => (
-                      <div key={pi}>
-                        <p className="text-[11px] font-medium text-teal-800">{proj.text}</p>
-                        {Array.isArray(proj.peopleNeeded) && proj.peopleNeeded.length > 0 && (
-                          <div className="flex flex-wrap gap-1 mt-0.5">
-                            {proj.peopleNeeded.map((t: string, i: number) => (
-                              <span key={i} className="inline-flex px-2 py-0.5 rounded text-[10px] font-medium bg-amber-100 text-amber-800 border border-amber-200">{t}</span>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    ))
+                    profile.projects.map((proj: { text: string; createdAt?: number; peopleNeeded?: string[]; creators?: string[]; stage?: string; stageOrder?: string[]; stageEnteredAt?: Record<string, number> }, pi: number) => {
+                      const projectUserId = user?.id || userId
+                      const projectCreatedAt = proj.createdAt
+                      const projectHref = projectCreatedAt ? `/u/${projectUserId}/project/${projectCreatedAt}` : null
+                      const fullStageOrder = Array.isArray(proj.stageOrder) && proj.stageOrder.length > 0 ? proj.stageOrder : ['Idea']
+                      const PUBLIC_STAGES = ['Idea', 'Planning', 'Production']
+                      const stageOrder = fullStageOrder.filter((s) => PUBLIC_STAGES.some((p) => p.toLowerCase() === s.toLowerCase()))
+                      const effectiveOrder = stageOrder.length > 0 ? stageOrder : ['Idea']
+                      const creators = Array.isArray(proj.creators) ? proj.creators : []
+                      const currentStage = (proj.stage ?? 'Idea').trim()
+                      const currentIdx = effectiveOrder.findIndex((s) => s.toLowerCase() === currentStage.toLowerCase())
+                      const litCount = currentIdx >= 0 ? currentIdx + 1 : 1
+                      const formatStageDate = (ts: number) => {
+                        const d = new Date(ts)
+                        return `${d.getDate()}/${d.getMonth() + 1}/${String(d.getFullYear()).slice(-2)}`
+                      }
+                      return (
+                        <div key={pi} id={projectCreatedAt ? `project-${projectCreatedAt}` : undefined} className="flex items-start justify-between gap-2">
+                          {projectHref ? (
+                            <Link href={projectHref} className="min-w-0 flex-1 block rounded-lg p-1 -m-1 hover:bg-white/60 transition-colors">
+                              <p className="text-[11px] font-medium text-teal-800">{proj.text}</p>
+                              {effectiveOrder.length > 0 && (proj.stageEnteredAt && Object.keys(proj.stageEnteredAt).length > 0) && (
+                                <div className="mt-1 flex flex-wrap items-center gap-x-1 gap-y-0.5">
+                                  {effectiveOrder.slice(0, litCount).map((s, idx) => {
+                                    const key = Object.keys(proj.stageEnteredAt ?? {}).find((k) => k.toLowerCase() === s.toLowerCase()) ?? s
+                                    const ts = (proj.stageEnteredAt ?? {})[key] ?? projectCreatedAt ?? Date.now()
+                                    return (
+                                      <span key={`${s}-${idx}`} className="inline-flex items-center gap-0.5 text-[9px] text-gray-500">
+                                        <span className="font-medium text-teal-700">{s}</span>
+                                        <span>{formatStageDate(ts)}</span>
+                                        {idx < litCount - 1 && <span className="text-gray-400">→</span>}
+                                      </span>
+                                    )
+                                  })}
+                                </div>
+                              )}
+                              {(!proj.stageEnteredAt || Object.keys(proj.stageEnteredAt).length === 0) && effectiveOrder.some((s) => s.toLowerCase() === currentStage.toLowerCase()) && currentStage && (
+                                <div className="mt-0.5">
+                                  <span className="text-[9px] text-teal-700 font-medium">{currentStage}</span>
+                                  {projectCreatedAt && (
+                                    <span className="text-[9px] text-gray-500 ml-0.5">{formatStageDate(projectCreatedAt)}</span>
+                                  )}
+                                </div>
+                              )}
+                              {(creators.length > 0 || user?.name) && (
+                                <div className="mt-0.5">
+                                  <p className="text-[10px] text-teal-600 font-medium mb-0.5">主创 Creators</p>
+                                  <div className="flex flex-wrap gap-1">
+                                    {user?.name && (
+                                      <span className="inline-flex px-2 py-0.5 rounded text-[10px] font-medium bg-teal-100 text-teal-800 border border-teal-200">{user.name}</span>
+                                    )}
+                                    {creators.map((c: string, i: number) => (
+                                      <span key={i} className="inline-flex px-2 py-0.5 rounded text-[10px] font-medium bg-teal-100 text-teal-800 border border-teal-200">{c}</span>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                              {Array.isArray(proj.peopleNeeded) && proj.peopleNeeded.length > 0 && (
+                                <div className="mt-0.5">
+                                  <p className="text-[10px] text-gray-500 mb-0.5">I&apos;m looking for people like this</p>
+                                  <div className="flex flex-wrap gap-1">
+                                    {proj.peopleNeeded.map((t: string, i: number) => (
+                                      <span key={i} className="inline-flex px-2 py-0.5 rounded text-[10px] font-medium bg-amber-100 text-amber-800 border border-amber-200">{t}</span>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </Link>
+                          ) : (
+                            <div className="min-w-0 flex-1">
+                              <p className="text-[11px] font-medium text-teal-800">{proj.text}</p>
+                              {effectiveOrder.length > 0 && (proj.stageEnteredAt && Object.keys(proj.stageEnteredAt).length > 0) && (
+                                <div className="mt-1 flex flex-wrap items-center gap-x-1 gap-y-0.5">
+                                  {effectiveOrder.slice(0, litCount).map((s, idx) => {
+                                    const key = Object.keys(proj.stageEnteredAt ?? {}).find((k) => k.toLowerCase() === s.toLowerCase()) ?? s
+                                    const ts = (proj.stageEnteredAt ?? {})[key] ?? projectCreatedAt ?? Date.now()
+                                    return (
+                                      <span key={`${s}-${idx}`} className="inline-flex items-center gap-0.5 text-[9px] text-gray-500">
+                                        <span className="font-medium text-teal-700">{s}</span>
+                                        <span>{formatStageDate(ts)}</span>
+                                        {idx < litCount - 1 && <span className="text-gray-400">→</span>}
+                                      </span>
+                                    )
+                                  })}
+                                </div>
+                              )}
+                              {(!proj.stageEnteredAt || Object.keys(proj.stageEnteredAt).length === 0) && effectiveOrder.some((s) => s.toLowerCase() === currentStage.toLowerCase()) && currentStage && (
+                                <div className="mt-0.5">
+                                  <span className="text-[9px] text-teal-700 font-medium">{currentStage}</span>
+                                  {projectCreatedAt && (
+                                    <span className="text-[9px] text-gray-500 ml-0.5">{formatStageDate(projectCreatedAt)}</span>
+                                  )}
+                                </div>
+                              )}
+                              {(creators.length > 0 || user?.name) && (
+                                <div className="mt-0.5">
+                                  <p className="text-[10px] text-teal-600 font-medium mb-0.5">主创 Creators</p>
+                                  <div className="flex flex-wrap gap-1">
+                                    {user?.name && (
+                                      <span className="inline-flex px-2 py-0.5 rounded text-[10px] font-medium bg-teal-100 text-teal-800 border border-teal-200">{user.name}</span>
+                                    )}
+                                    {creators.map((c: string, i: number) => (
+                                      <span key={i} className="inline-flex px-2 py-0.5 rounded text-[10px] font-medium bg-teal-100 text-teal-800 border border-teal-200">{c}</span>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                              {Array.isArray(proj.peopleNeeded) && proj.peopleNeeded.length > 0 && (
+                                <div className="mt-0.5">
+                                  <p className="text-[10px] text-gray-500 mb-0.5">I&apos;m looking for people like this</p>
+                                  <div className="flex flex-wrap gap-1">
+                                    {proj.peopleNeeded.map((t: string, i: number) => (
+                                      <span key={i} className="inline-flex px-2 py-0.5 rounded text-[10px] font-medium bg-amber-100 text-amber-800 border border-amber-200">{t}</span>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                          {projectCreatedAt && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault()
+                                e.stopPropagation()
+                                const url = `${typeof window !== 'undefined' ? window.location.origin : ''}/u/${projectUserId}/project/${projectCreatedAt}`
+                                navigator.clipboard?.writeText(url).then(() => {})
+                              }}
+                              className="p-1 rounded hover:bg-teal-50 text-teal-600 shrink-0"
+                              title="Copy share link"
+                            >
+                              <Share2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      )
+                    })
                   ) : (
                     <>
                       {(Array.isArray(profile.collaborationPossibility) ? profile.collaborationPossibility : (profile.collaborationPossibility ? [profile.collaborationPossibility] : [])).length > 0 && (
@@ -441,7 +583,7 @@ export default function PublicProfilePage() {
                       )}
                       {(Array.isArray(profile.peopleToCollaborateWith) ? profile.peopleToCollaborateWith : (profile.peopleToCollaborateWith ? [profile.peopleToCollaborateWith] : [])).length > 0 && (
                         <div>
-                          <p className="text-[10px] text-gray-500 mb-0.5">I&apos;m looking for</p>
+                          <p className="text-[10px] text-gray-500 mb-0.5">Open to</p>
                           <div className="flex flex-wrap gap-1">
                             {(Array.isArray(profile.peopleToCollaborateWith) ? profile.peopleToCollaborateWith : [profile.peopleToCollaborateWith])
                               .filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
