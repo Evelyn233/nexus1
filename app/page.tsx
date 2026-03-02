@@ -55,8 +55,33 @@ export default function LandingPage() {
       </nav>
 
       <main>
-        {/* Entry points: Profile / Plaza + Create project — 置顶 */}
-        <section className="border-b border-white/10 py-16 sm:py-20">
+        {/* Hero — 原主标题 */}
+        <section className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 sm:pt-28 pb-16 text-center">
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.1]">
+            <span className="text-teal-400">Project-Oriented Collaboration</span>{' '}
+            for Creators
+          </h1>
+          <p className="mt-4 text-lg sm:text-xl text-teal-300 font-medium">
+            Build real projects. Find the right collaborators. Ship faster.
+          </p>
+          <p className="mt-6 text-xl sm:text-2xl text-gray-400 max-w-2xl mx-auto leading-relaxed">
+            A project-first profile system that helps you showcase real work, attract the right people, and move from idea to execution.
+          </p>
+          <p className="mt-4 text-gray-500 max-w-2xl mx-auto">
+            Films. Documentaries. Music. Podcasts. Interviews. Research. Nexus helps you connect, collaborate, and execute across disciplines and platforms. Built for creators who move ideas from concept to reality.
+          </p>
+          <div className="mt-10">
+            <Link
+              href="/auth/signup"
+              className="inline-block px-8 py-4 bg-teal-500 hover:bg-teal-400 text-gray-900 font-semibold rounded-xl transition-colors"
+            >
+              Get Started →
+            </Link>
+          </div>
+        </section>
+
+        {/* Entry points: Profile / Plaza + Create project */}
+        <section className="border-y border-white/10 py-16 sm:py-20">
           <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
             <h2 className="text-2xl sm:text-3xl font-bold text-center mb-3">
               Get Started
@@ -84,7 +109,7 @@ export default function LandingPage() {
                 <div className="w-12 h-12 rounded-xl bg-amber-500/20 flex items-center justify-center mb-4 group-hover:bg-amber-500/30 transition-colors">
                   <LayoutGrid className="w-6 h-6 text-amber-400" />
                 </div>
-                <h3 className="text-lg font-semibold text-amber-400 mb-2">Plaza · Projects</h3>
+                <h3 className="text-lg font-semibold text-amber-400 mb-2">Plaza</h3>
                 <p className="text-gray-400 text-sm">Browse collaboration intents, publish yours, and find the right people to execute with.</p>
               </button>
             </div>
@@ -108,31 +133,6 @@ export default function LandingPage() {
                 </button>
               </div>
             </div>
-          </div>
-        </section>
-
-        {/* Hero */}
-        <section className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 sm:pt-28 pb-16 text-center">
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.1]">
-            <span className="text-teal-400">Project-Oriented Collaboration</span>{' '}
-            for Creators
-          </h1>
-          <p className="mt-4 text-lg sm:text-xl text-teal-300 font-medium">
-            Build real projects. Find the right collaborators. Ship faster.
-          </p>
-          <p className="mt-6 text-xl sm:text-2xl text-gray-400 max-w-2xl mx-auto leading-relaxed">
-            A project-first profile system that helps you showcase real work, attract the right people, and move from idea to execution.
-          </p>
-          <p className="mt-4 text-gray-500 max-w-2xl mx-auto">
-            Films. Documentaries. Music. Podcasts. Interviews. Research. Nexus helps you connect, collaborate, and execute across disciplines and platforms. Built for creators who move ideas from concept to reality.
-          </p>
-          <div className="mt-10">
-            <Link
-              href="/auth/signup"
-              className="inline-block px-8 py-4 bg-teal-500 hover:bg-teal-400 text-gray-900 font-semibold rounded-xl transition-colors"
-            >
-              Get Started →
-            </Link>
           </div>
         </section>
 
