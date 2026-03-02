@@ -1,33 +1,95 @@
 'use client'
 
 import Link from 'next/link'
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, useCallback } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useSession } from 'next-auth/react'
-import { User, FolderPlus, Plus } from 'lucide-react'
+import { User, FolderPlus } from 'lucide-react'
+
+function slugify(s: string): string {
+  return s.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9_-]/g, '')
+}
 
 export default function LandingPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { data: session } = useSession()
-  const [projectDraft, setProjectDraft] = useState('')
+  const [createType, setCreateType] = useState<'personal' | 'project'>('personal')
+  const [name, setName] = useState('')
+  const [linkSuffix, setLinkSuffix] = useState('')
+  const [error, setError] = useState('')
+  const [slugTaken, setSlugTaken] = useState(false)
 
-  const goToProfile = () => {
-    if (session) router.push('/profile')
-    else router.push('/auth/signup?callbackUrl=/profile')
+  useEffect(() => {
+    const err = searchParams.get('error')
+    const ls = searchParams.get('linkSuffix')
+    const n = searchParams.get('name')
+    const t = searchParams.get('type')
+    if (err === 'username_taken' && ls) {
+      setLinkSuffix(ls)
+      setSlugTaken(true)
+      if (n) setName(n)
+      if (t === 'project') setCreateType('project')
+      router.replace('/', { scroll: false })
+    }
+  }, [searchParams, router])
+
+  const handleLinkSuffixChange = (v: string) => {
+    setLinkSuffix(v)
+    if (slugTaken) setSlugTaken(false)
   }
 
-  const goToCreateProject = () => {
-    const callback = '/profile?openAddProject=1'
-    if (session) router.push(callback)
-    else router.push(`/auth/signup?callbackUrl=${encodeURIComponent(callback)}`)
-  }
+  const checkSlug = useCallback(async (slug: string) => {
+    if (!slug || !/^[a-z0-9_-]+$/.test(slug)) {
+      setSlugTaken(false)
+      return
+    }
+    try {
+      const r = await fetch(`/api/user/check-slug?slug=${encodeURIComponent(slug)}`)
+      const d = await r.json().catch(() => ({}))
+      setSlugTaken(!d?.available)
+    } catch {
+      setSlugTaken(false)
+    }
+  }, [])
 
-  const handleCreateProject = () => {
-    const name = projectDraft.trim()
-    const callback = name ? `/profile?addProject=${encodeURIComponent(name)}` : '/profile'
-    if (session) router.push(callback)
-    else router.push(`/auth/signup?callbackUrl=${encodeURIComponent(callback)}`)
-    setProjectDraft('')
+  useEffect(() => {
+    const slug = slugify(linkSuffix)
+    if (!slug) {
+      setSlugTaken(false)
+      return
+    }
+    const t = setTimeout(() => checkSlug(slug), 400)
+    return () => clearTimeout(t)
+  }, [linkSuffix, checkSlug])
+
+  const baseUrl = typeof window !== 'undefined' ? window.location.origin : ''
+  const previewUrl = linkSuffix ? `${baseUrl}/u/${slugify(linkSuffix) || linkSuffix}` : `${baseUrl}/u/`
+
+  const handleSubmit = () => {
+    setError('')
+    const slug = slugify(linkSuffix)
+    const displayName = name.trim() || (createType === 'project' ? 'New Project' : '')
+    if (!slug) {
+      setError('请输入 link 后缀（用户名）')
+      return
+    }
+    if (!/^[a-z0-9_-]+$/.test(slug)) {
+      setError('Link 后缀仅支持字母、数字、下划线、连字符')
+      return
+    }
+    if (slugTaken) {
+      setError('Username already taken — please change it')
+      return
+    }
+    const params = new URLSearchParams({ type: createType, linkSuffix: slug })
+    if (displayName) params.set('name', displayName)
+    const callback = `/get-started?${params.toString()}`
+    if (session) {
+      router.push(callback)
+    } else {
+      router.push(`/auth/signup?callbackUrl=${encodeURIComponent(callback)}`)
+    }
   }
 
   return (
@@ -73,59 +135,86 @@ export default function LandingPage() {
           </p>
         </section>
 
-        {/* Entry points: Individual Profile / Create Project */}
+        {/* Create personal homepage or project homepage */}
         <section className="border-y border-white/10 py-16 sm:py-20">
-          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h2 className="text-2xl sm:text-3xl font-bold text-center mb-3">
-              Get Started
+          <div className="max-w-xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 className="text-2xl sm:text-3xl font-bold text-center mb-2">
+              Create your homepage
             </h2>
-            <p className="text-center text-gray-400 mb-12">
-              Build your profile, browse projects, or create one directly.
+            <p className="text-center text-gray-400 mb-8">
+              Personal profile or project page — choose one and claim your link.
             </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-10">
-              <button
-                type="button"
-                onClick={goToProfile}
-                className="rounded-2xl border border-white/10 overflow-hidden bg-white/5 p-6 text-left hover:bg-white/10 hover:border-teal-500/30 transition-all group"
-              >
-                <div className="w-12 h-12 rounded-xl bg-teal-500/20 flex items-center justify-center mb-4 group-hover:bg-teal-500/30 transition-colors">
-                  <User className="w-6 h-6 text-teal-400" />
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-6 space-y-4">
+              <div>
+                <p className="text-sm font-medium text-gray-300 mb-2">Type</p>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setCreateType('personal')}
+                    className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl border transition-all ${
+                      createType === 'personal'
+                        ? 'border-teal-500 bg-teal-500/20 text-teal-400'
+                        : 'border-white/10 hover:border-white/20 text-gray-400'
+                    }`}
+                  >
+                    <User className="w-4 h-4" />
+                    Personal
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCreateType('project')}
+                    className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl border transition-all ${
+                      createType === 'project'
+                        ? 'border-amber-500 bg-amber-500/20 text-amber-400'
+                        : 'border-white/10 hover:border-white/20 text-gray-400'
+                    }`}
+                  >
+                    <FolderPlus className="w-4 h-4" />
+                    Project
+                  </button>
                 </div>
-                <h3 className="text-lg font-semibold text-teal-400 mb-2">Individual Profile</h3>
-                <p className="text-gray-400 text-sm">Create your profile, add projects, and showcase your work to attract collaborators.</p>
-              </button>
-              <button
-                type="button"
-                onClick={goToCreateProject}
-                className="rounded-2xl border border-white/10 overflow-hidden bg-white/5 p-6 text-left hover:bg-white/10 hover:border-teal-500/30 transition-all group"
-              >
-                <div className="w-12 h-12 rounded-xl bg-amber-500/20 flex items-center justify-center mb-4 group-hover:bg-amber-500/30 transition-colors">
-                  <FolderPlus className="w-6 h-6 text-amber-400" />
-                </div>
-                <h3 className="text-lg font-semibold text-amber-400 mb-2">Create Project</h3>
-                <p className="text-gray-400 text-sm">Create a new project, add collaborators, and publish to Plaza when ready.</p>
-              </button>
-            </div>
-            <div className="max-w-xl mx-auto rounded-2xl border border-white/10 bg-white/5 p-4">
-              <p className="text-sm font-medium text-gray-300 mb-2">Create a project directly</p>
-              <div className="flex gap-2">
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-300 mb-2">Name</p>
                 <input
                   type="text"
-                  value={projectDraft}
-                  onChange={(e) => setProjectDraft(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleCreateProject()}
-                  placeholder="Enter project name..."
-                  className="flex-1 px-4 py-2.5 text-sm rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder={createType === 'project' ? 'Project name' : 'Your display name'}
+                  className="w-full px-4 py-2.5 text-sm rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500"
                 />
-                <button
-                  onClick={handleCreateProject}
-                  className="inline-flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium bg-teal-500 text-gray-900 rounded-xl hover:bg-teal-400 transition-colors shrink-0"
-                >
-                  <Plus className="w-4 h-4" />
-                  Create
-                </button>
               </div>
+              <div>
+                <p className="text-sm font-medium text-gray-300 mb-2">Link suffix (username)</p>
+                <div className={`flex items-center gap-2 rounded-xl bg-white/5 border px-3 py-2.5 ${slugTaken ? 'border-red-500/50' : 'border-white/10'} text-gray-400`}>
+                  <span className="text-sm shrink-0">{baseUrl || 'https://nexus.com'}/u/</span>
+                  <input
+                    type="text"
+                    value={linkSuffix}
+                    onChange={(e) => handleLinkSuffixChange(e.target.value)}
+                    placeholder="username"
+                    className="flex-1 bg-transparent text-white placeholder-gray-500 focus:outline-none min-w-0"
+                  />
+                </div>
+                <p className="text-[11px] text-gray-500 mt-1">Letters, numbers, underscore, hyphen only</p>
+                {slugTaken && (
+                  <p className="text-sm text-amber-400 mt-1">Username already taken — please change it</p>
+                )}
+              </div>
+              {error && <p className="text-sm text-red-400">{error}</p>}
+              <button
+                type="button"
+                onClick={handleSubmit}
+                className="w-full px-4 py-3 rounded-xl border border-teal-500 bg-teal-500 text-gray-900 font-medium hover:bg-teal-400 transition-colors"
+              >
+                Create {createType === 'personal' ? 'Profile' : 'Project'}
+              </button>
             </div>
+            {previewUrl && (
+              <p className="mt-3 text-center text-xs text-gray-500">
+                Your link: <span className="text-teal-400">{previewUrl}</span>
+              </p>
+            )}
           </div>
         </section>
 

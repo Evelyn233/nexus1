@@ -70,13 +70,14 @@ export async function POST(request: Request) {
       user: updatedUser
     })
     
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('❌ [USER-SAVE] 保存用户基本信息失败:', error)
+    const err = error as { code?: string }
+    if (err?.code === 'P2002') {
+      return NextResponse.json({ error: 'Username already taken', details: 'profileSlug unique' }, { status: 409 })
+    }
     return NextResponse.json(
-      { 
-        error: '保存失败', 
-        details: error instanceof Error ? error.message : '未知错误' 
-      },
+      { error: '保存失败', details: error instanceof Error ? error.message : '未知错误' },
       { status: 500 }
     )
   }
