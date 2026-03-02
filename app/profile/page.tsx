@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/hooks/useAuth'
 import { signOut } from 'next-auth/react'
@@ -21,6 +21,7 @@ function getSharePath(profileSlug?: string | null, name?: string | null, id?: st
 
 export default function ProfilePage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { isAuthenticated, session, isLoading } = useAuth()
   const [userInfo, setUserInfo] = useState<any>(null)
   const [isLoadingData, setIsLoadingData] = useState(true)
@@ -559,6 +560,25 @@ export default function ProfilePage() {
     window.addEventListener('profileChat:insightsUpdated', onInsightsUpdated)
     return () => window.removeEventListener('profileChat:insightsUpdated', onInsightsUpdated)
   }, [])
+
+  // Homepage "Create project" redirect: ?addProject=name opens add modal
+  useEffect(() => {
+    const addProject = searchParams.get('addProject')
+    if (addProject && isAuthenticated && !isLoadingData) {
+      const name = decodeURIComponent(addProject).trim()
+      if (name) {
+        setAddActivityDraft(name)
+        setShowAddActivityModal(true)
+        setAddActivityVisibility(null)
+        setAddActivityNeedPeople(null)
+        setAddActivityPeopleList([])
+        setAddActivityPeopleInput('')
+        setAddActivityEditingWhoIndex(null)
+        setAddActivityShowOnPlaza(null)
+      }
+      router.replace('/profile', { scroll: false })
+    }
+  }, [searchParams, isAuthenticated, isLoadingData, router])
 
   useEffect(() => {
     if (!showTopLeftMenu) return

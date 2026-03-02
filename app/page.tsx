@@ -4,52 +4,29 @@ import Link from 'next/link'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
+import { User, LayoutGrid, Plus } from 'lucide-react'
 
 export default function LandingPage() {
   const router = useRouter()
   const { data: session } = useSession()
-  const [leftPrompt, setLeftPrompt] = useState('')
-  const [leftFile, setLeftFile] = useState<File | null>(null)
-  const [rightPrompt, setRightPrompt] = useState('')
+  const [projectDraft, setProjectDraft] = useState('')
 
-  const handleLeftSubmit = async () => {
-    const prompt = leftPrompt.trim() || 'Help me create my profile'
-    const go = (img?: string) => {
-      const q = `prompt=${encodeURIComponent(prompt)}${img ? `&image=${encodeURIComponent(img)}` : ''}`
-      if (session) router.push(`/chat-new?${q}&autoStart=true`)
-      else router.push(`/auth/signup?${q}`)
-    }
-    if (leftFile) {
-      try {
-        const dataUrl = await new Promise<string>((resolve, reject) => {
-          const r = new FileReader()
-          r.onload = () => resolve(r.result as string)
-          r.onerror = () => reject(new Error('read failed'))
-          r.readAsDataURL(leftFile)
-        })
-        const res = await fetch('/api/image/upload', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ imageData: dataUrl, filename: leftFile.name })
-        })
-        if (!res.ok) { alert('Image upload failed'); return }
-        const data = await res.json()
-        if (data?.url) { go(data.url); setLeftFile(null); setLeftPrompt('') } else { alert('Image upload failed'); return }
-      } catch (e) {
-        console.error(e)
-        alert('Failed, please try again')
-      }
-    } else {
-      go()
-      setLeftPrompt('')
-    }
+  const goToProfile = () => {
+    if (session) router.push('/profile')
+    else router.push('/auth/signup?callbackUrl=/profile')
   }
 
-  const handleRightSubmit = () => {
-    const prompt = rightPrompt.trim() || 'Generate my profile with AI'
-    if (session) router.push(`/chat-new?prompt=${encodeURIComponent(prompt)}&autoStart=true`)
-    else router.push(`/auth/signup?prompt=${encodeURIComponent(prompt)}`)
-    setRightPrompt('')
+  const goToPlaza = () => {
+    if (session) router.push('/square')
+    else router.push('/auth/signup?callbackUrl=/square')
+  }
+
+  const handleCreateProject = () => {
+    const name = projectDraft.trim()
+    const callback = name ? `/profile?addProject=${encodeURIComponent(name)}` : '/profile'
+    if (session) router.push(callback)
+    else router.push(`/auth/signup?callbackUrl=${encodeURIComponent(callback)}`)
+    setProjectDraft('')
   }
 
   return (
@@ -81,7 +58,7 @@ export default function LandingPage() {
         {/* Hero */}
         <section className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 sm:pt-28 pb-16 text-center">
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.1]">
-            <span className="text-teal-400">Project-Driven Collaboration</span>{' '}
+            <span className="text-teal-400">Project-Oriented Collaboration</span>{' '}
             for Creators
           </h1>
           <p className="mt-4 text-lg sm:text-xl text-teal-300 font-medium">
@@ -101,16 +78,13 @@ export default function LandingPage() {
               Get Started →
             </Link>
           </div>
-          <div className="mt-12 max-w-2xl mx-auto rounded-xl overflow-hidden border border-white/10 bg-white/5">
-            <img src="/elon-ex.jpeg" alt="Nexus profile preview" className="w-full h-auto object-cover opacity-90" />
-          </div>
         </section>
 
         {/* Key Features */}
         <section className="border-y border-white/10 py-16 sm:py-20">
           <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
             <h2 className="text-2xl font-bold text-center mb-10">Key Features</h2>
-            <p className="text-center text-gray-400 mb-10">Built for project-driven collaboration: show your work, signal what you need, and find people who can contribute.</p>
+            <p className="text-center text-gray-400 mb-10">Built for project-oriented collaboration: show your work, signal what you need, and find people who can contribute.</p>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="p-6 rounded-2xl bg-gradient-to-br from-teal-500/10 to-cyan-500/5 border border-teal-500/20">
                 <h3 className="text-lg font-semibold text-teal-400 mb-2">Showcase Your Projects</h3>
@@ -141,37 +115,57 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* Build your profile — 上传照片 + 对话框 / 纯 AI */}
+        {/* Entry points: Profile / Plaza + Create project */}
         <section className="border-y border-white/10 py-16 sm:py-20">
           <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
             <h2 className="text-2xl sm:text-3xl font-bold text-center mb-3">
-              Build Your Profile
+              Get Started
             </h2>
             <p className="text-center text-gray-400 mb-12">
-              Upload a photo and describe yourself, or let AI generate a profile from a prompt.
+              Build your profile, browse projects, or create one directly.
             </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              <div className="rounded-2xl border border-white/10 overflow-hidden bg-white/5">
-                <img src="/elon-ex.jpeg" alt="Upload your photo" className="w-full h-48 object-cover opacity-90" />
-                <div className="p-4 space-y-3">
-                  <p className="text-sm font-semibold text-gray-300">Upload your photo + describe</p>
-                  <label className="flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-white/5 border border-dashed border-white/20 text-gray-400 text-sm cursor-pointer hover:bg-white/10 transition-colors">
-                    <span>📷</span>
-                    <span>Choose image</span>
-                    <input type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) setLeftFile(f); e.target.value = '' }} />
-                  </label>
-                  {leftFile && <p className="text-xs text-teal-400 truncate">{leftFile.name}</p>}
-                  <input type="text" value={leftPrompt} onChange={(e) => setLeftPrompt(e.target.value)} placeholder="Describe yourself (optional)..." className="w-full px-3 py-2 text-sm rounded-lg bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500" />
-                  <button onClick={handleLeftSubmit} className="w-full py-2.5 text-sm font-medium bg-teal-500 text-gray-900 rounded-xl hover:bg-teal-400 transition-colors">Generate Profile</button>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-10">
+              <button
+                type="button"
+                onClick={goToProfile}
+                className="rounded-2xl border border-white/10 overflow-hidden bg-white/5 p-6 text-left hover:bg-white/10 hover:border-teal-500/30 transition-all group"
+              >
+                <div className="w-12 h-12 rounded-xl bg-teal-500/20 flex items-center justify-center mb-4 group-hover:bg-teal-500/30 transition-colors">
+                  <User className="w-6 h-6 text-teal-400" />
                 </div>
-              </div>
-              <div className="rounded-2xl border border-white/10 overflow-hidden bg-white/5">
-                <img src="/elon-ex2.jpeg" alt="Pure AI" className="w-full h-48 object-cover opacity-90" />
-                <div className="p-4 space-y-3">
-                  <p className="text-sm font-semibold text-gray-300">Pure AI generation</p>
-                  <input type="text" value={rightPrompt} onChange={(e) => setRightPrompt(e.target.value)} placeholder="Describe the profile you want..." className="w-full px-3 py-2 text-sm rounded-lg bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500" />
-                  <button onClick={handleRightSubmit} className="w-full py-2.5 text-sm font-medium bg-teal-500 text-gray-900 rounded-xl hover:bg-teal-400 transition-colors">Generate Profile</button>
+                <h3 className="text-lg font-semibold text-teal-400 mb-2">Individual Profile</h3>
+                <p className="text-gray-400 text-sm">Create your profile, add projects, and showcase your work to attract collaborators.</p>
+              </button>
+              <button
+                type="button"
+                onClick={goToPlaza}
+                className="rounded-2xl border border-white/10 overflow-hidden bg-white/5 p-6 text-left hover:bg-white/10 hover:border-teal-500/30 transition-all group"
+              >
+                <div className="w-12 h-12 rounded-xl bg-amber-500/20 flex items-center justify-center mb-4 group-hover:bg-amber-500/30 transition-colors">
+                  <LayoutGrid className="w-6 h-6 text-amber-400" />
                 </div>
+                <h3 className="text-lg font-semibold text-amber-400 mb-2">Plaza · Projects</h3>
+                <p className="text-gray-400 text-sm">Browse collaboration intents, publish yours, and find the right people to execute with.</p>
+              </button>
+            </div>
+            <div className="max-w-xl mx-auto rounded-2xl border border-white/10 bg-white/5 p-4">
+              <p className="text-sm font-medium text-gray-300 mb-2">Create a project directly</p>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={projectDraft}
+                  onChange={(e) => setProjectDraft(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleCreateProject()}
+                  placeholder="Enter project name..."
+                  className="flex-1 px-4 py-2.5 text-sm rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                />
+                <button
+                  onClick={handleCreateProject}
+                  className="inline-flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium bg-teal-500 text-gray-900 rounded-xl hover:bg-teal-400 transition-colors shrink-0"
+                >
+                  <Plus className="w-4 h-4" />
+                  Create
+                </button>
               </div>
             </div>
           </div>
