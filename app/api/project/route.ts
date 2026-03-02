@@ -91,7 +91,7 @@ export async function GET(request: NextRequest) {
     const image = typeof p.image === 'string' && p.image.trim() ? p.image.trim() : typeof p.detailImage === 'string' && p.detailImage.trim() ? p.detailImage.trim() : undefined
     const rawStage = typeof p.stage === 'string' && p.stage.trim() ? p.stage.trim() : undefined
     const rawStageOrder = Array.isArray((p as Record<string, unknown>).stageOrder) && ((p as Record<string, unknown>).stageOrder as unknown[]).length > 0
-      ? ((p as Record<string, unknown>).stageOrder as unknown[]).filter((s): s is string => typeof s === 'string' && s.trim()).map((s) => s.trim())
+      ? ((p as Record<string, unknown>).stageOrder as unknown[]).filter((s): s is string => typeof s === 'string' && s.trim().length > 0).map((s) => s.trim())
       : STAGE_RECOMMENDED
     const stageOrder = rawStageOrder.length > 0 ? rawStageOrder : STAGE_RECOMMENDED
     const stage = rawStage && stageOrder.some((s) => s.toLowerCase() === rawStage.toLowerCase()) ? rawStage : (stageOrder[0] ?? 'Idea')

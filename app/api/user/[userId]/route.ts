@@ -163,7 +163,7 @@ export async function GET(
                 .filter((p) => (p.text ?? '').trim() && p.visibility !== 'hidden' && p.showOnPlaza === true)
                 .map((p) => {
                   const rawOrder = Array.isArray(p.stageOrder) && p.stageOrder.length > 0
-                    ? p.stageOrder.filter((s): s is string => typeof s === 'string' && s.trim()).map((s) => s.trim())
+                    ? p.stageOrder.filter((s): s is string => typeof s === 'string' && s.trim().length > 0).map((s) => s.trim())
                     : ALLOWED_STAGES
                   const stageOrder = rawOrder.filter((s) => allowedSet.has(s)).length > 0
                     ? rawOrder.filter((s) => allowedSet.has(s))
