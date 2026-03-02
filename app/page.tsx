@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
-import { User, LayoutGrid, Plus } from 'lucide-react'
+import { User, FolderPlus, Plus } from 'lucide-react'
 
 export default function LandingPage() {
   const router = useRouter()
@@ -16,9 +16,10 @@ export default function LandingPage() {
     else router.push('/auth/signup?callbackUrl=/profile')
   }
 
-  const goToPlaza = () => {
-    if (session) router.push('/square')
-    else router.push('/auth/signup?callbackUrl=/square')
+  const goToCreateProject = () => {
+    const callback = '/profile?openAddProject=1'
+    if (session) router.push(callback)
+    else router.push(`/auth/signup?callbackUrl=${encodeURIComponent(callback)}`)
   }
 
   const handleCreateProject = () => {
@@ -80,7 +81,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* Entry points: Profile / Plaza + Create project */}
+        {/* Entry points: Individual Profile / Create Project */}
         <section className="border-y border-white/10 py-16 sm:py-20">
           <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
             <h2 className="text-2xl sm:text-3xl font-bold text-center mb-3">
@@ -103,14 +104,14 @@ export default function LandingPage() {
               </button>
               <button
                 type="button"
-                onClick={goToPlaza}
+                onClick={goToCreateProject}
                 className="rounded-2xl border border-white/10 overflow-hidden bg-white/5 p-6 text-left hover:bg-white/10 hover:border-teal-500/30 transition-all group"
               >
                 <div className="w-12 h-12 rounded-xl bg-amber-500/20 flex items-center justify-center mb-4 group-hover:bg-amber-500/30 transition-colors">
-                  <LayoutGrid className="w-6 h-6 text-amber-400" />
+                  <FolderPlus className="w-6 h-6 text-amber-400" />
                 </div>
-                <h3 className="text-lg font-semibold text-amber-400 mb-2">Plaza</h3>
-                <p className="text-gray-400 text-sm">Browse collaboration intents, publish yours, and find the right people to execute with.</p>
+                <h3 className="text-lg font-semibold text-amber-400 mb-2">Create Project</h3>
+                <p className="text-gray-400 text-sm">Create a new project, add collaborators, and publish to Plaza when ready.</p>
               </button>
             </div>
             <div className="max-w-xl mx-auto rounded-2xl border border-white/10 bg-white/5 p-4">

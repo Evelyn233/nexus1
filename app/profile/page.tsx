@@ -561,21 +561,20 @@ export default function ProfilePage() {
     return () => window.removeEventListener('profileChat:insightsUpdated', onInsightsUpdated)
   }, [])
 
-  // Homepage "Create project" redirect: ?addProject=name opens add modal
+  // Homepage "Create project" redirect: ?addProject=name or ?openAddProject=1 opens add modal
   useEffect(() => {
     const addProject = searchParams.get('addProject')
-    if (addProject && isAuthenticated && !isLoadingData) {
-      const name = decodeURIComponent(addProject).trim()
-      if (name) {
-        setAddActivityDraft(name)
-        setShowAddActivityModal(true)
-        setAddActivityVisibility(null)
-        setAddActivityNeedPeople(null)
-        setAddActivityPeopleList([])
-        setAddActivityPeopleInput('')
-        setAddActivityEditingWhoIndex(null)
-        setAddActivityShowOnPlaza(null)
-      }
+    const openAddProject = searchParams.get('openAddProject')
+    if ((addProject || openAddProject) && isAuthenticated && !isLoadingData) {
+      const name = addProject ? decodeURIComponent(addProject).trim() : ''
+      setAddActivityDraft(name)
+      setShowAddActivityModal(true)
+      setAddActivityVisibility(null)
+      setAddActivityNeedPeople(null)
+      setAddActivityPeopleList([])
+      setAddActivityPeopleInput('')
+      setAddActivityEditingWhoIndex(null)
+      setAddActivityShowOnPlaza(null)
       router.replace('/profile', { scroll: false })
     }
   }, [searchParams, isAuthenticated, isLoadingData, router])
