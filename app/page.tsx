@@ -71,14 +71,6 @@ export default function LandingPage() {
           <p className="mt-4 text-gray-500 max-w-2xl mx-auto">
             Films. Documentaries. Music. Podcasts. Interviews. Research. Nexus helps you connect, collaborate, and execute across disciplines and platforms. Built for creators who move ideas from concept to reality.
           </p>
-          <div className="mt-10">
-            <Link
-              href="/auth/signup"
-              className="inline-block px-8 py-4 bg-teal-500 hover:bg-teal-400 text-gray-900 font-semibold rounded-xl transition-colors"
-            >
-              Get Started →
-            </Link>
-          </div>
         </section>
 
         {/* Entry points: Individual Profile / Create Project */}
