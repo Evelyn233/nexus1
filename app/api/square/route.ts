@@ -144,6 +144,17 @@ export async function GET() {
             const stageOrder = Array.isArray((p as Record<string, unknown>).stageOrder)
               ? ((p as Record<string, unknown>).stageOrder as unknown[]).filter((s): s is string => typeof s === 'string' && s.trim().length > 0).map((s) => s.trim())
               : undefined
+            const rawStageEnteredAt = (p as Record<string, unknown>).stageEnteredAt
+            const stageEnteredAt: Record<string, number> | undefined =
+              rawStageEnteredAt && typeof rawStageEnteredAt === 'object'
+                ? Object.fromEntries(
+                    Object.entries(rawStageEnteredAt as Record<string, unknown>)
+                      .filter(([, v]): v is number => typeof v === 'number')
+                      .map(([k, v]) => [k, v])
+                  )
+                : undefined
+            const hasStageEnteredAt = stageEnteredAt && Object.keys(stageEnteredAt).length > 0
+
             flatItems.push({
               ...userInfo,
               project: {
@@ -153,7 +164,7 @@ export async function GET() {
                 references,
                 ...(stage ? { stage } : {}),
                 ...(stageOrder && stageOrder.length > 0 ? { stageOrder } : {}),
-                ...(typeof (p as Record<string, unknown>).stageEnteredAt === 'object' && (p as Record<string, unknown>).stageEnteredAt ? { stageEnteredAt: (p as Record<string, unknown>).stageEnteredAt } : {}),
+                ...(hasStageEnteredAt ? { stageEnteredAt } : {}),
                 peopleNeeded: Array.isArray(p.peopleNeeded)
                   ? p.peopleNeeded
                       .map((item) => {
