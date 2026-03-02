@@ -721,7 +721,7 @@ export default function ProfilePage() {
             setProjectsList(
               pd.projects
                 .filter((x: unknown) => x && typeof x === 'object' && 'text' in (x as object))
-                .map((x: { text?: string; visibility?: string; showOnPlaza?: boolean; peopleNeeded?: Array<string | { text?: string; detail?: string }>; detail?: string; references?: Array<{ title?: string; url?: string; cover?: string; stageTag?: string; contentTag?: string }>; detailImage?: string; attachments?: Array<{ url?: string; name?: string; addedAt?: number }>; stage?: string; stageOrder?: string[]; stageEnteredAt?: Record<string, number>; creators?: string[]; createdAt?: number }) => ({
+                .map((x: { text?: string; visibility?: string; showOnPlaza?: boolean; peopleNeeded?: Array<string | { text?: string; detail?: string }>; detail?: string; references?: Array<{ title?: string; url?: string; cover?: string; stageTag?: string; contentTag?: string }>; detailImage?: string; attachments?: Array<{ url?: string; name?: string; addedAt?: number; stageTag?: string; contentTag?: string }>; stage?: string; stageOrder?: string[]; stageEnteredAt?: Record<string, number>; creators?: string[]; createdAt?: number }) => ({
                   text: String(x.text ?? '').trim(),
                   visibility: (x.visibility === 'public' ? 'public' : x.visibility === 'hidden' ? 'hidden' : 'individual') as 'individual' | 'public' | 'hidden',
                   showOnPlaza: x.showOnPlaza === true || (x.visibility === 'public' && x.showOnPlaza !== false),
