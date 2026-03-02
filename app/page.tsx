@@ -55,6 +55,62 @@ export default function LandingPage() {
       </nav>
 
       <main>
+        {/* Entry points: Profile / Plaza + Create project — 置顶 */}
+        <section className="border-b border-white/10 py-16 sm:py-20">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 className="text-2xl sm:text-3xl font-bold text-center mb-3">
+              Get Started
+            </h2>
+            <p className="text-center text-gray-400 mb-12">
+              Build your profile, browse projects, or create one directly.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-10">
+              <button
+                type="button"
+                onClick={goToProfile}
+                className="rounded-2xl border border-white/10 overflow-hidden bg-white/5 p-6 text-left hover:bg-white/10 hover:border-teal-500/30 transition-all group"
+              >
+                <div className="w-12 h-12 rounded-xl bg-teal-500/20 flex items-center justify-center mb-4 group-hover:bg-teal-500/30 transition-colors">
+                  <User className="w-6 h-6 text-teal-400" />
+                </div>
+                <h3 className="text-lg font-semibold text-teal-400 mb-2">Individual Profile</h3>
+                <p className="text-gray-400 text-sm">Create your profile, add projects, and showcase your work to attract collaborators.</p>
+              </button>
+              <button
+                type="button"
+                onClick={goToPlaza}
+                className="rounded-2xl border border-white/10 overflow-hidden bg-white/5 p-6 text-left hover:bg-white/10 hover:border-teal-500/30 transition-all group"
+              >
+                <div className="w-12 h-12 rounded-xl bg-amber-500/20 flex items-center justify-center mb-4 group-hover:bg-amber-500/30 transition-colors">
+                  <LayoutGrid className="w-6 h-6 text-amber-400" />
+                </div>
+                <h3 className="text-lg font-semibold text-amber-400 mb-2">Plaza · Projects</h3>
+                <p className="text-gray-400 text-sm">Browse collaboration intents, publish yours, and find the right people to execute with.</p>
+              </button>
+            </div>
+            <div className="max-w-xl mx-auto rounded-2xl border border-white/10 bg-white/5 p-4">
+              <p className="text-sm font-medium text-gray-300 mb-2">Create a project directly</p>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={projectDraft}
+                  onChange={(e) => setProjectDraft(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleCreateProject()}
+                  placeholder="Enter project name..."
+                  className="flex-1 px-4 py-2.5 text-sm rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                />
+                <button
+                  onClick={handleCreateProject}
+                  className="inline-flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium bg-teal-500 text-gray-900 rounded-xl hover:bg-teal-400 transition-colors shrink-0"
+                >
+                  <Plus className="w-4 h-4" />
+                  Create
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* Hero */}
         <section className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 sm:pt-28 pb-16 text-center">
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.1]">
@@ -112,62 +168,6 @@ export default function LandingPage() {
             <p className="mt-4 text-gray-400 text-lg">
               In the age of AI and cross-disciplinary content creation, visibility isn&apos;t enough — execution is everything. Nexus transforms your profile into a collaboration engine, turning ideas into real projects, faster and smarter.
             </p>
-          </div>
-        </section>
-
-        {/* Entry points: Profile / Plaza + Create project */}
-        <section className="border-y border-white/10 py-16 sm:py-20">
-          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h2 className="text-2xl sm:text-3xl font-bold text-center mb-3">
-              Get Started
-            </h2>
-            <p className="text-center text-gray-400 mb-12">
-              Build your profile, browse projects, or create one directly.
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-10">
-              <button
-                type="button"
-                onClick={goToProfile}
-                className="rounded-2xl border border-white/10 overflow-hidden bg-white/5 p-6 text-left hover:bg-white/10 hover:border-teal-500/30 transition-all group"
-              >
-                <div className="w-12 h-12 rounded-xl bg-teal-500/20 flex items-center justify-center mb-4 group-hover:bg-teal-500/30 transition-colors">
-                  <User className="w-6 h-6 text-teal-400" />
-                </div>
-                <h3 className="text-lg font-semibold text-teal-400 mb-2">Individual Profile</h3>
-                <p className="text-gray-400 text-sm">Create your profile, add projects, and showcase your work to attract collaborators.</p>
-              </button>
-              <button
-                type="button"
-                onClick={goToPlaza}
-                className="rounded-2xl border border-white/10 overflow-hidden bg-white/5 p-6 text-left hover:bg-white/10 hover:border-teal-500/30 transition-all group"
-              >
-                <div className="w-12 h-12 rounded-xl bg-amber-500/20 flex items-center justify-center mb-4 group-hover:bg-amber-500/30 transition-colors">
-                  <LayoutGrid className="w-6 h-6 text-amber-400" />
-                </div>
-                <h3 className="text-lg font-semibold text-amber-400 mb-2">Plaza · Projects</h3>
-                <p className="text-gray-400 text-sm">Browse collaboration intents, publish yours, and find the right people to execute with.</p>
-              </button>
-            </div>
-            <div className="max-w-xl mx-auto rounded-2xl border border-white/10 bg-white/5 p-4">
-              <p className="text-sm font-medium text-gray-300 mb-2">Create a project directly</p>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={projectDraft}
-                  onChange={(e) => setProjectDraft(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleCreateProject()}
-                  placeholder="Enter project name..."
-                  className="flex-1 px-4 py-2.5 text-sm rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500"
-                />
-                <button
-                  onClick={handleCreateProject}
-                  className="inline-flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium bg-teal-500 text-gray-900 rounded-xl hover:bg-teal-400 transition-colors shrink-0"
-                >
-                  <Plus className="w-4 h-4" />
-                  Create
-                </button>
-              </div>
-            </div>
           </div>
         </section>
 
