@@ -14,27 +14,22 @@ export default function LandingPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { data: session } = useSession()
-  const [personalName, setPersonalName] = useState('')
   const [personalLinkSuffix, setPersonalLinkSuffix] = useState('')
   const [personalSlugTaken, setPersonalSlugTaken] = useState(false)
-  const [projectName, setProjectName] = useState('')
   const [projectLinkSuffix, setProjectLinkSuffix] = useState('')
   const [projectSlugTaken, setProjectSlugTaken] = useState(false)
 
   useEffect(() => {
     const err = searchParams.get('error')
     const ls = searchParams.get('linkSuffix')
-    const n = searchParams.get('name')
     const t = searchParams.get('type')
     if (err === 'username_taken' && ls) {
       if (t === 'project') {
         setProjectLinkSuffix(ls)
         setProjectSlugTaken(true)
-        if (n) setProjectName(n)
       } else {
         setPersonalLinkSuffix(ls)
         setPersonalSlugTaken(true)
-        if (n) setPersonalName(n)
       }
       router.replace('/', { scroll: false })
     }
@@ -76,7 +71,6 @@ export default function LandingPage() {
     if (!/^[a-z0-9_-]+$/.test(slug)) { alert('Link 后缀仅支持字母、数字、下划线、连字符'); return }
     if (personalSlugTaken) { alert('Username already taken — please change it'); return }
     const params = new URLSearchParams({ type: 'personal', linkSuffix: slug })
-    if (personalName.trim()) params.set('name', personalName.trim())
     const callback = `/get-started?${params.toString()}`
     if (session) router.push(callback)
     else router.push(`/auth/signup?callbackUrl=${encodeURIComponent(callback)}`)
@@ -88,7 +82,7 @@ export default function LandingPage() {
     if (!/^[a-z0-9_-]+$/.test(slug)) { alert('Link 后缀仅支持字母、数字、下划线、连字符'); return }
     if (projectSlugTaken) { alert('Username already taken — please change it'); return }
     const params = new URLSearchParams({ type: 'project', linkSuffix: slug })
-    params.set('name', projectName.trim() || 'New Project')
+    params.set('name', 'New Project')
     const callback = `/get-started?${params.toString()}`
     if (session) router.push(callback)
     else router.push(`/auth/signup?callbackUrl=${encodeURIComponent(callback)}`)
@@ -149,30 +143,20 @@ export default function LandingPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Personal profile */}
               <div className="rounded-2xl border border-teal-500/30 bg-teal-500/5 p-6 space-y-4">
-                <div className="flex items-center gap-2 mb-2">
+                <div className="flex items-center gap-2 mb-4">
                   <User className="w-5 h-5 text-teal-400" />
                   <h3 className="text-lg font-semibold text-teal-400">Personal Profile</h3>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-300 mb-1">Display name</p>
-                  <input
-                    type="text"
-                    value={personalName}
-                    onChange={(e) => setPersonalName(e.target.value)}
-                    placeholder="Your name"
-                    className="w-full px-4 py-2.5 text-sm rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500"
-                  />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-300 mb-1">Link suffix (username)</p>
-                  <div className={`flex items-center gap-2 rounded-xl bg-white/5 border px-3 py-2.5 ${personalSlugTaken ? 'border-red-500/50' : 'border-white/10'} text-gray-400`}>
-                    <span className="text-sm shrink-0">{baseUrl || 'https://nexus.com'}/u/</span>
+                  <p className="text-sm font-medium text-gray-300 mb-2">Username</p>
+                  <div className={`flex items-center gap-2 rounded-xl border-2 px-4 py-3.5 ${personalSlugTaken ? 'border-red-500/70 bg-red-500/10' : 'border-teal-400/50 bg-teal-500/10'} text-teal-100`}>
+                    <span className="text-sm shrink-0 opacity-80">{baseUrl || 'https://nexus.com'}/u/</span>
                     <input
                       type="text"
                       value={personalLinkSuffix}
                       onChange={(e) => { setPersonalLinkSuffix(e.target.value); setPersonalSlugTaken(false) }}
-                      placeholder="username"
-                      className="flex-1 bg-transparent text-white placeholder-gray-500 focus:outline-none min-w-0"
+                      placeholder="your-username"
+                      className="flex-1 bg-transparent text-lg font-semibold text-white placeholder-teal-300/60 focus:outline-none min-w-0"
                     />
                   </div>
                   {personalSlugTaken && <p className="text-sm text-amber-400 mt-1">Username taken — please change</p>}
@@ -188,30 +172,20 @@ export default function LandingPage() {
 
               {/* Project profile */}
               <div className="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-6 space-y-4">
-                <div className="flex items-center gap-2 mb-2">
+                <div className="flex items-center gap-2 mb-4">
                   <FolderPlus className="w-5 h-5 text-amber-400" />
                   <h3 className="text-lg font-semibold text-amber-400">Create Project</h3>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-300 mb-1">Project name</p>
-                  <input
-                    type="text"
-                    value={projectName}
-                    onChange={(e) => setProjectName(e.target.value)}
-                    placeholder="Project name"
-                    className="w-full px-4 py-2.5 text-sm rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500"
-                  />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-300 mb-1">Link suffix (your username)</p>
-                  <div className={`flex items-center gap-2 rounded-xl bg-white/5 border px-3 py-2.5 ${projectSlugTaken ? 'border-red-500/50' : 'border-white/10'} text-gray-400`}>
-                    <span className="text-sm shrink-0">{baseUrl || 'https://nexus.com'}/u/</span>
+                  <p className="text-sm font-medium text-gray-300 mb-2">Username</p>
+                  <div className={`flex items-center gap-2 rounded-xl border-2 px-4 py-3.5 ${projectSlugTaken ? 'border-red-500/70 bg-red-500/10' : 'border-amber-400/50 bg-amber-500/10'} text-amber-100`}>
+                    <span className="text-sm shrink-0 opacity-80">{baseUrl || 'https://nexus.com'}/u/</span>
                     <input
                       type="text"
                       value={projectLinkSuffix}
                       onChange={(e) => { setProjectLinkSuffix(e.target.value); setProjectSlugTaken(false) }}
-                      placeholder="username"
-                      className="flex-1 bg-transparent text-white placeholder-gray-500 focus:outline-none min-w-0"
+                      placeholder="your-username"
+                      className="flex-1 bg-transparent text-lg font-semibold text-white placeholder-amber-300/60 focus:outline-none min-w-0"
                     />
                   </div>
                   {projectSlugTaken && <p className="text-sm text-amber-400 mt-1">Username taken — please change</p>}
