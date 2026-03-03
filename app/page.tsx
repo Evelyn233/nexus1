@@ -148,17 +148,20 @@ export default function LandingPage() {
                   <h3 className="text-lg font-semibold text-teal-400">Personal Profile</h3>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-300 mb-2">Username</p>
-                  <div className={`flex items-center gap-2 rounded-xl border-2 px-4 py-3.5 ${personalSlugTaken ? 'border-red-500/70 bg-red-500/10' : 'border-teal-400/50 bg-teal-500/10'} text-teal-100`}>
-                    <span className="text-sm shrink-0 opacity-80">{baseUrl || 'https://nexus.com'}/u/</span>
+                  <p className="text-sm font-medium text-gray-300 mb-2">Your link</p>
+                  <div className={`flex overflow-hidden rounded-xl border-2 ${personalSlugTaken ? 'border-red-400' : 'border-teal-400/60'}`}>
+                    <span className="flex items-center px-4 py-3.5 bg-gray-100 text-gray-500 text-sm shrink-0 border-r border-gray-200">
+                      {(baseUrl || 'https://nexus.com').replace(/^https?:\/\//, '')}/u/
+                    </span>
                     <input
                       type="text"
                       value={personalLinkSuffix}
                       onChange={(e) => { setPersonalLinkSuffix(e.target.value); setPersonalSlugTaken(false) }}
                       placeholder="your-username"
-                      className="flex-1 bg-transparent text-lg font-semibold text-white placeholder-teal-300/60 focus:outline-none min-w-0"
+                      className="flex-1 min-w-0 px-4 py-3.5 bg-white text-gray-900 text-base font-medium placeholder-gray-400 focus:outline-none focus:ring-0"
                     />
                   </div>
+                  <p className="text-xs text-gray-500 mt-1.5">Type your username above</p>
                   {personalSlugTaken && <p className="text-sm text-amber-400 mt-1">Username taken — please change</p>}
                 </div>
                 <button
@@ -177,17 +180,20 @@ export default function LandingPage() {
                   <h3 className="text-lg font-semibold text-amber-400">Create Project</h3>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-300 mb-2">Username</p>
-                  <div className={`flex items-center gap-2 rounded-xl border-2 px-4 py-3.5 ${projectSlugTaken ? 'border-red-500/70 bg-red-500/10' : 'border-amber-400/50 bg-amber-500/10'} text-amber-100`}>
-                    <span className="text-sm shrink-0 opacity-80">{baseUrl || 'https://nexus.com'}/u/</span>
+                  <p className="text-sm font-medium text-gray-300 mb-2">Your link</p>
+                  <div className={`flex overflow-hidden rounded-xl border-2 ${projectSlugTaken ? 'border-red-400' : 'border-amber-400/70'}`}>
+                    <span className="flex items-center px-4 py-3.5 bg-amber-50 text-amber-800/70 text-sm shrink-0 border-r border-amber-200">
+                      {(baseUrl || 'https://nexus.com').replace(/^https?:\/\//, '')}/u/
+                    </span>
                     <input
                       type="text"
                       value={projectLinkSuffix}
                       onChange={(e) => { setProjectLinkSuffix(e.target.value); setProjectSlugTaken(false) }}
                       placeholder="your-username"
-                      className="flex-1 bg-transparent text-lg font-semibold text-white placeholder-amber-300/60 focus:outline-none min-w-0"
+                      className="flex-1 min-w-0 px-4 py-3.5 bg-white text-gray-900 text-base font-medium placeholder-gray-400 focus:outline-none focus:ring-0"
                     />
                   </div>
+                  <p className="text-xs text-gray-500 mt-1.5">Type your username above</p>
                   {projectSlugTaken && <p className="text-sm text-amber-400 mt-1">Username taken — please change</p>}
                 </div>
                 <button
