@@ -50,15 +50,15 @@ function SignInForm() {
       
       hasRedirectedRef.current = true
       
-      // 🔥 清理 callbackUrl，移除所有查询参数，避免嵌套
       let targetUrl = callbackUrl || '/profile'
       
-      // 移除查询参数
-      if (targetUrl.includes('?')) {
-        targetUrl = targetUrl.split('?')[0]
+      // 保留 /get-started 的查询参数（type, linkSuffix, name），其他路径移除查询参数
+      if (!targetUrl.startsWith('/get-started')) {
+        if (targetUrl.includes('?')) {
+          targetUrl = targetUrl.split('?')[0]
+        }
       }
       
-      // 确保不是登录页
       if (targetUrl.includes('/auth/signin')) {
         targetUrl = '/profile'
       }
@@ -182,15 +182,15 @@ function SignInForm() {
         console.log('✅ [SIGNIN] 登录API返回成功，开始处理跳转')
         hasRedirectedRef.current = true // 标记已跳转，防止useEffect再次跳转
         
-        // 🔥 清理 callbackUrl，移除所有查询参数，避免嵌套
         let targetUrl = callbackUrl || '/profile'
         
-        // 移除查询参数
-        if (targetUrl.includes('?')) {
-          targetUrl = targetUrl.split('?')[0]
+        // 保留 /get-started 的查询参数，其他路径移除
+        if (!targetUrl.startsWith('/get-started')) {
+          if (targetUrl.includes('?')) {
+            targetUrl = targetUrl.split('?')[0]
+          }
         }
         
-        // 确保不是登录页
         if (targetUrl.includes('/auth/signin')) {
           targetUrl = '/profile'
         }

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
 import { prisma, withRetry } from '@/lib/prisma'
+import { authOptions } from '@/lib/auth'
 
 export const dynamic = 'force-dynamic'
 
@@ -181,5 +183,88 @@ export async function GET(request: NextRequest) {
   } catch (e) {
     console.error('[project]', e)
     return NextResponse.json({ error: 'Failed to load project' }, { status: 500 })
+  }
+}
+
+/**
+ * PATCH /api/project?userId=xxx&createdAt=123
+ * Update a project. Requires auth; must be the project owner.
+ */
+export async function PATCH(request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const { searchParams } = new URL(request.url)
+    const userId = searchParams.get('userId')
+    const createdAtStr = searchParams.get('createdAt')
+    if (!userId || !createdAtStr) {
+      return NextResponse.json({ error: 'Missing userId or createdAt' }, { status: 400 })
+    }
+    const createdAt = parseInt(createdAtStr, 10)
+    if (isNaN(createdAt)) {
+      return NextResponse.json({ error: 'Invalid createdAt' }, { status: 400 })
+    }
+
+    const me = await withRetry(() =>
+      prisma.user.findUnique({
+        where: { email: session.user!.email! },
+        select: { id: true },
+      })
+    )
+    if (!me) return NextResponse.json({ error: 'User not found' }, { status: 404 })
+
+    let user = await withRetry(() =>
+      prisma.user.findUnique({
+        where: { id: userId },
+        select: { id: true, profileData: true },
+      })
+    )
+    if (!user && userId) {
+      user = await withRetry(() =>
+        prisma.user.findFirst({
+          where: { profileSlug: userId },
+          select: { id: true, profileData: true },
+        })
+      )
+    }
+    if (!user || user.id !== me.id) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
+    const body = await request.json().catch(() => ({}))
+    let pd: Record<string, unknown>
+    try {
+      pd = user.profileData ? (JSON.parse(user.profileData) as Record<string, unknown>) : {}
+    } catch {
+      return NextResponse.json({ error: 'Invalid profile data' }, { status: 500 })
+    }
+
+    const projects = Array.isArray(pd.projects) ? [...(pd.projects as Record<string, unknown>[])] : []
+    const idx = projects.findIndex((p) => (p as { createdAt?: number }).createdAt === createdAt)
+    if (idx < 0) return NextResponse.json({ error: 'Project not found' }, { status: 404 })
+
+    const p = projects[idx] as Record<string, unknown>
+    if (typeof body.text === 'string' && body.text.trim()) p.text = body.text.trim()
+    if (typeof body.detail === 'string') p.detail = body.detail.trim() || undefined
+    if (typeof body.stage === 'string' && body.stage.trim()) p.stage = body.stage.trim()
+    if (Array.isArray(body.stageOrder)) p.stageOrder = body.stageOrder.filter((s: unknown) => typeof s === 'string' && s.trim())
+    if (typeof body.stageEnteredAt === 'object' && body.stageEnteredAt) p.stageEnteredAt = body.stageEnteredAt
+    if (Array.isArray(body.peopleNeeded)) p.peopleNeeded = body.peopleNeeded
+    if (Array.isArray(body.references)) p.references = body.references
+    if (Array.isArray(body.attachments)) p.attachments = body.attachments
+    if (Array.isArray(body.creators)) p.creators = body.creators
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { profileData: JSON.stringify({ ...pd, projects }) },
+    })
+
+    return NextResponse.json({ ok: true })
+  } catch (e) {
+    console.error('[project PATCH]', e)
+    return NextResponse.json({ error: 'Update failed' }, { status: 500 })
   }
 }

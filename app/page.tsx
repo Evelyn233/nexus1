@@ -14,11 +14,12 @@ export default function LandingPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { data: session } = useSession()
-  const [createType, setCreateType] = useState<'personal' | 'project'>('personal')
-  const [name, setName] = useState('')
-  const [linkSuffix, setLinkSuffix] = useState('')
-  const [error, setError] = useState('')
-  const [slugTaken, setSlugTaken] = useState(false)
+  const [personalName, setPersonalName] = useState('')
+  const [personalLinkSuffix, setPersonalLinkSuffix] = useState('')
+  const [personalSlugTaken, setPersonalSlugTaken] = useState(false)
+  const [projectName, setProjectName] = useState('')
+  const [projectLinkSuffix, setProjectLinkSuffix] = useState('')
+  const [projectSlugTaken, setProjectSlugTaken] = useState(false)
 
   useEffect(() => {
     const err = searchParams.get('error')
@@ -26,70 +27,71 @@ export default function LandingPage() {
     const n = searchParams.get('name')
     const t = searchParams.get('type')
     if (err === 'username_taken' && ls) {
-      setLinkSuffix(ls)
-      setSlugTaken(true)
-      if (n) setName(n)
-      if (t === 'project') setCreateType('project')
+      if (t === 'project') {
+        setProjectLinkSuffix(ls)
+        setProjectSlugTaken(true)
+        if (n) setProjectName(n)
+      } else {
+        setPersonalLinkSuffix(ls)
+        setPersonalSlugTaken(true)
+        if (n) setPersonalName(n)
+      }
       router.replace('/', { scroll: false })
     }
   }, [searchParams, router])
 
-  const handleLinkSuffixChange = (v: string) => {
-    setLinkSuffix(v)
-    if (slugTaken) setSlugTaken(false)
-  }
-
-  const checkSlug = useCallback(async (slug: string) => {
+  const checkSlug = useCallback(async (slug: string, setTaken: (v: boolean) => void) => {
     if (!slug || !/^[a-z0-9_-]+$/.test(slug)) {
-      setSlugTaken(false)
+      setTaken(false)
       return
     }
     try {
       const r = await fetch(`/api/user/check-slug?slug=${encodeURIComponent(slug)}`)
       const d = await r.json().catch(() => ({}))
-      setSlugTaken(!d?.available)
+      setTaken(!d?.available)
     } catch {
-      setSlugTaken(false)
+      setTaken(false)
     }
   }, [])
 
   useEffect(() => {
-    const slug = slugify(linkSuffix)
-    if (!slug) {
-      setSlugTaken(false)
-      return
-    }
-    const t = setTimeout(() => checkSlug(slug), 400)
+    const slug = slugify(personalLinkSuffix)
+    if (!slug) { setPersonalSlugTaken(false); return }
+    const t = setTimeout(() => checkSlug(slug, setPersonalSlugTaken), 400)
     return () => clearTimeout(t)
-  }, [linkSuffix, checkSlug])
+  }, [personalLinkSuffix, checkSlug])
+
+  useEffect(() => {
+    const slug = slugify(projectLinkSuffix)
+    if (!slug) { setProjectSlugTaken(false); return }
+    const t = setTimeout(() => checkSlug(slug, setProjectSlugTaken), 400)
+    return () => clearTimeout(t)
+  }, [projectLinkSuffix, checkSlug])
 
   const baseUrl = typeof window !== 'undefined' ? window.location.origin : ''
-  const previewUrl = linkSuffix ? `${baseUrl}/u/${slugify(linkSuffix) || linkSuffix}` : `${baseUrl}/u/`
 
-  const handleSubmit = () => {
-    setError('')
-    const slug = slugify(linkSuffix)
-    const displayName = name.trim() || (createType === 'project' ? 'New Project' : '')
-    if (!slug) {
-      setError('请输入 link 后缀（用户名）')
-      return
-    }
-    if (!/^[a-z0-9_-]+$/.test(slug)) {
-      setError('Link 后缀仅支持字母、数字、下划线、连字符')
-      return
-    }
-    if (slugTaken) {
-      setError('Username already taken — please change it')
-      return
-    }
-    const params = new URLSearchParams({ type: createType, linkSuffix: slug })
-    if (displayName) params.set('name', displayName)
+  const handleSubmitPersonal = () => {
+    const slug = slugify(personalLinkSuffix)
+    if (!slug) { alert('请输入 link 后缀（用户名）'); return }
+    if (!/^[a-z0-9_-]+$/.test(slug)) { alert('Link 后缀仅支持字母、数字、下划线、连字符'); return }
+    if (personalSlugTaken) { alert('Username already taken — please change it'); return }
+    const params = new URLSearchParams({ type: 'personal', linkSuffix: slug })
+    if (personalName.trim()) params.set('name', personalName.trim())
     const callback = `/get-started?${params.toString()}`
-    if (session) {
-      router.push(callback)
-    } else {
-      router.push(`/auth/signup?callbackUrl=${encodeURIComponent(callback)}`)
-    }
+    if (session) router.push(callback)
+    else router.push(`/auth/signup?callbackUrl=${encodeURIComponent(callback)}`)
+  }
+
+  const handleSubmitProject = () => {
+    const slug = slugify(projectLinkSuffix)
+    if (!slug) { alert('请输入 link 后缀（用户名）'); return }
+    if (!/^[a-z0-9_-]+$/.test(slug)) { alert('Link 后缀仅支持字母、数字、下划线、连字符'); return }
+    if (projectSlugTaken) { alert('Username already taken — please change it'); return }
+    const params = new URLSearchParams({ type: 'project', linkSuffix: slug })
+    params.set('name', projectName.trim() || 'New Project')
+    const callback = `/get-started?${params.toString()}`
+    if (session) router.push(callback)
+    else router.push(`/auth/signup?callbackUrl=${encodeURIComponent(callback)}`)
   }
 
   return (
@@ -135,86 +137,95 @@ export default function LandingPage() {
           </p>
         </section>
 
-        {/* Create personal homepage or project homepage */}
+        {/* Personal profile and Project profile — two separate links */}
         <section className="border-y border-white/10 py-16 sm:py-20">
-          <div className="max-w-xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
             <h2 className="text-2xl sm:text-3xl font-bold text-center mb-2">
               Create your homepage
             </h2>
-            <p className="text-center text-gray-400 mb-8">
-              Personal profile or project page — choose one and claim your link.
+            <p className="text-center text-gray-400 mb-10">
+              Personal profile or project page — each with its own link.
             </p>
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-6 space-y-4">
-              <div>
-                <p className="text-sm font-medium text-gray-300 mb-2">Type</p>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setCreateType('personal')}
-                    className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl border transition-all ${
-                      createType === 'personal'
-                        ? 'border-teal-500 bg-teal-500/20 text-teal-400'
-                        : 'border-white/10 hover:border-white/20 text-gray-400'
-                    }`}
-                  >
-                    <User className="w-4 h-4" />
-                    Personal
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setCreateType('project')}
-                    className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl border transition-all ${
-                      createType === 'project'
-                        ? 'border-amber-500 bg-amber-500/20 text-amber-400'
-                        : 'border-white/10 hover:border-white/20 text-gray-400'
-                    }`}
-                  >
-                    <FolderPlus className="w-4 h-4" />
-                    Project
-                  </button>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Personal profile */}
+              <div className="rounded-2xl border border-teal-500/30 bg-teal-500/5 p-6 space-y-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <User className="w-5 h-5 text-teal-400" />
+                  <h3 className="text-lg font-semibold text-teal-400">Personal Profile</h3>
                 </div>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-300 mb-2">Name</p>
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder={createType === 'project' ? 'Project name' : 'Your display name'}
-                  className="w-full px-4 py-2.5 text-sm rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500"
-                />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-300 mb-2">Link suffix (username)</p>
-                <div className={`flex items-center gap-2 rounded-xl bg-white/5 border px-3 py-2.5 ${slugTaken ? 'border-red-500/50' : 'border-white/10'} text-gray-400`}>
-                  <span className="text-sm shrink-0">{baseUrl || 'https://nexus.com'}/u/</span>
+                <div>
+                  <p className="text-sm font-medium text-gray-300 mb-1">Display name</p>
                   <input
                     type="text"
-                    value={linkSuffix}
-                    onChange={(e) => handleLinkSuffixChange(e.target.value)}
-                    placeholder="username"
-                    className="flex-1 bg-transparent text-white placeholder-gray-500 focus:outline-none min-w-0"
+                    value={personalName}
+                    onChange={(e) => setPersonalName(e.target.value)}
+                    placeholder="Your name"
+                    className="w-full px-4 py-2.5 text-sm rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500"
                   />
                 </div>
-                <p className="text-[11px] text-gray-500 mt-1">Letters, numbers, underscore, hyphen only</p>
-                {slugTaken && (
-                  <p className="text-sm text-amber-400 mt-1">Username already taken — please change it</p>
-                )}
+                <div>
+                  <p className="text-sm font-medium text-gray-300 mb-1">Link suffix (username)</p>
+                  <div className={`flex items-center gap-2 rounded-xl bg-white/5 border px-3 py-2.5 ${personalSlugTaken ? 'border-red-500/50' : 'border-white/10'} text-gray-400`}>
+                    <span className="text-sm shrink-0">{baseUrl || 'https://nexus.com'}/u/</span>
+                    <input
+                      type="text"
+                      value={personalLinkSuffix}
+                      onChange={(e) => { setPersonalLinkSuffix(e.target.value); setPersonalSlugTaken(false) }}
+                      placeholder="username"
+                      className="flex-1 bg-transparent text-white placeholder-gray-500 focus:outline-none min-w-0"
+                    />
+                  </div>
+                  {personalSlugTaken && <p className="text-sm text-amber-400 mt-1">Username taken — please change</p>}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleSubmitPersonal()}
+                  className="w-full px-4 py-3 rounded-xl border border-teal-500 bg-teal-500 text-gray-900 font-medium hover:bg-teal-400 transition-colors"
+                >
+                  Create Profile
+                </button>
               </div>
-              {error && <p className="text-sm text-red-400">{error}</p>}
-              <button
-                type="button"
-                onClick={handleSubmit}
-                className="w-full px-4 py-3 rounded-xl border border-teal-500 bg-teal-500 text-gray-900 font-medium hover:bg-teal-400 transition-colors"
-              >
-                Create {createType === 'personal' ? 'Profile' : 'Project'}
-              </button>
+
+              {/* Project profile */}
+              <div className="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-6 space-y-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <FolderPlus className="w-5 h-5 text-amber-400" />
+                  <h3 className="text-lg font-semibold text-amber-400">Create Project</h3>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-300 mb-1">Project name</p>
+                  <input
+                    type="text"
+                    value={projectName}
+                    onChange={(e) => setProjectName(e.target.value)}
+                    placeholder="Project name"
+                    className="w-full px-4 py-2.5 text-sm rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-300 mb-1">Link suffix (your username)</p>
+                  <div className={`flex items-center gap-2 rounded-xl bg-white/5 border px-3 py-2.5 ${projectSlugTaken ? 'border-red-500/50' : 'border-white/10'} text-gray-400`}>
+                    <span className="text-sm shrink-0">{baseUrl || 'https://nexus.com'}/u/</span>
+                    <input
+                      type="text"
+                      value={projectLinkSuffix}
+                      onChange={(e) => { setProjectLinkSuffix(e.target.value); setProjectSlugTaken(false) }}
+                      placeholder="username"
+                      className="flex-1 bg-transparent text-white placeholder-gray-500 focus:outline-none min-w-0"
+                    />
+                  </div>
+                  {projectSlugTaken && <p className="text-sm text-amber-400 mt-1">Username taken — please change</p>}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleSubmitProject()}
+                  className="w-full px-4 py-3 rounded-xl border border-amber-500 bg-amber-500 text-gray-900 font-medium hover:bg-amber-400 transition-colors"
+                >
+                  Create Project
+                </button>
+              </div>
             </div>
-            {previewUrl && (
-              <p className="mt-3 text-center text-xs text-gray-500">
-                Your link: <span className="text-teal-400">{previewUrl}</span>
-              </p>
-            )}
+            <p className="text-center text-xs text-gray-500 mt-4">Letters, numbers, underscore, hyphen only for link suffix</p>
           </div>
         </section>
 

@@ -65,7 +65,7 @@ export default function GetStartedPage() {
             return
           }
           if (!cancelled) {
-            router.replace(`/u/${linkSuffix}/project/${createData.createdAt}`)
+            router.replace(`/u/${linkSuffix}/project/${createData.createdAt}?edit=1`)
           }
         } else {
           if (!cancelled) {

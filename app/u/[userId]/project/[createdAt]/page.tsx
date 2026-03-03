@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useState, useEffect, useCallback } from 'react'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { User, Share2, Heart, Bookmark, MessageCircle, ArrowLeft, LayoutGrid } from 'lucide-react'
+import { User, Share2, Heart, Bookmark, MessageCircle, ArrowLeft, LayoutGrid, Pencil, Save } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { resolveImageUrl } from '@/lib/resolveImageUrl'
 
@@ -48,6 +48,7 @@ function formatStageDate(ts: number): string {
 export default function ProjectPage() {
   const params = useParams()
   const router = useRouter()
+  const urlSearchParams = useSearchParams()
   const { isAuthenticated, session } = useAuth()
   const userId = params.userId as string
   const createdAt = parseInt(params.createdAt as string, 10)
@@ -59,6 +60,32 @@ export default function ProjectPage() {
   const [engageContribution, setEngageContribution] = useState('')
   const [engageSubmitting, setEngageSubmitting] = useState(false)
   const [peopleDetailModal, setPeopleDetailModal] = useState<{ text: string; detail?: string } | null>(null)
+  const [isEditing, setIsEditing] = useState(false)
+  const [editText, setEditText] = useState('')
+  const [editDetail, setEditDetail] = useState('')
+  const [editStage, setEditStage] = useState('')
+  const [editPeopleNeeded, setEditPeopleNeeded] = useState<{ text: string; detail?: string }[]>([])
+  const [openToInput, setOpenToInput] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  const currentUserId = (session?.user as { id?: string })?.id
+
+  const loadProject = useCallback(() => {
+    if (!userId || isNaN(createdAt)) return
+    return fetch(`/api/project?userId=${encodeURIComponent(userId)}&createdAt=${createdAt}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data?.success && data?.project && data?.user) {
+          setProject(data.project)
+          setUser(data.user)
+          setEditText(data.project.text)
+          setEditDetail(data.project.detail ?? '')
+          setEditStage(data.project.stage ?? 'Idea')
+          setEditPeopleNeeded(data.project.peopleNeeded ?? [])
+        }
+      })
+      .catch(() => {})
+  }, [userId, createdAt])
 
   useEffect(() => {
     if (!userId || isNaN(createdAt)) {
@@ -66,19 +93,58 @@ export default function ProjectPage() {
       return
     }
     let cancelled = false
-    fetch(`/api/project?userId=${encodeURIComponent(userId)}&createdAt=${createdAt}`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
-        if (cancelled) return
-        if (data?.success && data?.project && data?.user) {
-          setProject(data.project)
-          setUser(data.user)
-        }
-      })
-      .catch(() => {})
-      .finally(() => { if (!cancelled) setLoading(false) })
+    loadProject().finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
-  }, [userId, createdAt])
+  }, [userId, createdAt, loadProject])
+
+  useEffect(() => {
+    if (urlSearchParams?.get('edit') === '1' && project && user) {
+      const uid = (session?.user as { id?: string })?.id
+      if (uid && user.id === uid) setIsEditing(true)
+    }
+  }, [urlSearchParams, project, user, session])
+
+  const isOwner = Boolean(currentUserId && user?.id && currentUserId === user.id)
+
+  const handleSaveEdit = async () => {
+    if (!project || saving) return
+    setSaving(true)
+    try {
+      const res = await fetch(`/api/project?userId=${encodeURIComponent(userId)}&createdAt=${createdAt}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          text: editText.trim() || project.text,
+          detail: editDetail.trim() || undefined,
+          stage: editStage.trim() || project.stage,
+          peopleNeeded: editPeopleNeeded,
+        }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (res.ok && data?.ok) {
+        setProject((p) => p ? { ...p, text: editText.trim() || p.text, detail: editDetail.trim() || p.detail, stage: editStage.trim() || p.stage, peopleNeeded: editPeopleNeeded } : p)
+        setIsEditing(false)
+        loadProject()
+      } else {
+        alert(data?.error || 'Save failed')
+      }
+    } catch (e) {
+      alert('Save failed')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const startEdit = () => {
+    if (project) {
+      setEditText(project.text)
+      setEditDetail(project.detail ?? '')
+      setEditStage(project.stage ?? 'Idea')
+      setEditPeopleNeeded(project.peopleNeeded ?? [])
+      setIsEditing(true)
+    }
+  }
 
   const handleEngage = () => {
     if (!isAuthenticated) {
@@ -118,7 +184,6 @@ export default function ProjectPage() {
     }
   }
 
-  const currentUserId = (session?.user as { id?: string })?.id
   const profileLink = currentUserId && user?.id && currentUserId === user.id ? '/profile' : `/u/${userId}`
 
   if (loading) {
@@ -162,13 +227,42 @@ export default function ProjectPage() {
               <LayoutGrid className="w-4 h-4" />
               Project
             </span>
+            {isOwner && !isEditing && (
+              <button type="button" onClick={startEdit} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-teal-700 bg-teal-50 border border-teal-200 hover:bg-teal-100">
+                <Pencil className="w-3.5 h-3.5" />
+                Edit
+              </button>
+            )}
+            {isOwner && isEditing && (
+              <button type="button" onClick={handleSaveEdit} disabled={saving} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 disabled:opacity-50">
+                <Save className="w-3.5 h-3.5" />
+                {saving ? 'Saving...' : 'Save'}
+              </button>
+            )}
+            {isOwner && isEditing && (
+              <button type="button" onClick={() => setIsEditing(false)} className="px-3 py-1.5 rounded-lg text-sm text-gray-600 hover:bg-gray-100">
+                Cancel
+              </button>
+            )}
           </div>
         </div>
       </header>
 
       <main className="mx-auto max-w-2xl px-4 py-6">
         <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-          <h1 className="text-base font-semibold text-teal-800 mb-3">{project.text}</h1>
+          {isEditing ? (
+            <div className="mb-4">
+              <input
+                type="text"
+                value={editText}
+                onChange={(e) => setEditText(e.target.value)}
+                placeholder="Project name"
+                className="w-full px-3 py-2 text-base font-semibold text-teal-800 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+              />
+            </div>
+          ) : (
+            <h1 className="text-base font-semibold text-teal-800 mb-3">{project.text}</h1>
+          )}
 
           <div className="flex items-center justify-between gap-2 mb-4">
             <Link href={profileLink} className="flex items-center gap-1.5 min-w-0 hover:opacity-80">
@@ -186,7 +280,17 @@ export default function ProjectPage() {
           {/* 进度节点：项目整体 */}
           <div className="mb-4 rounded-lg border-2 border-teal-200 bg-teal-50/50 px-4 py-3">
             <p className="text-[10px] text-teal-700 font-medium mb-2">进度节点 Progress</p>
-            {(() => {
+            {isEditing ? (
+              <select
+                value={editStage}
+                onChange={(e) => setEditStage(e.target.value)}
+                className="px-3 py-2 text-sm border border-teal-300 rounded-lg bg-white"
+              >
+                {(project.stageOrder && project.stageOrder.length > 0 ? project.stageOrder : ['Idea', 'Planning']).map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+            ) : (() => {
               const fullOrder = (project.stageOrder && project.stageOrder.length > 0) ? project.stageOrder : (project.stage ? [project.stage] : ['Idea'])
               const order = fullOrder.length > 0 ? fullOrder : ['Idea']
               const currentStage = project.stage || order[0] || 'Idea'
@@ -246,33 +350,44 @@ export default function ProjectPage() {
             </div>
           )}
 
-          {(project.peopleNeeded ?? []).length > 0 && (
+          {((isEditing ? editPeopleNeeded : (project.peopleNeeded ?? [])).length > 0 || isEditing) && (
             <div className="mb-3">
               <p className="text-[10px] text-gray-500 mb-1">Open to</p>
               <div className="flex flex-wrap gap-1.5">
-                {(project.peopleNeeded ?? []).map((t, i) => (
-                  <button
-                    key={i}
-                    type="button"
-                    onClick={() => setPeopleDetailModal({ text: t.text, detail: t.detail })}
-                    className="inline-flex flex-col items-start gap-0.5 px-2 py-1 rounded-lg text-left bg-amber-100 text-amber-800 border border-amber-200 hover:bg-amber-200 cursor-pointer"
-                  >
+                {(isEditing ? editPeopleNeeded : (project.peopleNeeded ?? [])).map((t, i) => (
+                  <div key={i} className="inline-flex flex-col items-start gap-0.5 px-2 py-1 rounded-lg bg-amber-100 text-amber-800 border border-amber-200">
                     <span className="text-[10px] font-medium">{t.text}</span>
-                    <div className="flex items-center gap-1 flex-wrap">
-                      {t.stageTag ? (
-                        <span className="px-1.5 py-0.5 rounded-full bg-teal-100 text-teal-700 border border-teal-200 text-[9px] font-medium">{t.stageTag}</span>
-                      ) : (
-                        <span className="px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-400 border border-gray-200 text-[9px]">节点 —</span>
-                      )}
-                      {t.contentTag ? (
-                        <span className="px-1.5 py-0.5 rounded-full bg-violet-100 text-violet-700 border border-violet-200 text-[9px] font-medium">{t.contentTag}</span>
-                      ) : (
-                        <span className="px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-400 border border-gray-200 text-[9px]">tag —</span>
-                      )}
-                    </div>
-                  </button>
+                    {!isEditing ? (
+                      <button type="button" onClick={() => setPeopleDetailModal({ text: t.text, detail: t.detail })} className="text-[9px] text-amber-600 hover:underline">
+                        View
+                      </button>
+                    ) : (
+                      <button type="button" onClick={() => setEditPeopleNeeded((p) => p.filter((_, j) => j !== i))} className="text-[9px] text-red-600 hover:underline">
+                        Remove
+                      </button>
+                    )}
+                  </div>
                 ))}
               </div>
+              {isEditing && (
+                <div className="flex gap-2 mt-2">
+                  <input
+                    type="text"
+                    value={openToInput}
+                    onChange={(e) => setOpenToInput(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && (setEditPeopleNeeded((p) => [...p, { text: openToInput.trim() }]), setOpenToInput(''))}
+                    placeholder="e.g. Video editor"
+                    className="flex-1 px-2 py-1.5 text-sm border border-gray-300 rounded-lg"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => openToInput.trim() && (setEditPeopleNeeded((p) => [...p, { text: openToInput.trim() }]), setOpenToInput(''))}
+                    className="px-3 py-1.5 text-sm bg-amber-100 text-amber-800 border border-amber-200 rounded-lg hover:bg-amber-200"
+                  >
+                    Add
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
@@ -284,9 +399,22 @@ export default function ProjectPage() {
             />
           )}
 
-          {project.detail?.trim() && (
-            <div className="mb-3 rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm text-gray-700 whitespace-pre-wrap">
-              {project.detail}
+          {(isEditing || project.detail?.trim()) && (
+            <div className="mb-3">
+              <p className="text-[10px] text-gray-500 mb-1">Detail</p>
+              {isEditing ? (
+                <textarea
+                  value={editDetail}
+                  onChange={(e) => setEditDetail(e.target.value)}
+                  rows={4}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500"
+                  placeholder="Project description..."
+                />
+              ) : (
+                <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm text-gray-700 whitespace-pre-wrap">
+                  {project.detail}
+                </div>
+              )}
             </div>
           )}
 
