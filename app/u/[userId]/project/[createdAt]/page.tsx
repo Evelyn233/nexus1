@@ -71,7 +71,7 @@ export default function ProjectPage() {
   const currentUserId = (session?.user as { id?: string })?.id
 
   const loadProject = useCallback(() => {
-    if (!userId || isNaN(createdAt)) return
+    if (!userId || isNaN(createdAt)) return Promise.resolve()
     return fetch(`/api/project?userId=${encodeURIComponent(userId)}&createdAt=${createdAt}`)
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
