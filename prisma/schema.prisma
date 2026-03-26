@@ -32,6 +32,7 @@ model User {
   updatedAt               DateTime               @updatedAt
   profileData             String?
   profileSlug             String?                @unique
+  // userType 暂不建列，存在 profileData.userType；有迁移后再加回： userType String? @default("person")
   accounts                Account[]
   chatSessions            ChatSession[]
   comments                Comment[]
@@ -149,6 +150,20 @@ model PhoneVerificationCode {
   @@index([phone])
   @@index([expires])
   @@map("phone_verification_codes")
+}
+
+model EmailVerificationCode {
+  id        String   @id @default(cuid())
+  email     String
+  code      String
+  type      String
+  expires   DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([email])
+  @@index([expires])
+  @@map("email_verification_codes")
 }
 
 model ChatSession {

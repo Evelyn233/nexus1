@@ -68,20 +68,33 @@ export async function GET(request: NextRequest) {
     const toNum = (v: unknown): number | null =>
       typeof v === 'number' && !isNaN(v) ? v : (typeof v === 'string' ? (parseInt(v, 10) || null) : null)
     const targetTs = toNum(createdAt)
-    const findProject = (arr: unknown[]) =>
+    const findProjectExact = (arr: unknown[]) =>
       targetTs != null ? arr.find((x: unknown) => {
-        const obj = x && typeof x === 'object' ? x as Record<string, unknown> : null
+        const obj = x && typeof x === 'object' ? (x as Record<string, unknown>) : null
         return obj && toNum(obj.createdAt) === targetTs
       }) as Record<string, unknown> | undefined : null
-    let p = findProject(projects)
-    if (!p) p = findProject(collab)
-    // Fallback: if single project and createdAt mismatch (e.g. legacy data), use it
-    if (!p && projects.length === 1 && (projects[0] as Record<string, unknown>)?.text) {
-      p = projects[0] as Record<string, unknown>
+    const findProjectNearest = (arr: unknown[]) => {
+      if (targetTs == null || !Array.isArray(arr) || arr.length === 0) return undefined
+      let best: Record<string, unknown> | undefined
+      let bestDiff = Number.POSITIVE_INFINITY
+      for (const x of arr) {
+        const obj = x && typeof x === 'object' ? (x as Record<string, unknown>) : null
+        if (!obj) continue
+        const ts = toNum(obj.createdAt)
+        if (ts == null) continue
+        const diff = Math.abs(ts - targetTs)
+        if (diff < bestDiff) {
+          best = obj
+          bestDiff = diff
+        }
+      }
+      return best
     }
-    if (!p && collab.length === 1 && (collab[0] as Record<string, unknown>)?.text) {
-      p = collab[0] as Record<string, unknown>
-    }
+    let p = findProjectExact(projects)
+    if (!p) p = findProjectExact(collab)
+    // Fallback: use nearest createdAt when no exact match (links稍微旧一点也能打开)
+    if (!p) p = findProjectNearest(projects)
+    if (!p) p = findProjectNearest(collab)
 
     if (!p || !(p.text ?? '').toString().trim()) {
       return NextResponse.json({ error: 'Project not found' }, { status: 404 })
@@ -118,10 +131,11 @@ export async function GET(request: NextRequest) {
       : []
     const references = Array.isArray(p.references)
       ? p.references
-          .map((r: { url?: string; title?: string; type?: string; cover?: string; stageTag?: string; contentTag?: string }) => {
+          .map((r: { url?: string; title?: string; type?: string; cover?: string; description?: string; stageTag?: string; contentTag?: string }) => {
             const url = typeof r?.url === 'string' ? r.url.trim() : ''
             const title = typeof r?.title === 'string' ? r.title.trim() : ''
             const cover = typeof r?.cover === 'string' ? r.cover.trim() : undefined
+            const description = typeof r?.description === 'string' ? r.description.trim() : undefined
             const stageTag = typeof r?.stageTag === 'string' && r.stageTag.trim() ? r.stageTag.trim() : undefined
             const contentTag = typeof r?.contentTag === 'string' && r.contentTag.trim() ? r.contentTag.trim() : undefined
             if (!url) return null
@@ -130,6 +144,7 @@ export async function GET(request: NextRequest) {
               title: title || 'Link',
               url,
               ...(cover ? { cover } : {}),
+              ...(description ? { description } : {}),
               ...(stageTag ? { stageTag } : {}),
               ...(contentTag ? { contentTag } : {}),
             }
@@ -138,14 +153,37 @@ export async function GET(request: NextRequest) {
       : []
     const peopleNeeded = Array.isArray(p.peopleNeeded)
       ? p.peopleNeeded
-          .map((x: string | { text?: string; detail?: string; stageTag?: string; contentTag?: string }) => {
+          .map((x: string | { text?: string; detail?: string; stageTag?: string; contentTag?: string; collabIntent?: string; acceptedSubmissions?: string; recruiterQuestions?: string; image?: string; link?: string; workMode?: string; location?: string }) => {
             if (typeof x === 'string') return x.trim() ? { text: x.trim() } : null
-            const obj = x as { text?: string; detail?: string; stageTag?: string; contentTag?: string }
+            const obj = x as { text?: string; detail?: string; stageTag?: string; contentTag?: string; collabIntent?: string; acceptedSubmissions?: string; recruiterQuestions?: string; image?: string; link?: string; workMode?: string; location?: string }
             const t = String(obj?.text ?? '').trim()
             if (!t) return null
             const stageTag = typeof obj.stageTag === 'string' && obj.stageTag.trim() ? obj.stageTag.trim() : undefined
             const contentTag = typeof obj.contentTag === 'string' && obj.contentTag.trim() ? obj.contentTag.trim() : undefined
-            return { text: t, detail: typeof obj?.detail === 'string' ? obj.detail.trim() : undefined, ...(stageTag ? { stageTag } : {}), ...(contentTag ? { contentTag } : {}) }
+            const collabIntent = typeof obj.collabIntent === 'string' && obj.collabIntent.trim() ? obj.collabIntent.trim() : undefined
+            const acceptedSubmissions =
+              typeof obj.acceptedSubmissions === 'string' && obj.acceptedSubmissions.trim() ? obj.acceptedSubmissions.trim().slice(0, 500) : undefined
+            const recruiterQuestions =
+              typeof obj.recruiterQuestions === 'string' && obj.recruiterQuestions.trim()
+                ? obj.recruiterQuestions.trim().slice(0, 4000)
+                : undefined
+            const image = typeof obj.image === 'string' && obj.image.trim() ? obj.image.trim() : undefined
+            const link = typeof obj.link === 'string' && obj.link.trim() ? obj.link.trim() : undefined
+            const workMode = obj.workMode === 'local' ? 'local' as const : 'remote' as const
+            const location = typeof obj.location === 'string' && obj.location.trim() ? obj.location.trim() : undefined
+            return {
+              text: t,
+              detail: typeof obj?.detail === 'string' ? obj.detail.trim() : undefined,
+              ...(stageTag ? { stageTag } : {}),
+              ...(contentTag ? { contentTag } : {}),
+              ...(collabIntent ? { collabIntent } : {}),
+              ...(acceptedSubmissions ? { acceptedSubmissions } : {}),
+              ...(recruiterQuestions ? { recruiterQuestions } : {}),
+              ...(image ? { image } : {}),
+              ...(link ? { link } : {}),
+              workMode,
+              ...(workMode === 'local' && location ? { location } : {}),
+            }
           })
           .filter(Boolean)
       : []
@@ -154,8 +192,40 @@ export async function GET(request: NextRequest) {
           .filter((c): c is string => typeof c === 'string' && c.trim().length > 0)
           .map((c) => c.trim())
       : []
+    const projectTypeTag = typeof (p as Record<string, unknown>).projectTypeTag === 'string' && (p as Record<string, unknown>).projectTypeTag
+      ? String((p as Record<string, unknown>).projectTypeTag).trim().slice(0, 20)
+      : undefined
+    const openStatusLabel = typeof (p as Record<string, unknown>).openStatusLabel === 'string' && (p as Record<string, unknown>).openStatusLabel
+      ? String((p as Record<string, unknown>).openStatusLabel).trim().slice(0, 48)
+      : undefined
+    const allowEasyApply = (p as Record<string, unknown>).allowEasyApply === true
+    const whatToProvide = typeof (p as Record<string, unknown>).whatToProvide === 'string' && (p as Record<string, unknown>).whatToProvide
+      ? String((p as Record<string, unknown>).whatToProvide).trim() || undefined
+      : undefined
+    const whatYouCanBring = typeof (p as Record<string, unknown>).whatYouCanBring === 'string' && (p as Record<string, unknown>).whatYouCanBring
+      ? String((p as Record<string, unknown>).whatYouCanBring).trim().slice(0, 1000) || undefined
+      : undefined
+    const whatYouCanBringTag = typeof (p as Record<string, unknown>).whatYouCanBringTag === 'string' && (p as Record<string, unknown>).whatYouCanBringTag
+      ? String((p as Record<string, unknown>).whatYouCanBringTag).trim().slice(0, 60) || undefined
+      : undefined
+    const cultureAndBenefit = typeof (p as Record<string, unknown>).cultureAndBenefit === 'string' && (p as Record<string, unknown>).cultureAndBenefit
+      ? String((p as Record<string, unknown>).cultureAndBenefit).trim().slice(0, 3000) || undefined
+      : undefined
+    const initiatorRole = typeof (p as Record<string, unknown>).initiatorRole === 'string' && (p as Record<string, unknown>).initiatorRole
+      ? String((p as Record<string, unknown>).initiatorRole).trim().slice(0, 64) || undefined
+      : undefined
+    const projectOneSentence = typeof (p as Record<string, unknown>).oneSentenceDesc === 'string' && (p as Record<string, unknown>).oneSentenceDesc
+      ? String((p as Record<string, unknown>).oneSentenceDesc).trim().slice(0, 500) || undefined
+      : undefined
+    const visibility = (p as Record<string, unknown>).visibility === 'hidden' ? 'hidden' as const
+      : (p as Record<string, unknown>).visibility === 'public' ? 'public' as const
+      : 'individual' as const
+    const showOnPlaza = (p as Record<string, unknown>).showOnPlaza === true
 
     const slug = user.profileSlug?.trim() || (user.name || '').toLowerCase().replace(/\s+/g, '') || user.id
+    const avatarDataUrl = (typeof pd.avatarDataUrl === 'string' && (pd.avatarDataUrl as string).trim())
+      ? (pd.avatarDataUrl as string).trim()
+      : (typeof user.image === 'string' && user.image.trim() ? user.image : null)
 
     return NextResponse.json({
       success: true,
@@ -171,6 +241,17 @@ export async function GET(request: NextRequest) {
         attachments,
         creators,
         createdAt: typeof p.createdAt === 'number' ? p.createdAt : createdAt,
+        projectTypeTag,
+        openStatusLabel,
+        allowEasyApply,
+        whatToProvide,
+        whatYouCanBring,
+        whatYouCanBringTag,
+        cultureAndBenefit,
+        initiatorRole,
+        oneSentenceDesc: projectOneSentence,
+        visibility,
+        showOnPlaza,
       },
       user: {
         id: user.id,
@@ -178,6 +259,7 @@ export async function GET(request: NextRequest) {
         image: user.image,
         profileSlug: slug,
         oneSentenceDesc,
+        avatarDataUrl,
       },
     })
   } catch (e) {
@@ -256,15 +338,35 @@ export async function PATCH(request: NextRequest) {
     if (Array.isArray(body.references)) p.references = body.references
     if (Array.isArray(body.attachments)) p.attachments = body.attachments
     if (Array.isArray(body.creators)) p.creators = body.creators
+    if (typeof body.projectTypeTag === 'string') p.projectTypeTag = body.projectTypeTag.trim().slice(0, 20) || undefined
+    if (typeof body.openStatusLabel === 'string') p.openStatusLabel = body.openStatusLabel.trim().slice(0, 48) || undefined
+    if (typeof body.allowEasyApply === 'boolean') p.allowEasyApply = body.allowEasyApply
+    if (typeof body.whatToProvide === 'string') p.whatToProvide = body.whatToProvide.trim().slice(0, 2000) || undefined
+    if (typeof body.whatYouCanBring === 'string') p.whatYouCanBring = body.whatYouCanBring.trim().slice(0, 1000) || undefined
+    if (typeof body.whatYouCanBringTag === 'string') p.whatYouCanBringTag = body.whatYouCanBringTag.trim().slice(0, 60) || undefined
+    if (typeof body.cultureAndBenefit === 'string') p.cultureAndBenefit = body.cultureAndBenefit.trim().slice(0, 3000) || undefined
+    if (typeof body.initiatorRole === 'string') p.initiatorRole = body.initiatorRole.trim().slice(0, 64) || undefined
+    if (typeof body.oneSentenceDesc === 'string') p.oneSentenceDesc = body.oneSentenceDesc.trim().slice(0, 500) || undefined
+    if (typeof body.detailImage === 'string') p.detailImage = body.detailImage.trim() || undefined
+    if (body.visibility === 'public' || body.visibility === 'hidden' || body.visibility === 'individual') p.visibility = body.visibility
+    if (typeof body.showOnPlaza === 'boolean') p.showOnPlaza = body.showOnPlaza
 
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { profileData: JSON.stringify({ ...pd, projects }) },
-    })
+    await withRetry(() =>
+      prisma.user.update({
+        where: { id: user.id },
+        data: { profileData: JSON.stringify({ ...pd, projects }) },
+      })
+    )
 
     return NextResponse.json({ ok: true })
   } catch (e) {
     console.error('[project PATCH]', e)
-    return NextResponse.json({ error: 'Update failed' }, { status: 500 })
+    const raw = e instanceof Error ? e.message : String(e)
+    // 不要把 Prisma 引擎/连接错误的原始信息（含 backtrace）直接给用户看
+    const message =
+      raw.includes('Engine is not yet connected') || raw.includes('napi_register_module')
+        ? '数据库正在连接，请稍后重试'
+        : raw.slice(0, 200)
+    return NextResponse.json({ error: message || 'Update failed' }, { status: 500 })
   }
 }

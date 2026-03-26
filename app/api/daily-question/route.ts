@@ -63,6 +63,24 @@ async function getProfileSummaryForUser(userId: string): Promise<string> {
       }
       const tags = Array.isArray(pd?.tags) ? (pd.tags as string[]).slice(-10) : []
       if (tags.length) parts.push(`标签/话题：${tags.join('、')}`)
+      // 项目与「找人」：每日一问需根据用户任何输入（含项目、进度、找人需求）出题
+      const projects = Array.isArray(pd?.projects) ? (pd.projects as { text?: string; stage?: string; peopleNeeded?: { text?: string }[] }[]) : []
+      if (projects.length > 0) {
+        const projLines = projects
+          .map((p) => {
+            const title = (p.text || '').trim()
+            const stage = (p.stage || '').trim()
+            const needs = (p.peopleNeeded || []).map((n) => (n.text || '').trim()).filter(Boolean)
+            return [title, stage, needs.join('、')].filter(Boolean).join(' | ')
+          })
+          .filter(Boolean)
+        if (projLines.length) parts.push(`项目与找人：${projLines.join('；')}`)
+      }
+      const workIntro = Array.isArray(pd?.workIntroductions) ? (pd.workIntroductions as { name?: string; description?: string }[]) : []
+      if (workIntro.length > 0) {
+        const introLines = workIntro.map((w) => [w.name, w.description].filter(Boolean).join(': ')).filter(Boolean)
+        if (introLines.length) parts.push(`作品/简介：${introLines.join('；')}`)
+      }
     } catch {}
   }
   return parts.length ? parts.join('\n') : '暂无更多公开信息。'

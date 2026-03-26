@@ -1,27 +1,106 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { signIn } from 'next-auth/react'
+import { signIn, useSession } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 
 export default function SignUpPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { data: session, status } = useSession()
   const promptParam = searchParams.get('prompt') || ''
   const imageParam = searchParams.get('image') || ''
   const callbackUrl = searchParams.get('callbackUrl') || ''
-  
-  const [name, setName] = useState('')
+  const forceSignup = searchParams.get('forceSignup') === '1'
+  // 从 callbackUrl 解析 linkSuffix（Create Profile 时输入的用户名），预填到姓名
+  const linkSuffixFromCallback = (() => {
+    if (!callbackUrl || !callbackUrl.startsWith('/')) return ''
+    try {
+      const url = new URL(callbackUrl, 'http://dummy')
+      return url.searchParams.get('linkSuffix')?.trim() || ''
+    } catch {
+      return ''
+    }
+  })()
+  const [name, setName] = useState(linkSuffixFromCallback)
   const [email, setEmail] = useState('')
+  const [emailCode, setEmailCode] = useState('')
+  const [emailCodeSending, setEmailCodeSending] = useState(false)
+  const [emailCodeSent, setEmailCodeSent] = useState(false)
+  const [emailCodeCountdown, setEmailCodeCountdown] = useState(0)
+  const [devEmailCode, setDevEmailCode] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
 
+  useEffect(() => {
+    if (linkSuffixFromCallback && !name) setName(linkSuffixFromCallback)
+  }, [linkSuffixFromCallback])
+
+  // 已登录且 callback 是 get-started 时，直接去 get-started（Create Project 流程）
+  // forceSignup=1 时不自动跳转，确保 Personal 流程先停留在注册页
+  useEffect(() => {
+    if (status !== 'authenticated' || !session?.user) return
+    if (!forceSignup && callbackUrl.startsWith('/get-started') && !callbackUrl.includes('/auth/')) {
+      window.location.href = callbackUrl
+    }
+  }, [status, session, callbackUrl, forceSignup])
+
+  useEffect(() => {
+    if (!emailCodeCountdown) return
+    const timer = setInterval(() => {
+      setEmailCodeCountdown((prev) => (prev > 1 ? prev - 1 : 0))
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [emailCodeCountdown])
+
+  const handleSendEmailCode = async () => {
+    setError('')
+    if (!email) {
+      setError('请先填写邮箱')
+      return
+    }
+    const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!EMAIL_REGEX.test(email)) {
+      setError('邮箱格式不正确')
+      return
+    }
+    if (emailCodeCountdown > 0 || emailCodeSending) return
+
+    setEmailCodeSending(true)
+    try {
+      const res = await fetch('/api/auth/send-email-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, type: 'register' }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setError(data?.error || '验证码发送失败')
+        return
+      }
+      setEmailCodeSent(true)
+      setEmailCodeCountdown(60)
+      if (data?.dev_code) {
+        setDevEmailCode(data.dev_code)
+      }
+    } catch {
+      setError('验证码发送失败，请稍后重试')
+    } finally {
+      setEmailCodeSending(false)
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+
+    if (!emailCode) {
+      setError('请先获取并输入邮箱验证码（本地测试可填 000000 跳过）')
+      return
+    }
 
     // 验证
     if (password !== confirmPassword) {
@@ -43,7 +122,7 @@ export default function SignUpPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify({ name, email, password, code: emailCode }),
       })
 
       const data = await response.json()
@@ -54,9 +133,9 @@ export default function SignUpPage() {
         return
       }
 
-      // 注册成功后自动登录
+      // 注册成功后自动登录（CredentialsProvider 期望字段名为 emailOrPhone）
       const result = await signIn('credentials', {
-        email,
+        emailOrPhone: email,
         password,
         redirect: false,
       })
@@ -67,9 +146,10 @@ export default function SignUpPage() {
           const q = `prompt=${encodeURIComponent(promptParam)}${imageParam ? `&image=${encodeURIComponent(imageParam)}` : ''}&autoStart=true`
           router.push(`/chat-new?${q}`)
         } else if (callbackUrl && callbackUrl.startsWith('/') && !callbackUrl.includes('/auth/') && !callbackUrl.includes('/user-info')) {
-          router.push(callbackUrl)
+          // 用整页跳转，确保 get-started 加载时能拿到 session cookie，避免客户端 session 未就绪被重定向回首页
+          window.location.href = callbackUrl
         } else {
-          router.push('/home')
+          window.location.href = '/profile'
         }
       } else {
         router.push('/auth/signin')
@@ -130,17 +210,49 @@ export default function SignUpPage() {
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">
                 邮箱 *
               </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-teal-500 focus:border-teal-500"
-                placeholder="your@email.com"
-              />
+              <div className="mt-1 flex gap-2">
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-teal-500 focus:border-teal-500"
+                  placeholder="your@email.com"
+                />
+                <button
+                  type="button"
+                  onClick={handleSendEmailCode}
+                  disabled={emailCodeSending || emailCodeCountdown > 0}
+                  className="px-3 py-2 text-sm rounded-lg border border-teal-500 text-teal-600 hover:bg-teal-50 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                >
+                  {emailCodeCountdown > 0 ? `${emailCodeCountdown}s 后重试` : (emailCodeSent ? '重新发送' : '发送验证码')}
+                </button>
+              </div>
+              <div className="mt-2">
+                <label htmlFor="email-code" className="block text-xs font-medium text-gray-600">
+                  邮箱验证码 *
+                </label>
+                <input
+                  id="email-code"
+                  name="email-code"
+                  type="text"
+                  value={emailCode}
+                  onChange={(e) => setEmailCode(e.target.value)}
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-teal-500 focus:border-teal-500"
+                  placeholder="请输入6位验证码（本地测试可填 000000）"
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  本地测试：验证码填 <span className="font-mono font-semibold">000000</span> 可跳过邮箱验证
+                </p>
+                {devEmailCode && (
+                  <p className="mt-1 text-xs text-gray-500">
+                    开发环境验证码：<span className="font-mono font-semibold">{devEmailCode}</span>
+                  </p>
+                )}
+              </div>
             </div>
 
             <div>

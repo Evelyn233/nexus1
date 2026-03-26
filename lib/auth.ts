@@ -56,11 +56,12 @@ export const authOptions: NextAuthOptions = {
           const isPhone = /^1[3-9]\d{9}$/.test(credentials.emailOrPhone)
           console.log('📱 [AUTH] 输入类型:', isPhone ? '手机号' : '邮箱')
           
-          // 添加超时处理
+          // 只 select 存在的列，避免 DB 无 userType 列时报 P2022
           const userPromise = prisma.user.findFirst({
             where: isPhone 
               ? { phone: credentials.emailOrPhone }
-              : { email: credentials.emailOrPhone }
+              : { email: credentials.emailOrPhone },
+            select: { id: true, email: true, phone: true, name: true, image: true, password: true, profileData: true }
           })
           
           const timeoutPromise = new Promise((_, reject) => 
@@ -90,12 +91,21 @@ export const authOptions: NextAuthOptions = {
             throw new Error('账号或密码错误')
           }
 
+          // userType 从 profileData 取（DB 可能无 userType 列）
+          let userType: 'person' | 'project' = 'person'
+          if (user.profileData) {
+            try {
+              const pd = typeof user.profileData === 'string' ? JSON.parse(user.profileData) : user.profileData
+              if ((pd as { userType?: string })?.userType === 'project') userType = 'project'
+            } catch (_) {}
+          }
           console.log('✅ [AUTH] 认证成功:', user.email || user.phone)
           return {
             id: user.id,
             email: user.email || user.phone || '',  // 兼容手机号登录
             name: user.name,
             image: user.image,
+            userType,
           }
         } catch (error) {
           if (error instanceof Error && error.message === '账号或密码错误') {
@@ -148,6 +158,7 @@ export const authOptions: NextAuthOptions = {
         token.email = user.email
         token.name = user.name
         token.picture = user.image
+        token.userType = (user as { userType?: string }).userType === 'project' ? 'project' : 'person'
       }
       return token
     },
@@ -158,6 +169,25 @@ export const authOptions: NextAuthOptions = {
         session.user.email = token.email as string
         session.user.name = token.name as string
         session.user.image = token.picture as string
+        // 每次读 session 时从 DB 取最新 userType（从 profileData JSON 取，避免查询 users.userType 列可能不存在）
+        let userType: 'person' | 'project' = token.userType === 'project' ? 'project' : 'person'
+        if (token.id && process.env.DATABASE_URL) {
+          try {
+            const rows = await prisma.$queryRawUnsafe<{ profileData: string | null }[]>(
+              'SELECT "profileData" FROM users WHERE id = $1 LIMIT 1',
+              token.id as string
+            )
+            const profileData = Array.isArray(rows) ? rows[0]?.profileData : null
+            if (profileData) {
+              try {
+                const pd = typeof profileData === 'string' ? JSON.parse(profileData) : profileData
+                const fromPd = (pd as { userType?: string })?.userType
+                if (fromPd === 'project' || fromPd === 'person') userType = fromPd
+              } catch (_) {}
+            }
+          } catch (_) {}
+        }
+        (session.user as any).userType = userType
       }
       return session
     },

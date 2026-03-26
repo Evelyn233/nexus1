@@ -24,8 +24,24 @@ export async function POST(request: NextRequest) {
     }
 
     const apiKey = process.env.DEEPSEEK_API_KEY || ''
+
+    /** 未配置 LLM 时仍返回一组可用阶段标签，避免编辑页 AI 推荐区域空白 */
+    const defaultStagesForTitle = (title: string): string[] => {
+      const t = title.toLowerCase()
+      if (/film|video|doc|podcast|纪录|视频|播客|拍摄/.test(t)) {
+        return ['Concept', 'Scripting', 'Pre-production', 'Shooting', 'Editing', 'Release']
+      }
+      if (/app|saas|software|产品|开发|api|ai|tech/.test(t)) {
+        return ['Discovery', 'Design', 'Build', 'Test', 'Launch', 'Growth']
+      }
+      if (/community|社群|社区|event|活动/.test(t)) {
+        return ['Ideation', 'Outreach', 'Onboarding', 'Engagement', 'Scale']
+      }
+      return ['Research', 'Planning', 'Build', 'Launch', 'Optimize', 'Scale']
+    }
+
     if (!apiKey) {
-      return NextResponse.json({ error: 'LLM 未配置' }, { status: 503 })
+      return NextResponse.json({ stages: defaultStagesForTitle(projectTitle) })
     }
 
     const systemPrompt = `You are a project stage advisor. Given a project name, generate 6-10 words/phrases describing different stages of that project.
@@ -73,25 +89,35 @@ Requirements:
       try {
         const cleaned = content.replace(/```json\s*/g, '').replace(/```\s*$/g, '').trim()
         const parsed = JSON.parse(cleaned)
-        if (Array.isArray(parsed)) {
-          stages = parsed
-            .filter((s): s is string => typeof s === 'string' && s.trim().length > 0)
-            .map((s) => s.trim().slice(0, 20))
-            .slice(0, 12)
-        }
+        const raw = Array.isArray(parsed)
+          ? parsed
+          : (parsed && typeof parsed === 'object' && Array.isArray(parsed.stages)
+            ? parsed.stages
+            : [])
+        stages = raw
+          .filter((s: unknown): s is string => typeof s === 'string' && s.trim().length > 0)
+          .map((s: string) => s.trim().slice(0, 20))
+          .slice(0, 12)
       } catch {
-        // 解析失败
+        // 解析失败，尝试按行拆分（LLM 有时返回纯文本列表）
+        const lines = content
+          .split(/[\n,，]/)
+          .map((s: string) => s.replace(/^[\s\-*\d.)]+|["']/g, '').trim())
+          .filter((s: string) => s.length > 0 && s.length <= 20)
+        if (lines.length > 0) {
+          stages = lines.slice(0, 12)
+        }
       }
 
       if (stages.length === 0) {
-        return NextResponse.json({ error: '生成失败，请重试' }, { status: 500 })
+        stages = defaultStagesForTitle(projectTitle)
       }
 
       return NextResponse.json({ stages })
     } catch (fetchErr: unknown) {
       clearTimeout(timeoutId)
       if (fetchErr instanceof Error && fetchErr.name === 'AbortError') {
-        return NextResponse.json({ error: '生成超时' }, { status: 504 })
+        return NextResponse.json({ stages: defaultStagesForTitle(projectTitle) })
       }
       throw fetchErr
     }

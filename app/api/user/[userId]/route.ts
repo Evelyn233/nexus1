@@ -19,43 +19,13 @@ export async function GET(
     // 先按 id 查，再按 profileSlug 查（支持短链接如 /u/cm）
     let user = await withRetry(() => prisma.user.findUnique({
       where: { id: userId },
-      include: {
-        metadata: true,
-        generatedContents: {
-          where: { status: 'published' },
-          take: 10,
-          orderBy: { publishedAt: 'desc' },
-          select: {
-            id: true,
-            title: true,
-            storyNarrative: true,
-            images: true,
-            imageCount: true,
-            publishedAt: true
-          }
-        }
-      }
+      include: { metadata: true, generatedContents: true }
     }))
 
     if (!user && userId) {
       user = await withRetry(() => prisma.user.findFirst({
         where: { profileSlug: userId },
-        include: {
-          metadata: true,
-          generatedContents: {
-            where: { status: 'published' },
-            take: 10,
-            orderBy: { publishedAt: 'desc' },
-            select: {
-              id: true,
-              title: true,
-              storyNarrative: true,
-              images: true,
-              imageCount: true,
-              publishedAt: true
-            }
-          }
-        }
+        include: { metadata: true, generatedContents: true }
       }))
     }
 
@@ -65,22 +35,7 @@ export async function GET(
       const candidates = await withRetry(() => prisma.user.findMany({
         where: { OR: [{ profileSlug: null }, { profileSlug: '' }] },
         take: 200,
-        include: {
-          metadata: true,
-          generatedContents: {
-            where: { status: 'published' },
-            take: 10,
-            orderBy: { publishedAt: 'desc' },
-            select: {
-              id: true,
-              title: true,
-              storyNarrative: true,
-              images: true,
-              imageCount: true,
-              publishedAt: true
-            }
-          }
-        }
+        include: { metadata: true, generatedContents: true }
       }))
       const slugify = (s: string) => (s || '').toLowerCase().trim().replace(/\s+/g, '').replace(/[^a-z0-9_-]/g, '') || ''
       user = candidates.find((u) => slugify(u.name || '') === slugLower) || null
@@ -113,14 +68,14 @@ export async function GET(
     })
 
     // 解析 profileData，供公开页展示「仅展示 profile 上的内容：标签、一句话、简介、Q&A、链接等，不包含洞察」
-    let profile: {
+        let profile: {
       oneSentenceDesc?: string | null
       avatarDataUrl?: string | null
       tags?: string[]
       headline?: string | null
       bio?: string | null
       myLink?: string | null
-      projects?: { text: string; peopleNeeded: string[] }[] | null
+      projects?: { text: string; peopleNeeded: { text: string; detail?: string; collabIntent?: string; image?: string; link?: string }[] }[] | null
       collaborationPossibility?: string | string[] | null
       peopleToCollaborateWith?: string | string[] | null
       howToEngageMeOnline?: string | null
@@ -159,8 +114,8 @@ export async function GET(
             const ALLOWED_STAGES = ['Idea', 'Planning']
             const allowedSet = new Set(ALLOWED_STAGES)
             if (Array.isArray(pd?.projects)) {
-              return (pd.projects as { text?: string; visibility?: string; showOnPlaza?: boolean; peopleNeeded?: Array<string | { text?: string }>; createdAt?: number; stage?: string; stageOrder?: string[]; stageEnteredAt?: Record<string, number>; creators?: string[] }[])
-                .filter((p) => (p.text ?? '').trim() && p.visibility !== 'hidden' && p.showOnPlaza === true)
+              return (pd.projects as { text?: string; visibility?: string; showOnPlaza?: boolean; peopleNeeded?: Array<string | { text?: string; detail?: string }>; createdAt?: number; stage?: string; stageOrder?: string[]; stageEnteredAt?: Record<string, number>; creators?: string[] }[])
+                .filter((p) => (p.text ?? '').trim() && p.visibility !== 'hidden' && (p.showOnPlaza === true || p.visibility === 'public'))
                 .map((p) => {
                   const rawOrder = Array.isArray(p.stageOrder) && p.stageOrder.length > 0
                     ? p.stageOrder.filter((s): s is string => typeof s === 'string' && s.trim().length > 0).map((s) => s.trim())
@@ -177,14 +132,43 @@ export async function GET(
                   const creators = Array.isArray(p.creators)
                     ? p.creators.filter((c): c is string => typeof c === 'string' && c.trim().length > 0).map((c) => c.trim())
                     : []
+                  const peopleNeeded = Array.isArray(p.peopleNeeded)
+                    ? p.peopleNeeded
+                        .map((x): { text: string; detail?: string; collabIntent?: string; image?: string; link?: string } | null => {
+                          if (typeof x === 'string') {
+                            const t = x.trim()
+                            return t ? { text: t } : null
+                          }
+                          const t = String(x?.text ?? '').trim()
+                          if (!t) return null
+                          const detail = typeof (x as { detail?: string }).detail === 'string' ? (x as { detail: string }).detail.trim() || undefined : undefined
+                          const collabIntent = typeof (x as { collabIntent?: string }).collabIntent === 'string' && (x as { collabIntent: string }).collabIntent.trim()
+                            ? (x as { collabIntent: string }).collabIntent.trim()
+                            : undefined
+                          const image = typeof (x as { image?: string }).image === 'string' && (x as { image: string }).image.trim()
+                            ? (x as { image: string }).image.trim()
+                            : undefined
+                          const link = typeof (x as { link?: string }).link === 'string' && (x as { link: string }).link.trim()
+                            ? (x as { link: string }).link.trim()
+                            : undefined
+                          return { text: t, detail, collabIntent, ...(image ? { image } : {}), ...(link ? { link } : {}) }
+                        })
+                        .filter((v): v is { text: string; detail?: string; collabIntent?: string; image?: string; link?: string } => v !== null)
+                    : []
+                  const rawCreatedAt = p.createdAt as unknown
+                  const createdAt =
+                    typeof rawCreatedAt === 'number' && !Number.isNaN(rawCreatedAt)
+                      ? rawCreatedAt
+                      : typeof rawCreatedAt === 'string'
+                        ? (() => {
+                            const parsed = parseInt(rawCreatedAt, 10)
+                            return Number.isNaN(parsed) ? Date.now() : parsed
+                          })()
+                        : Date.now()
                   return {
                     text: (p.text ?? '').trim(),
-                    createdAt: typeof p.createdAt === 'number' ? p.createdAt : Date.now(),
-                    peopleNeeded: Array.isArray(p.peopleNeeded)
-                      ? p.peopleNeeded
-                          .map((x) => typeof x === 'string' ? x.trim() : String(x?.text ?? '').trim())
-                          .filter(Boolean)
-                      : [],
+                    createdAt,
+                    peopleNeeded,
                     stage,
                     stageOrder,
                     stageEnteredAt,

@@ -8,6 +8,7 @@ import ProfileQADrawer from '@/components/ProfileQADrawer'
 import { getPlatformByKey } from '@/lib/socialPlatforms'
 import { useAuth } from '@/hooks/useAuth'
 import { resolveImageUrl } from '@/lib/resolveImageUrl'
+import { ensureAbsoluteUrl } from '@/lib/ensureAbsoluteUrl'
 
 export default function PublicProfilePage() {
   const params = useParams()
@@ -25,7 +26,7 @@ export default function PublicProfilePage() {
     headline?: string | null
     bio?: string | null
     myLink?: string | null
-    projects?: { text: string; createdAt?: number; peopleNeeded?: string[]; creators?: string[]; stage?: string; stageOrder?: string[]; stageEnteredAt?: Record<string, number> }[] | null
+    projects?: { text: string; createdAt?: number; peopleNeeded?: { text: string; detail?: string; collabIntent?: string; image?: string; link?: string }[] | string[]; creators?: string[]; stage?: string; stageOrder?: string[]; stageEnteredAt?: Record<string, number> }[] | null
     collaborationPossibility?: string | string[] | null
     peopleToCollaborateWith?: string | string[] | null
     howToEngageMeOnline?: string | null
@@ -52,6 +53,7 @@ export default function PublicProfilePage() {
   const [sendMessageModalStatus, setSendMessageModalStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
   const [isFavorited, setIsFavorited] = useState(false)
   const [favoriteLoading, setFavoriteLoading] = useState(false)
+  const [openNeedDetail, setOpenNeedDetail] = useState<{ title: string; detail?: string } | null>(null)
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -357,20 +359,20 @@ export default function PublicProfilePage() {
               <Share2 className="w-4 h-4 text-teal-500 shrink-0" />
               Share
             </button>
-            {/* 2. 头像 + 底部叠层（标签、名字、一句话、所在地） */}
-            <div className="relative flex-1 min-h-[240px] flex flex-col">
+            {/* 2. 圆形头像 + 下方标签/名字/一句话（不叠在头像上，避免遮挡） */}
+            <div className="flex-1 min-h-[200px] flex flex-col items-center pt-8 pb-4 gap-4">
               {(profile.avatarDataUrl || user.image) ? (
                 <img
                   src={resolveImageUrl(profile.avatarDataUrl || user.image)}
                   alt=""
-                  className="w-full h-full min-h-[240px] object-cover object-top"
+                  className="w-36 h-36 rounded-full object-cover border-4 border-white shadow-xl shrink-0"
                 />
               ) : (
-                <div className="w-full flex-1 min-h-[240px] bg-gradient-to-b from-gray-200 to-gray-300 flex items-center justify-center text-white text-6xl font-bold">
+                <div className="w-36 h-36 rounded-full bg-gradient-to-b from-gray-200 to-gray-300 flex items-center justify-center text-white text-5xl font-bold shrink-0">
                   {user.name?.charAt(0).toUpperCase() || '?'}
                 </div>
               )}
-              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/75 via-black/45 to-transparent px-4 pt-6 pb-4 min-h-[120px] flex flex-col items-center justify-end gap-2">
+              <div className="w-full px-4 flex flex-col items-center gap-2">
                 <div className="flex flex-wrap justify-center gap-1.5 w-full">
                   {profile.tags && profile.tags.length > 0
                     ? profile.tags.map((tag: string, i: number) => (
@@ -378,18 +380,16 @@ export default function PublicProfilePage() {
                           {tag}
                         </span>
                       ))
-                    : <span className="text-white/80 text-xs">No tags yet</span>}
+                    : <span className="text-gray-500 text-xs">No tags yet</span>}
                 </div>
-                <div className="flex items-center justify-center w-full">
-                  <p className="font-bold text-white text-lg drop-shadow-md text-center">{user.name || 'Anonymous'}</p>
-                </div>
+                <p className="font-bold text-gray-900 text-lg text-center">{user.name || 'Anonymous'}</p>
                 {(profile.oneSentenceDesc || profile.headline) && (
-                  <p className="w-full text-center text-white/95 text-sm leading-relaxed px-2 break-words whitespace-pre-wrap drop-shadow-md">
+                  <p className="w-full text-center text-gray-700 text-sm leading-relaxed px-2 break-words whitespace-pre-wrap">
                     {profile.oneSentenceDesc || profile.headline}
                   </p>
                 )}
                 {user.location && (
-                  <span className="inline-flex px-2 py-0.5 rounded text-[10px] font-medium bg-white/95 text-gray-800 border border-white shadow-md">
+                  <span className="inline-flex px-2 py-0.5 rounded text-[10px] font-medium bg-white/95 text-gray-800 border border-gray-200 shadow-sm">
                     {user.location}
                   </span>
                 )}
@@ -430,14 +430,12 @@ export default function PublicProfilePage() {
                 <p className="text-xs text-gray-500 mb-1.5">What I want to do (and look for a partner)</p>
                 <div className="space-y-2">
                   {Array.isArray(profile.projects) && profile.projects.length > 0 ? (
-                    profile.projects.map((proj: { text: string; createdAt?: number; peopleNeeded?: string[]; creators?: string[]; stage?: string; stageOrder?: string[]; stageEnteredAt?: Record<string, number> }, pi: number) => {
+                    profile.projects.map((proj: { text: string; createdAt?: number; peopleNeeded?: { text: string; detail?: string }[] | string[]; creators?: string[]; stage?: string; stageOrder?: string[]; stageEnteredAt?: Record<string, number> }, pi: number) => {
                       const projectUserId = user?.id || userId
                       const projectCreatedAt = proj.createdAt
                       const projectHref = projectCreatedAt ? `/u/${projectUserId}/project/${projectCreatedAt}` : null
                       const fullStageOrder = Array.isArray(proj.stageOrder) && proj.stageOrder.length > 0 ? proj.stageOrder : ['Idea']
-                      const PUBLIC_STAGES = ['Idea', 'Planning', 'Production']
-                      const stageOrder = fullStageOrder.filter((s) => PUBLIC_STAGES.some((p) => p.toLowerCase() === s.toLowerCase()))
-                      const effectiveOrder = stageOrder.length > 0 ? stageOrder : ['Idea']
+                      const effectiveOrder = fullStageOrder
                       const creators = Array.isArray(proj.creators) ? proj.creators : []
                       const currentStage = (proj.stage ?? 'Idea').trim()
                       const currentIdx = effectiveOrder.findIndex((s) => s.toLowerCase() === currentStage.toLowerCase())
@@ -451,27 +449,20 @@ export default function PublicProfilePage() {
                           {projectHref ? (
                             <Link href={projectHref} className="min-w-0 flex-1 block rounded-lg p-1 -m-1 hover:bg-white/60 transition-colors">
                               <p className="text-[11px] font-medium text-teal-800">{proj.text}</p>
-                              {effectiveOrder.length > 0 && (proj.stageEnteredAt && Object.keys(proj.stageEnteredAt).length > 0) && (
+                              {effectiveOrder.length > 0 && (
                                 <div className="mt-1 flex flex-wrap items-center gap-x-1 gap-y-0.5">
-                                  {effectiveOrder.slice(0, litCount).map((s, idx) => {
+                                  {effectiveOrder.map((s, idx) => {
                                     const key = Object.keys(proj.stageEnteredAt ?? {}).find((k) => k.toLowerCase() === s.toLowerCase()) ?? s
-                                    const ts = (proj.stageEnteredAt ?? {})[key] ?? projectCreatedAt ?? Date.now()
+                                    const ts = (proj.stageEnteredAt ?? {})[key] ?? (idx === 0 ? projectCreatedAt : undefined)
+                                    const isLit = idx < litCount
                                     return (
                                       <span key={`${s}-${idx}`} className="inline-flex items-center gap-0.5 text-[9px] text-gray-500">
-                                        <span className="font-medium text-teal-700">{s}</span>
-                                        <span>{formatStageDate(ts)}</span>
-                                        {idx < litCount - 1 && <span className="text-gray-400">→</span>}
+                                        <span className={isLit ? 'font-medium text-teal-700' : 'text-gray-400'}>{s}</span>
+                                        {ts != null && <span>{formatStageDate(ts)}</span>}
+                                        {idx < effectiveOrder.length - 1 && <span className="text-gray-400">→</span>}
                                       </span>
                                     )
                                   })}
-                                </div>
-                              )}
-                              {(!proj.stageEnteredAt || Object.keys(proj.stageEnteredAt).length === 0) && effectiveOrder.some((s) => s.toLowerCase() === currentStage.toLowerCase()) && currentStage && (
-                                <div className="mt-0.5">
-                                  <span className="text-[9px] text-teal-700 font-medium">{currentStage}</span>
-                                  {projectCreatedAt && (
-                                    <span className="text-[9px] text-gray-500 ml-0.5">{formatStageDate(projectCreatedAt)}</span>
-                                  )}
                                 </div>
                               )}
                               {(creators.length > 0 || user?.name) && (
@@ -487,13 +478,51 @@ export default function PublicProfilePage() {
                                   </div>
                                 </div>
                               )}
-                              {Array.isArray(proj.peopleNeeded) && proj.peopleNeeded.length > 0 && (
-                                <div className="mt-0.5">
-                                  <p className="text-[10px] text-gray-500 mb-0.5">I&apos;m looking for people like this</p>
-                                  <div className="flex flex-wrap gap-1">
-                                    {proj.peopleNeeded.map((t: string, i: number) => (
-                                      <span key={i} className="inline-flex px-2 py-0.5 rounded text-[10px] font-medium bg-amber-100 text-amber-800 border border-amber-200">{t}</span>
-                                    ))}
+                              {(Array.isArray(proj.peopleNeeded) && proj.peopleNeeded.length > 0) && (
+                                <div className="mt-1">
+                                  <p className="text-[10px] text-gray-500 mb-0.5">Look for</p>
+                                  <div className="flex flex-wrap gap-1.5">
+                                    {proj.peopleNeeded.map((item: { text: string; detail?: string; collabIntent?: string; image?: string; link?: string; workMode?: string; location?: string } | string, i: number) => {
+                                      const t = typeof item === 'string' ? item : item.text
+                                      const detail = typeof item === 'string' ? undefined : item.detail
+                                      const collabIntent = typeof item === 'string' ? undefined : item.collabIntent
+                                      const img = typeof item === 'string' ? undefined : item.image
+                                      const link = typeof item === 'string' ? undefined : item.link
+                                      const workMode = typeof item === 'string' ? undefined : item.workMode
+                                      const location = typeof item === 'string' ? undefined : item.location
+                                      const intentLabel = collabIntent === 'guest' ? '嘉宾' : collabIntent === 'partner' ? '合作伙伴' : collabIntent === 'part-time' ? '纯兼职' : (collabIntent ?? null)
+                                      const locLabel = (workMode === 'local' || workMode === 'remote') ? (workMode === 'local' && location ? `Local · ${location}` : workMode === 'local' ? 'Local' : 'Remote') : null
+                                      return (
+                                        <button
+                                          key={i}
+                                          type="button"
+                                          onClick={() => setOpenNeedDetail({ title: t, detail })}
+                                          className="inline-flex flex-col items-start gap-0.5 px-2 py-1 rounded-lg bg-amber-100 text-amber-800 border border-amber-200 hover:bg-amber-200 text-left"
+                                          title={detail || t}
+                                        >
+                                          {locLabel && <span className="text-[9px] font-medium text-gray-600">{locLabel}</span>}
+                                          <span className="text-[10px] font-medium inline-flex items-center gap-1 flex-wrap">
+                                            {img && <img src={resolveImageUrl(img)} alt="" className="w-5 h-5 rounded object-cover shrink-0" />}
+                                            {intentLabel && <span className="px-1.5 py-0.5 rounded bg-amber-200/80 text-amber-900 text-[9px] font-medium">{intentLabel}</span>}
+                                            {t}
+                                          </span>
+                                          <div className="flex items-center gap-1">
+                                            {detail && <span className="text-[9px] text-amber-600 hover:underline">View</span>}
+                                            {link && (
+                                              <a
+                                                href={ensureAbsoluteUrl(link)}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-[9px] text-blue-600 hover:underline"
+                                                onClick={(e) => e.stopPropagation()}
+                                              >
+                                                Link
+                                              </a>
+                                            )}
+                                          </div>
+                                        </button>
+                                      )
+                                    })}
                                   </div>
                                 </div>
                               )}
@@ -501,27 +530,20 @@ export default function PublicProfilePage() {
                           ) : (
                             <div className="min-w-0 flex-1">
                               <p className="text-[11px] font-medium text-teal-800">{proj.text}</p>
-                              {effectiveOrder.length > 0 && (proj.stageEnteredAt && Object.keys(proj.stageEnteredAt).length > 0) && (
+                              {effectiveOrder.length > 0 && (
                                 <div className="mt-1 flex flex-wrap items-center gap-x-1 gap-y-0.5">
-                                  {effectiveOrder.slice(0, litCount).map((s, idx) => {
+                                  {effectiveOrder.map((s, idx) => {
                                     const key = Object.keys(proj.stageEnteredAt ?? {}).find((k) => k.toLowerCase() === s.toLowerCase()) ?? s
-                                    const ts = (proj.stageEnteredAt ?? {})[key] ?? projectCreatedAt ?? Date.now()
+                                    const ts = (proj.stageEnteredAt ?? {})[key] ?? (idx === 0 ? projectCreatedAt : undefined)
+                                    const isLit = idx < litCount
                                     return (
                                       <span key={`${s}-${idx}`} className="inline-flex items-center gap-0.5 text-[9px] text-gray-500">
-                                        <span className="font-medium text-teal-700">{s}</span>
-                                        <span>{formatStageDate(ts)}</span>
-                                        {idx < litCount - 1 && <span className="text-gray-400">→</span>}
+                                        <span className={isLit ? 'font-medium text-teal-700' : 'text-gray-400'}>{s}</span>
+                                        {ts != null && <span>{formatStageDate(ts)}</span>}
+                                        {idx < effectiveOrder.length - 1 && <span className="text-gray-400">→</span>}
                                       </span>
                                     )
                                   })}
-                                </div>
-                              )}
-                              {(!proj.stageEnteredAt || Object.keys(proj.stageEnteredAt).length === 0) && effectiveOrder.some((s) => s.toLowerCase() === currentStage.toLowerCase()) && currentStage && (
-                                <div className="mt-0.5">
-                                  <span className="text-[9px] text-teal-700 font-medium">{currentStage}</span>
-                                  {projectCreatedAt && (
-                                    <span className="text-[9px] text-gray-500 ml-0.5">{formatStageDate(projectCreatedAt)}</span>
-                                  )}
                                 </div>
                               )}
                               {(creators.length > 0 || user?.name) && (
@@ -537,13 +559,51 @@ export default function PublicProfilePage() {
                                   </div>
                                 </div>
                               )}
-                              {Array.isArray(proj.peopleNeeded) && proj.peopleNeeded.length > 0 && (
-                                <div className="mt-0.5">
-                                  <p className="text-[10px] text-gray-500 mb-0.5">I&apos;m looking for people like this</p>
-                                  <div className="flex flex-wrap gap-1">
-                                    {proj.peopleNeeded.map((t: string, i: number) => (
-                                      <span key={i} className="inline-flex px-2 py-0.5 rounded text-[10px] font-medium bg-amber-100 text-amber-800 border border-amber-200">{t}</span>
-                                    ))}
+                              {(Array.isArray(proj.peopleNeeded) && proj.peopleNeeded.length > 0) && (
+                                <div className="mt-1">
+                                  <p className="text-[10px] text-gray-500 mb-0.5">Look for</p>
+                                  <div className="flex flex-wrap gap-1.5">
+                                    {proj.peopleNeeded.map((item: { text: string; detail?: string; collabIntent?: string; image?: string; link?: string; workMode?: string; location?: string } | string, i: number) => {
+                                      const t = typeof item === 'string' ? item : item.text
+                                      const detail = typeof item === 'string' ? undefined : item.detail
+                                      const collabIntent = typeof item === 'string' ? undefined : item.collabIntent
+                                      const img = typeof item === 'string' ? undefined : item.image
+                                      const link = typeof item === 'string' ? undefined : item.link
+                                      const workMode = typeof item === 'string' ? undefined : item.workMode
+                                      const location = typeof item === 'string' ? undefined : item.location
+                                      const intentLabel = collabIntent === 'guest' ? '嘉宾' : collabIntent === 'partner' ? '合作伙伴' : collabIntent === 'part-time' ? '纯兼职' : (collabIntent ?? null)
+                                      const locLabel = (workMode === 'local' || workMode === 'remote') ? (workMode === 'local' && location ? `Local · ${location}` : workMode === 'local' ? 'Local' : 'Remote') : null
+                                      return (
+                                        <button
+                                          key={i}
+                                          type="button"
+                                          onClick={() => setOpenNeedDetail({ title: t, detail })}
+                                          className="inline-flex flex-col items-start gap-0.5 px-2 py-1 rounded-lg bg-amber-100 text-amber-800 border border-amber-200 hover:bg-amber-200 text-left"
+                                          title={detail || t}
+                                        >
+                                          {locLabel && <span className="text-[9px] font-medium text-gray-600">{locLabel}</span>}
+                                          <span className="text-[10px] font-medium inline-flex items-center gap-1 flex-wrap">
+                                            {img && <img src={resolveImageUrl(img)} alt="" className="w-5 h-5 rounded object-cover shrink-0" />}
+                                            {intentLabel && <span className="px-1.5 py-0.5 rounded bg-amber-200/80 text-amber-900 text-[9px] font-medium">{intentLabel}</span>}
+                                            {t}
+                                          </span>
+                                          <div className="flex items-center gap-1">
+                                            {detail && <span className="text-[9px] text-amber-600 hover:underline">View</span>}
+                                            {link && (
+                                              <a
+                                                href={ensureAbsoluteUrl(link)}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-[9px] text-blue-600 hover:underline"
+                                                onClick={(e) => e.stopPropagation()}
+                                              >
+                                                Link
+                                              </a>
+                                            )}
+                                          </div>
+                                        </button>
+                                      )
+                                    })}
                                   </div>
                                 </div>
                               )}
@@ -583,7 +643,7 @@ export default function PublicProfilePage() {
                       )}
                       {(Array.isArray(profile.peopleToCollaborateWith) ? profile.peopleToCollaborateWith : (profile.peopleToCollaborateWith ? [profile.peopleToCollaborateWith] : [])).length > 0 && (
                         <div>
-                          <p className="text-[10px] text-gray-500 mb-0.5">Open to</p>
+                          <p className="text-[10px] text-gray-500 mb-0.5">Look for</p>
                           <div className="flex flex-wrap gap-1">
                             {(Array.isArray(profile.peopleToCollaborateWith) ? profile.peopleToCollaborateWith : [profile.peopleToCollaborateWith])
                               .filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
@@ -610,7 +670,7 @@ export default function PublicProfilePage() {
                     return (
                       <a
                         key={key}
-                        href={url}
+                        href={ensureAbsoluteUrl(url)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="w-9 h-9 rounded-full bg-white/90 flex items-center justify-center text-gray-700 hover:bg-white border border-white/80"
@@ -648,7 +708,7 @@ export default function PublicProfilePage() {
                         </>
                       )
                       return w.url ? (
-                        <a key={w.id} href={w.url} target="_blank" rel="noopener noreferrer" className="flex gap-2 p-2 rounded-lg bg-white/90 border border-white/80 hover:bg-white/95 cursor-pointer transition-colors">
+                        <a key={w.id} href={ensureAbsoluteUrl(w.url)} target="_blank" rel="noopener noreferrer" className="flex gap-2 p-2 rounded-lg bg-white/90 border border-white/80 hover:bg-white/95 cursor-pointer transition-colors">
                           {content}
                         </a>
                       ) : (
@@ -665,7 +725,7 @@ export default function PublicProfilePage() {
                     {profile.customLinks.map((link: { title?: string; url: string }, i: number) => (
                       <a
                         key={i}
-                        href={link.url}
+                        href={ensureAbsoluteUrl(link.url)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="block py-1 px-2 rounded bg-white/80 text-[10px] text-gray-700 truncate hover:bg-white border border-white/60"
@@ -863,6 +923,27 @@ export default function PublicProfilePage() {
           </div>
         )}
       </div>
+      {openNeedDetail && (
+        <div className="fixed inset-0 z-30 bg-black/40 flex items-center justify-center p-4" onClick={() => setOpenNeedDetail(null)}>
+          <div className="w-full max-w-md bg-white rounded-xl shadow-xl p-4" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-semibold text-gray-900">Looking-for details</h3>
+              <button
+                type="button"
+                className="p-1 rounded hover:bg-gray-100"
+                onClick={() => setOpenNeedDetail(null)}
+                aria-label="Close"
+              >
+                ×
+              </button>
+            </div>
+            <p className="text-sm font-medium text-amber-700 mb-1">{openNeedDetail.title}</p>
+            <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm text-gray-700 whitespace-pre-wrap">
+              {openNeedDetail.detail?.trim() || 'No detail provided yet.'}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 直接发消息弹窗：Query 无结果时点击「直接发消息问 TA」打开 */}
       {sendMessageModalOpen && (

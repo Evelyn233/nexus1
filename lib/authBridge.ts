@@ -21,14 +21,15 @@ export async function initializeUserSession(session: Session | null) {
   const email = session.user.email
 
   try {
-    // 从Prisma获取完整用户信息（包括元数据）；P2024 连接池超时时重试一次
-    const dbUser = await withRetry(() =>
-      prisma.user.findUnique({
-        where: { email },
-        include: { metadata: true }
-      }),
+    // 用 raw 查询只取 users 表实际存在的列（无 metadata：该列不存在，metadata 为关联表）
+    const rows = await withRetry(
+      () =>
+        prisma.$queryRawUnsafe<
+          { id: string; name: string | null; email: string | null; profileData: string | null; birthDate: string | null; gender: string | null }[]
+        >('SELECT id, name, email, "profileData", "birthDate", gender FROM users WHERE email = $1 LIMIT 1', email),
       3
     )
+    const dbUser = Array.isArray(rows) ? rows[0] ?? null : null
 
     if (!dbUser) {
       console.error('❌ [AUTH-BRIDGE] Prisma数据库中未找到用户')
@@ -63,7 +64,6 @@ export async function initializeUserSession(session: Session | null) {
     console.log('✅ [AUTH-BRIDGE] 用户session已验证:', userName)
     console.log('📊 [AUTH-BRIDGE] 用户数据状态:', {
       hasBasicInfo: !!(dbUser.gender && dbUser.birthDate),
-      hasMetadata: !!dbUser.metadata,
       hasProfileContent,
       hasDetailedInfo
     })
@@ -72,7 +72,7 @@ export async function initializeUserSession(session: Session | null) {
       userId: dbUser.id,
       userName: userName,
       hasDetailedInfo,
-      hasMetadata: !!dbUser.metadata
+      hasMetadata: false
     }
   } catch (error) {
     console.error('❌ [AUTH-BRIDGE] 初始化用户session失败:', error)
@@ -91,7 +91,8 @@ export async function checkUserDetailedInfo(session: Session | null): Promise<bo
 
   try {
     const dbUser = await prisma.user.findUnique({
-      where: { email }
+      where: { email },
+      select: { gender: true, birthDate: true }
     })
 
     return !!(dbUser && dbUser.gender && dbUser.birthDate)

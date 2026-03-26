@@ -63,8 +63,8 @@ export default function GlobalChatDialog() {
       .finally(() => setCollaborationHintLoading(false))
   }, [targetUserId, isAuthenticated])
 
-  // 🔥 某些页面不需要显示全局对话框（它们有自己的输入框）
-  const hideOnPages = ['/chat-new', '/auth/signin', '/auth/signup']
+  // 某些页面不需要显示全局对话框
+  const hideOnPages = ['/auth/signin', '/auth/signup']
   const isProjectPage = pathname?.match(/^\/u\/[^/]+\/project\/\d+$/)
   const shouldHide = hideOnPages.some(page => pathname?.startsWith(page)) || !!isProjectPage || drawerOpen
 

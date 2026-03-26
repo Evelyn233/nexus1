@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
-import { generateInsightsFromQA } from '@/lib/insightsFromQA'
+import { generateInsightsFromQA, generateInsightsFromText } from '@/lib/insightsFromQA'
 
 export const dynamic = 'force-dynamic'
 
@@ -15,8 +15,8 @@ function getUserId(session: { user?: { id?: string | null; email?: string | null
 }
 
 /**
- * POST: 根据本次输入的 Q&A 更新洞察和标签（每次输入都更新）
- * body: { question?: string, answer?: string }
+ * POST: 根据本次输入的 Q&A 或任意文本更新洞察和标签（每次输入都更新）
+ * body: { question?: string, answer?: string } 或 { text?: string }（简介、项目描述等任意输入）
  */
 export async function POST(request: Request) {
   try {
@@ -29,7 +29,9 @@ export async function POST(request: Request) {
     const body = await request.json().catch(() => ({}))
     const question = typeof body.question === 'string' ? body.question.trim() || null : null
     const answer = typeof body.answer === 'string' ? body.answer.trim() || null : null
-    if (!question && !answer) {
+    const textInput = typeof body.text === 'string' ? body.text.trim() || null : null
+
+    if (!question && !answer && !textInput) {
       return NextResponse.json({ insights: [], tags: [] })
     }
 
@@ -39,7 +41,9 @@ export async function POST(request: Request) {
     })
     if (!user) return NextResponse.json({ error: '用户不存在' }, { status: 404 })
 
-    const extracted = await generateInsightsFromQA(question, answer)
+    const extracted = textInput
+      ? await generateInsightsFromText(textInput)
+      : await generateInsightsFromQA(question, answer ?? null)
     if (extracted.insights.length === 0 && extracted.tags.length === 0) {
       const pd = user.profileData ? (typeof user.profileData === 'string' ? JSON.parse(user.profileData) : user.profileData) : {}
       const existingInsights = Array.isArray(pd.insights) ? pd.insights : []

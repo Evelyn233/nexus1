@@ -40,12 +40,40 @@ function cleanDescription(desc: string): string | null {
  * body: { url: string }
  * 支持小红书、B站、公众号等常见链接
  */
+// 已知难以抓取或常返回登录页的域名：直接返回识别名称，不请求目标站
+const KNOWN_DOMAIN_NAMES: Record<string, string> = {
+  'linkedin.com': 'LinkedIn',
+  'www.linkedin.com': 'LinkedIn',
+  'twitter.com': 'Twitter / X',
+  'x.com': 'Twitter / X',
+  'www.twitter.com': 'Twitter / X',
+  'www.x.com': 'Twitter / X',
+  'instagram.com': 'Instagram',
+  'www.instagram.com': 'Instagram',
+  'facebook.com': 'Facebook',
+  'www.facebook.com': 'Facebook',
+}
+
+function getKnownDomainName(url: string): string | null {
+  try {
+    const raw = new URL(url).hostname.toLowerCase()
+    return KNOWN_DOMAIN_NAMES[raw] ?? KNOWN_DOMAIN_NAMES[raw.replace(/^www\./, '')] ?? null
+  } catch {
+    return null
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json().catch(() => ({}))
     const url = typeof body?.url === 'string' ? body.url.trim() : ''
     if (!url || !/^https?:\/\//i.test(url)) {
       return NextResponse.json({ error: 'url is required and must be http(s)' }, { status: 400 })
+    }
+
+    const knownName = getKnownDomainName(url)
+    if (knownName) {
+      return NextResponse.json({ name: knownName, description: null, cover: null })
     }
 
     const res = await fetch(url, {

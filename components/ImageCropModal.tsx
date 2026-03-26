@@ -64,6 +64,8 @@ interface ImageCropModalProps {
   onConfirm: (blob: Blob) => void
   aspect?: number
   title?: string
+  /** 头像模式：1:1 圆形裁剪，输出方形图（显示时用 rounded-full 即圆形） */
+  circularAvatar?: boolean
 }
 
 export default function ImageCropModal({
@@ -73,6 +75,7 @@ export default function ImageCropModal({
   onConfirm,
   aspect = 4 / 3,
   title = '裁剪照片',
+  circularAvatar = false,
 }: ImageCropModalProps) {
   const [crop, setCrop] = useState({ x: 0, y: 0 })
   const [zoom, setZoom] = useState(1)
@@ -127,7 +130,8 @@ export default function ImageCropModal({
           image={imageSrc}
           crop={crop}
           zoom={zoom}
-          aspect={aspect}
+          aspect={circularAvatar ? 1 : aspect}
+          cropShape={circularAvatar ? 'round' : 'rect'}
           onCropChange={setCrop}
           onZoomChange={setZoom}
           onCropComplete={onCropComplete}

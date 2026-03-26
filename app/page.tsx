@@ -16,8 +16,16 @@ export default function LandingPage() {
   const { data: session } = useSession()
   const [personalLinkSuffix, setPersonalLinkSuffix] = useState('')
   const [personalSlugTaken, setPersonalSlugTaken] = useState(false)
+  const [personalError, setPersonalError] = useState<string | null>(null)
   const [projectLinkSuffix, setProjectLinkSuffix] = useState('')
   const [projectSlugTaken, setProjectSlugTaken] = useState(false)
+  const [projectError, setProjectError] = useState<string | null>(null)
+  // 仅客户端设置，避免 SSR 与客户端 host 不一致导致 hydration 报错
+  const [displayHost, setDisplayHost] = useState('')
+
+  useEffect(() => {
+    setDisplayHost(typeof window !== 'undefined' ? window.location.origin.replace(/^https?:\/\//, '') : '')
+  }, [])
 
   useEffect(() => {
     const err = searchParams.get('error')
@@ -63,29 +71,55 @@ export default function LandingPage() {
     return () => clearTimeout(t)
   }, [projectLinkSuffix, checkSlug])
 
-  const baseUrl = typeof window !== 'undefined' ? window.location.origin : ''
-
   const handleSubmitPersonal = () => {
+    setPersonalError(null)
     const slug = slugify(personalLinkSuffix)
-    if (!slug) { alert('请输入 link 后缀（用户名）'); return }
-    if (!/^[a-z0-9_-]+$/.test(slug)) { alert('Link 后缀仅支持字母、数字、下划线、连字符'); return }
-    if (personalSlugTaken) { alert('Username already taken — please change it'); return }
+    if (!slug) {
+      setPersonalError('请输入用户名（仅支持字母、数字、下划线、连字符）')
+      return
+    }
+    if (!/^[a-z0-9_-]+$/.test(slug)) {
+      setPersonalError('Link 后缀仅支持字母、数字、下划线、连字符')
+      return
+    }
+    if (personalSlugTaken) {
+      setPersonalError('Username already taken — please change it')
+      return
+    }
     const params = new URLSearchParams({ type: 'personal', linkSuffix: slug })
     const callback = `/get-started?${params.toString()}`
-    if (session) router.push(callback)
-    else router.push(`/auth/signup?callbackUrl=${encodeURIComponent(callback)}`)
+    try {
+      // Personal 流程强制先停在注册页（即使当前已登录也不自动跳 get-started）
+      router.push(`/auth/signup?callbackUrl=${encodeURIComponent(callback)}&forceSignup=1`)
+    } catch (e) {
+      setPersonalError('跳转失败，请重试')
+    }
   }
 
   const handleSubmitProject = () => {
+    setProjectError(null)
     const slug = slugify(projectLinkSuffix)
-    if (!slug) { alert('请输入 link 后缀（用户名）'); return }
-    if (!/^[a-z0-9_-]+$/.test(slug)) { alert('Link 后缀仅支持字母、数字、下划线、连字符'); return }
-    if (projectSlugTaken) { alert('Username already taken — please change it'); return }
+    if (!slug) {
+      setProjectError('请输入用户名（仅支持字母、数字、下划线、连字符）')
+      return
+    }
+    if (!/^[a-z0-9_-]+$/.test(slug)) {
+      setProjectError('Link 后缀仅支持字母、数字、下划线、连字符')
+      return
+    }
+    if (projectSlugTaken) {
+      setProjectError('Username already taken — please change it')
+      return
+    }
     const params = new URLSearchParams({ type: 'project', linkSuffix: slug })
-    params.set('name', 'New Project')
+    params.set('name', slug)
     const callback = `/get-started?${params.toString()}`
-    if (session) router.push(callback)
-    else router.push(`/auth/signup?callbackUrl=${encodeURIComponent(callback)}`)
+    try {
+      // 始终先进入注册页，保证「注册账号 + get started」流程；已登录时由注册页再跳到 get-started
+      router.push(`/auth/signup?callbackUrl=${encodeURIComponent(callback)}`)
+    } catch (e) {
+      setProjectError('跳转失败，请重试')
+    }
   }
 
   return (
@@ -140,29 +174,30 @@ export default function LandingPage() {
             <p className="text-center text-gray-400 mb-10">
               Personal profile or project page — each with its own link.
             </p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Personal profile */}
+            <div className="flex flex-col gap-8 max-w-2xl mx-auto">
+              {/* Personal Profile — top */}
               <div className="rounded-2xl border border-teal-500/30 bg-teal-500/5 p-6 space-y-4">
                 <div className="flex items-center gap-2 mb-4">
                   <User className="w-5 h-5 text-teal-400" />
                   <h3 className="text-lg font-semibold text-teal-400">Personal Profile</h3>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-300 mb-2">Your link</p>
+                  <p className="text-xs text-gray-400 mb-1.5">Enter your username (name) for your profile link.</p>
                   <div className={`flex overflow-hidden rounded-xl border-2 ${personalSlugTaken ? 'border-red-400' : 'border-teal-400/60'}`}>
-                    <span className="flex items-center px-4 py-3.5 bg-gray-100 text-gray-500 text-sm shrink-0 border-r border-gray-200">
-                      {(baseUrl || 'https://nexus.com').replace(/^https?:\/\//, '')}/u/
+                    <span className="flex items-center px-4 py-3.5 bg-gray-100 text-gray-600 text-sm shrink-0 font-mono border-r border-gray-200">
+                      {displayHost || 'nexus.com'}/profile/
                     </span>
                     <input
                       type="text"
                       value={personalLinkSuffix}
-                      onChange={(e) => { setPersonalLinkSuffix(e.target.value); setPersonalSlugTaken(false) }}
-                      placeholder="your-username"
-                      className="flex-1 min-w-0 px-4 py-3.5 bg-white text-gray-900 text-base font-medium placeholder-gray-400 focus:outline-none focus:ring-0"
+                      onChange={(e) => { setPersonalLinkSuffix(e.target.value); setPersonalSlugTaken(false); setPersonalError(null) }}
+                      placeholder="Your username (letters, numbers, underscore, hyphen)"
+                      className="flex-1 min-w-0 w-full px-4 py-3.5 bg-white text-gray-900 text-base font-medium placeholder-gray-400 focus:outline-none focus:ring-0"
                     />
                   </div>
-                  <p className="text-xs text-gray-500 mt-1.5">Type your username above</p>
+                  <p className="text-xs text-gray-500 mt-1.5">After login, use /profile to manage. Public link: /u/your-username</p>
                   {personalSlugTaken && <p className="text-sm text-amber-400 mt-1">Username taken — please change</p>}
+                  {personalError && <p className="text-sm text-red-400 mt-1">{personalError}</p>}
                 </div>
                 <button
                   type="button"
@@ -173,28 +208,29 @@ export default function LandingPage() {
                 </button>
               </div>
 
-              {/* Project profile */}
+              {/* Project — bottom */}
               <div className="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-6 space-y-4">
                 <div className="flex items-center gap-2 mb-4">
                   <FolderPlus className="w-5 h-5 text-amber-400" />
                   <h3 className="text-lg font-semibold text-amber-400">Create Project</h3>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-300 mb-2">Your link</p>
+                  <p className="text-xs text-gray-400 mb-1.5">Enter your username (name) for your project link.</p>
                   <div className={`flex overflow-hidden rounded-xl border-2 ${projectSlugTaken ? 'border-red-400' : 'border-amber-400/70'}`}>
-                    <span className="flex items-center px-4 py-3.5 bg-amber-50 text-amber-800/70 text-sm shrink-0 border-r border-amber-200">
-                      {(baseUrl || 'https://nexus.com').replace(/^https?:\/\//, '')}/u/
+                    <span className="flex items-center px-4 py-3.5 bg-amber-50 text-amber-800/80 text-sm shrink-0 font-mono border-r border-amber-200">
+                      {displayHost || 'nexus.com'}/project/
                     </span>
                     <input
                       type="text"
                       value={projectLinkSuffix}
-                      onChange={(e) => { setProjectLinkSuffix(e.target.value); setProjectSlugTaken(false) }}
-                      placeholder="your-username"
-                      className="flex-1 min-w-0 px-4 py-3.5 bg-white text-gray-900 text-base font-medium placeholder-gray-400 focus:outline-none focus:ring-0"
+                      onChange={(e) => { setProjectLinkSuffix(e.target.value); setProjectSlugTaken(false); setProjectError(null) }}
+                      placeholder="Your username (letters, numbers, underscore, hyphen)"
+                      className="flex-1 min-w-0 w-full px-4 py-3.5 bg-white text-gray-900 text-base font-medium placeholder-gray-400 focus:outline-none focus:ring-0"
                     />
                   </div>
-                  <p className="text-xs text-gray-500 mt-1.5">Type your username above</p>
+                  <p className="text-xs text-gray-500 mt-1.5">After creation, use /project to manage. Project page: /u/your-username/project/project-id</p>
                   {projectSlugTaken && <p className="text-sm text-amber-400 mt-1">Username taken — please change</p>}
+                  {projectError && <p className="text-sm text-red-400 mt-1">{projectError}</p>}
                 </div>
                 <button
                   type="button"

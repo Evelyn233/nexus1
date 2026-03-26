@@ -8,8 +8,7 @@ export async function getProfileContext(ownerId: string | null): Promise<string>
 }
 
 /**
- * 获取「完整档案」：含 User 表 + profileData + metadata + 每日一问，用于潜在合作生成
- * 数据源：User 表（name/location/personality/selfInterests/selfGoals）、profileData JSON、UserMetadata、UserDailyQuestionResponse
+ * 获取「完整档案」：含 User 表 + profileData + 每日一问（已移除 metadata 层，仅用 profileData）
  */
 export async function getFullProfileContext(ownerId: string | null): Promise<string> {
   return getProfileContextInternal(ownerId, true)
@@ -23,14 +22,14 @@ async function getProfileContextInternal(ownerId: string | null, full: boolean):
   let user = await withRetry(() =>
     prisma.user.findUnique({
       where: { id: idOrSlug },
-      select: full ? { ...baseSelect, metadata: { select: { coreTraits: true } } } : baseSelect,
+      select: baseSelect,
     })
   )
   if (!user) {
     user = await withRetry(() =>
       prisma.user.findFirst({
         where: { profileSlug: idOrSlug },
-        select: full ? { ...baseSelect, metadata: { select: { coreTraits: true } } } : baseSelect,
+        select: baseSelect,
       })
     )
   }
@@ -40,7 +39,7 @@ async function getProfileContextInternal(ownerId: string | null, full: boolean):
     const candidates = await withRetry(() => prisma.user.findMany({
       where: { OR: [{ profileSlug: null }, { profileSlug: '' }] },
       take: 200,
-      select: full ? { ...baseSelect, metadata: { select: { coreTraits: true } } } : baseSelect,
+      select: baseSelect,
     }))
     user = candidates.find((u) => slugify(u.name || '') === slugLower) || null
   }
@@ -60,11 +59,6 @@ async function getProfileContextInternal(ownerId: string | null, full: boolean):
     parts.push(`【目标】${(user as { selfGoals: string }).selfGoals.trim()}`)
   }
   if (!user.profileData) {
-    const maybeMetadata = (user as { metadata?: { coreTraits?: string; communicationStyle?: string } | null }).metadata
-    if (full && maybeMetadata) {
-      const meta = maybeMetadata
-      if (meta?.coreTraits) parts.push(`特质：${meta.coreTraits}`)
-    }
     return parts.length ? parts.join('\n') : '暂无更多公开信息。'
   }
 
@@ -135,11 +129,6 @@ async function getProfileContextInternal(ownerId: string | null, full: boolean):
         .filter((l: unknown) => l && typeof l === 'object' && 'url' in (l as object))
         .map((l: { title?: string; url: string }) => (l.title ? `${l.title}: ${l.url}` : l.url))
       if (links.length > 0) parts.push(links.join('；'))
-    }
-    const maybeMetadata = (user as { metadata?: { coreTraits?: string; communicationStyle?: string } | null }).metadata
-    if (full && maybeMetadata) {
-      const meta = maybeMetadata
-      if (meta?.coreTraits) parts.push(`【元数据】${meta.coreTraits}`)
     }
   } catch (_) {}
 

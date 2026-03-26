@@ -95,17 +95,20 @@ export async function POST(request: NextRequest) {
 
     const me = await prisma.user.findUnique({
       where: { email: session.user.email },
-      select: { id: true, name: true, profileData: true },
+      select: { id: true, name: true, profileData: true, profileSlug: true },
     })
     if (!me?.id) return NextResponse.json({ error: '用户不存在' }, { status: 404 })
 
     const body = await request.json().catch(() => ({}))
-    const { targetUserId, projectCreatedAt, contribution, mode, selectedTags } = body as {
+    const { targetUserId, projectCreatedAt, contribution, mode, selectedTags, easyApply, useMyProfile, resumeOrProfileUrl } = body as {
       targetUserId?: string
       projectCreatedAt?: number
       contribution?: string
       mode?: 'draft' | 'suggest' | 'submit'
       selectedTags?: string[]
+      easyApply?: boolean
+      useMyProfile?: boolean
+      resumeOrProfileUrl?: string
     }
 
     if (!targetUserId || typeof projectCreatedAt !== 'number') {
@@ -126,6 +129,7 @@ export async function POST(request: NextRequest) {
 
     const projectText = typeof project.text === 'string' ? project.text.trim() : ''
     const peopleNeeded = extractPeopleNeeded(project)
+    const allowEasyApply = (project as Record<string, unknown>).allowEasyApply === true
 
     const myPd = safeParseJson(me.profileData ?? '')
     const oneLine = typeof myPd.oneSentenceDesc === 'string' ? myPd.oneSentenceDesc.trim() : ''
@@ -145,7 +149,15 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    if (!cleanContribution) {
+    const isEasyApply = mode === 'submit' && !!easyApply
+    if (isEasyApply && !allowEasyApply) {
+      return NextResponse.json({ error: 'This project does not accept Easy Apply' }, { status: 400 })
+    }
+    const hasContribution = !!cleanContribution || isEasyApply
+    if (!hasContribution && mode === 'submit') {
+      return NextResponse.json({ error: 'Contribution or Easy Apply (profile/resume) is required' }, { status: 400 })
+    }
+    if (mode === 'submit' && !isEasyApply && !cleanContribution) {
       return NextResponse.json({ error: 'Contribution is required' }, { status: 400 })
     }
 
@@ -155,16 +167,24 @@ export async function POST(request: NextRequest) {
       }
 
       const finalTags = cleanTagList(selectedTags)
+      const applicantProfileUrl =
+        typeof useMyProfile === 'boolean' && useMyProfile && me.id
+          ? `${process.env.NEXTAUTH_URL || 'https://nexus.com'}/u/${me.profileSlug && me.profileSlug.trim() ? me.profileSlug.trim() : me.id}`
+          : undefined
+      const resumeUrl = typeof resumeOrProfileUrl === 'string' && resumeOrProfileUrl.trim() ? resumeOrProfileUrl.trim() : undefined
       const payload = {
         kind: 'square_engage_application',
         projectCreatedAt,
         projectText,
-        contribution: cleanContribution,
+        contribution: cleanContribution || (isEasyApply ? 'Easy Apply' : ''),
         tags: finalTags,
         applicant: {
           id: me.id,
           name: me.name || null,
+          ...(applicantProfileUrl ? { profileUrl: applicantProfileUrl } : {}),
+          ...(resumeUrl ? { resumeOrProfileUrl: resumeUrl } : {}),
         },
+        ...(isEasyApply ? { easyApply: true, useMyProfile: !!useMyProfile } : {}),
         createdAt: new Date().toISOString(),
       }
 

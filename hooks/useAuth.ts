@@ -4,38 +4,38 @@
  */
 
 import { useSession } from 'next-auth/react'
-import { useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { setCurrentUserName, addUserToList, isUserInfoComplete } from '@/lib/userInfoService'
+import { useEffect, useRef } from 'react'
 
 export function useAuth() {
   const { data: session, status } = useSession()
-  const router = useRouter()
+  const syncDoneRef = useRef<string | null>(null)
 
   useEffect(() => {
-    if (status === 'authenticated' && session?.user) {
-      // 登录成功后，同步用户信息
-      syncUserData()
+    if (status !== 'authenticated' || !session?.user?.email) {
+      if (status === 'unauthenticated') syncDoneRef.current = null
+      return
     }
-  }, [status, session])
+    const email = session.user.email
+    // 同一邮箱只同步一次，避免 session 对象引用变化导致重复请求
+    if (syncDoneRef.current === email) return
+    syncDoneRef.current = email
 
-  const syncUserData = async () => {
-    try {
-      if (!session?.user?.email) return
-
-      const response = await fetch('/api/user/sync', {
-        method: 'POST'
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        console.log('✅ 用户数据同步成功:', data)
-        // 不再以「profile 有数据」为前置条件跳转；用户可自行进入 profile / user-info
+    const syncUserData = async () => {
+      try {
+        const response = await fetch('/api/user/sync', {
+          method: 'POST'
+        })
+        if (response.ok) {
+          const data = await response.json()
+          console.log('✅ 用户数据同步成功:', data)
+        }
+      } catch (error) {
+        console.error('❌ 同步用户数据失败:', error)
+        syncDoneRef.current = null
       }
-    } catch (error) {
-      console.error('❌ 同步用户数据失败:', error)
     }
-  }
+    syncUserData()
+  }, [status, session?.user?.email])
 
   return {
     session,

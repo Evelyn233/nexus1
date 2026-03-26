@@ -5,7 +5,6 @@ import { authOptions } from '@/lib/auth'
 
 export const dynamic = 'force-dynamic'
 
-type PeopleNeededItem = { text: string; detail?: string; stageTag?: string; contentTag?: string }
 type InteractionComment = { id: string; userId: string; userName?: string; text: string; createdAt: number }
 type ProjectInteractions = { likes: string[]; favorites: string[]; comments: InteractionComment[] }
 type Project = {
@@ -18,31 +17,54 @@ type Project = {
   peopleNeeded?: Array<string | { text?: string; detail?: string }>
   stage?: string
   createdAt?: number
+  openStatusLabel?: string
 }
 
-type FeedItem = {
+/**
+ * Plaza Item: 以 Look For (peopleNeeded) 为单位，每个 Look For 单独一个条目
+ * Project 信息作为上下文背景
+ */
+type PlazaItem = {
   userId: string
   userName: string | null
   profileSlug: string | null
   oneSentenceDesc: string | null
+  avatarDataUrl?: string | null
+  /** Look For 信息 - 这是 Plaza 的核心主体 */
+  lookFor: {
+    text: string
+    detail?: string
+    stageTag?: string
+    contentTag?: string
+    collabIntent?: string
+    collabIntentLabel?: string
+    image?: string
+    workMode?: 'local' | 'remote'
+    location?: string
+  }
+  /** Project 信息 - 作为背景/上下文 */
   project: {
     text: string
     image?: string
     detail?: string
     references?: Array<{ type: 'link' | 'document'; title: string; url: string }>
-    peopleNeeded: PeopleNeededItem[]
     stage?: string
     stageOrder?: string[]
-    stageEnteredAt?: Record<string, number>
     createdAt: number
-    interaction: {
-      likeCount: number
-      favoriteCount: number
-      commentCount: number
-      myLiked: boolean
-      myFavorited: boolean
-      comments: InteractionComment[]
-    }
+    openStatusLabel?: string
+    projectTypeTag?: string
+    whatToProvide?: string
+    allowEasyApply?: boolean
+  }
+  /** 该 Look For 所在的 Project createdAt，用于链接 */
+  projectCreatedAt: number
+  interaction: {
+    likeCount: number
+    favoriteCount: number
+    commentCount: number
+    myLiked: boolean
+    myFavorited: boolean
+    comments: InteractionComment[]
   }
 }
 
@@ -77,7 +99,47 @@ function normalizeInteractions(raw: unknown): ProjectInteractions {
 }
 
 /**
- * GET: Plaza - fetch all users' public projects, flattened by project with createdAt, sorted by time
+ * 扁平化 peopleNeeded，提取单个 Look For 条目
+ */
+function extractPeopleNeeded(item: string | { text?: string; detail?: string; stageTag?: string; contentTag?: string; collabIntent?: string; image?: string; workMode?: 'local' | 'remote'; location?: string } | null | undefined, collabIntentOptions: { value: string; label: string }[]): PlazaItem['lookFor'] | null {
+  if (!item) return null
+  if (typeof item === 'string') {
+    const text = item.trim()
+    return text ? { text } : null
+  }
+  const o = item as Record<string, unknown>
+  const text = String(o.text ?? '').trim()
+  if (!text) return null
+  const detail = typeof o.detail === 'string' ? o.detail.trim() : ''
+  const stageTag = typeof o.stageTag === 'string' && o.stageTag.trim() ? o.stageTag.trim() : undefined
+  const contentTag = typeof o.contentTag === 'string' && o.contentTag.trim() ? o.contentTag.trim() : undefined
+  const collabIntent = typeof o.collabIntent === 'string' && o.collabIntent.trim() ? o.collabIntent.trim() : undefined
+  const image = typeof o.image === 'string' && o.image.trim() ? o.image.trim() : undefined
+  const workMode = o.workMode === 'local' ? 'local' as const : o.workMode === 'remote' ? 'remote' as const : undefined
+  const location = typeof o.location === 'string' && o.location.trim() ? o.location.trim() : undefined
+  let collabIntentLabel: string | undefined
+  if (collabIntent) {
+    const found = collabIntentOptions.find((opt) => opt.value === collabIntent)
+    if (found) collabIntentLabel = found.label
+    else if (collabIntent === 'guest') collabIntentLabel = '嘉宾'
+    else if (collabIntent === 'partner') collabIntentLabel = '合作伙伴'
+    else if (collabIntent === 'part-time') collabIntentLabel = '纯兼职'
+  }
+  return {
+    text,
+    ...(detail ? { detail } : {}),
+    ...(stageTag ? { stageTag } : {}),
+    ...(contentTag ? { contentTag } : {}),
+    ...(collabIntent ? { collabIntent } : {}),
+    ...(collabIntentLabel ? { collabIntentLabel } : {}),
+    ...(image ? { image } : {}),
+    ...(workMode ? { workMode } : {}),
+    ...(workMode === 'local' && location ? { location } : {}),
+  }
+}
+
+/**
+ * GET: Plaza - 以 Look For 为单位，每个 peopleNeeded 条目单独一个 PlazaItem
  */
 export async function GET() {
   try {
@@ -96,12 +158,12 @@ export async function GET() {
     const users = await withRetry(() =>
       prisma.user.findMany({
         where: { profileData: { not: null } },
-        select: { id: true, name: true, profileSlug: true, profileData: true },
+        select: { id: true, name: true, profileSlug: true, profileData: true, image: true },
         take: 500,
       })
     )
 
-    const flatItems: FeedItem[] = []
+    const plazaItems: PlazaItem[] = []
 
     for (const user of users) {
       if (!user.profileData) continue
@@ -114,13 +176,20 @@ export async function GET() {
 
       const oneLine = (pd?.oneSentenceDesc || pd?.userSay || pd?.headline || pd?.openingStatement || pd?.whoIAm) as string | undefined
       const oneSentenceDesc = typeof oneLine === 'string' && oneLine.trim() ? oneLine.trim() : null
-      const userInfo = { userId: user.id, userName: user.name, profileSlug: user.profileSlug, oneSentenceDesc }
+      const fromProfile = (typeof pd?.avatarDataUrl === 'string' && pd.avatarDataUrl.trim()) ? pd.avatarDataUrl.trim() : null
+      const avatarDataUrl = fromProfile || (typeof user.image === 'string' && user.image.trim() ? user.image.trim() : null)
+      const userInfo = { userId: user.id, userName: user.name, profileSlug: user.profileSlug, oneSentenceDesc, avatarDataUrl }
+      const collabIntentOptions = Array.isArray((pd as { collabIntentOptions?: { value?: string; label?: string }[] }).collabIntentOptions)
+        ? ((pd as { collabIntentOptions: { value?: string; label?: string }[] }).collabIntentOptions)
+            .filter((o) => typeof o?.value === 'string' && o.value.trim())
+            .map((o) => ({ value: o.value!.trim(), label: typeof o.label === 'string' && o.label.trim() ? o.label.trim() : o.value!.trim() }))
+        : []
 
       if (Array.isArray(pd.projects)) {
         for (const p of pd.projects as Project[]) {
-          const text = (p.text ?? '').trim()
-          const image = typeof p.image === 'string' && p.image.trim() ? p.image.trim() : undefined
-          const detail = typeof p.detail === 'string' && p.detail.trim() ? p.detail.trim() : undefined
+          const projectText = (p.text ?? '').trim()
+          const projectImage = typeof p.image === 'string' && p.image.trim() ? p.image.trim() : undefined
+          const projectDetail = typeof p.detail === 'string' && p.detail.trim() ? p.detail.trim() : undefined
           const references = Array.isArray(p.references)
             ? p.references
                 .map((r) => {
@@ -135,55 +204,63 @@ export async function GET() {
                 })
                 .filter((v): v is { type: 'link' | 'document'; title: string; url: string } => !!v)
             : undefined
-          if ((text || image) && p.showOnPlaza === true && (p as Record<string, unknown>).visibility !== 'hidden') {
-            const createdAt = typeof p.createdAt === 'number' ? p.createdAt : Date.now()
-            const interactions = normalizeInteractions((p as Record<string, unknown>).interactions)
-            const stage = typeof (p as Record<string, unknown>).stage === 'string' && String((p as Record<string, unknown>).stage).trim()
-              ? String((p as Record<string, unknown>).stage).trim()
-              : undefined
-            const stageOrder = Array.isArray((p as Record<string, unknown>).stageOrder)
-              ? ((p as Record<string, unknown>).stageOrder as unknown[]).filter((s): s is string => typeof s === 'string' && s.trim().length > 0).map((s) => s.trim())
-              : undefined
-            const rawStageEnteredAt = (p as Record<string, unknown>).stageEnteredAt
-            const stageEnteredAt: Record<string, number> | undefined =
-              rawStageEnteredAt && typeof rawStageEnteredAt === 'object'
-                ? (Object.fromEntries(
-                    Object.entries(rawStageEnteredAt as Record<string, unknown>)
-                      .filter((entry): entry is [string, number] => typeof entry[1] === 'number')
-                  ) as Record<string, number>)
-                : undefined
-            const hasStageEnteredAt = stageEnteredAt && Object.keys(stageEnteredAt).length > 0
 
-            flatItems.push({
-              ...userInfo,
-              project: {
-                text,
-                image,
-                detail,
-                references,
-                ...(stage ? { stage } : {}),
-                ...(stageOrder && stageOrder.length > 0 ? { stageOrder } : {}),
-                ...(hasStageEnteredAt ? { stageEnteredAt } : {}),
-                peopleNeeded: Array.isArray(p.peopleNeeded)
-                  ? p.peopleNeeded
-                      .map((item) => {
-                        if (typeof item === 'string') {
-                          const text = item.trim()
-                          return text ? { text } : null
-                        }
-                        if (item && typeof item === 'object') {
-                          const o = item as Record<string, unknown>
-                          const text = String(o.text ?? '').trim()
-                          const detail = typeof o.detail === 'string' ? o.detail.trim() : ''
-                          const stageTag = typeof o.stageTag === 'string' && o.stageTag.trim() ? o.stageTag.trim() : undefined
-                          const contentTag = typeof o.contentTag === 'string' && o.contentTag.trim() ? o.contentTag.trim() : undefined
-                          return text ? { text, detail: detail || undefined, stageTag, contentTag } : null
-                        }
-                        return null
-                      })
-                      .filter((v): v is PeopleNeededItem => !!v)
-                  : [],
-                createdAt,
+          // 获取 Project 的 createdAt
+          const rawCreatedAt = (p as Record<string, unknown>).createdAt
+          const projectCreatedAt =
+            typeof rawCreatedAt === 'number' && !Number.isNaN(rawCreatedAt)
+              ? rawCreatedAt
+              : typeof rawCreatedAt === 'string'
+                ? (() => {
+                    const parsed = parseInt(rawCreatedAt, 10)
+                    return Number.isNaN(parsed) ? Date.now() : parsed
+                  })()
+                : Date.now()
+
+          const interactions = normalizeInteractions((p as Record<string, unknown>).interactions)
+          const stage = typeof (p as Record<string, unknown>).stage === 'string' && String((p as Record<string, unknown>).stage).trim()
+            ? String((p as Record<string, unknown>).stage).trim()
+            : undefined
+          const stageOrder = Array.isArray((p as Record<string, unknown>).stageOrder)
+            ? ((p as Record<string, unknown>).stageOrder as unknown[]).filter((s): s is string => typeof s === 'string' && s.trim().length > 0).map((s) => s.trim())
+            : undefined
+          const openStatusLabel = typeof (p as Record<string, unknown>).openStatusLabel === 'string' && String((p as Record<string, unknown>).openStatusLabel).trim()
+            ? String((p as Record<string, unknown>).openStatusLabel).trim().slice(0, 48)
+            : undefined
+          const projectTypeTag = typeof (p as Record<string, unknown>).projectTypeTag === 'string' && String((p as Record<string, unknown>).projectTypeTag).trim()
+            ? String((p as Record<string, unknown>).projectTypeTag).trim().slice(0, 24)
+            : undefined
+          const allowEasyApply = (p as Record<string, unknown>).allowEasyApply === true
+          const whatToProvide = typeof (p as Record<string, unknown>).whatToProvide === 'string' && String((p as Record<string, unknown>).whatToProvide).trim()
+            ? String((p as Record<string, unknown>).whatToProvide).trim().slice(0, 300)
+            : undefined
+
+          // 获取 peopleNeeded 条目
+          const peopleNeededList = Array.isArray(p.peopleNeeded)
+            ? p.peopleNeeded.map((item) => extractPeopleNeeded(item, collabIntentOptions)).filter((v): v is PlazaItem['lookFor'] => !!v)
+            : []
+
+          // 扁平化：每个 Look For 条目单独作为一个 PlazaItem
+          // 必须有项目基本信息 + 至少一个 Look For 才能上 Plaza
+          if ((projectText || projectImage) && peopleNeededList.length > 0 && p.showOnPlaza === true && (p as Record<string, unknown>).visibility !== 'hidden') {
+            for (const lookFor of peopleNeededList) {
+              plazaItems.push({
+                ...userInfo,
+                lookFor,
+                project: {
+                  text: projectText,
+                  ...(projectImage ? { image: projectImage } : {}),
+                  ...(projectDetail ? { detail: projectDetail } : {}),
+                  ...(references && references.length > 0 ? { references } : {}),
+                  ...(stage ? { stage } : {}),
+                  ...(stageOrder && stageOrder.length > 0 ? { stageOrder } : {}),
+                  createdAt: projectCreatedAt,
+                  ...(openStatusLabel ? { openStatusLabel } : {}),
+                  ...(projectTypeTag ? { projectTypeTag } : {}),
+                  ...(whatToProvide ? { whatToProvide } : {}),
+                  ...(allowEasyApply ? { allowEasyApply: true } : {}),
+                },
+                projectCreatedAt,
                 interaction: {
                   likeCount: interactions.likes.length,
                   favoriteCount: interactions.favorites.length,
@@ -192,46 +269,39 @@ export async function GET() {
                   myFavorited: !!viewerUserId && interactions.favorites.includes(viewerUserId),
                   comments: interactions.comments.slice(-5),
                 },
-              },
-            })
+              })
+            }
           }
         }
       } else {
         // Legacy: collaborationPossibility + peopleToCollaborateWith
-        const doing = Array.isArray(pd.collaborationPossibility)
-          ? (pd.collaborationPossibility as unknown[]).filter((x) => (typeof x === 'string' && (x as string).trim()) || (x && typeof x === 'object' && 'text' in (x as object) && ((x as { isPublic?: boolean }).isPublic !== false))).map((x) => (typeof x === 'object' && x && 'text' in (x as object) ? (x as { text: string }).text.trim() : (x as string).trim())).filter(Boolean)
-          : []
         const need = Array.isArray(pd.peopleToCollaborateWith)
           ? (pd.peopleToCollaborateWith as unknown[]).map((x) => (typeof x === 'object' && x && 'text' in (x as object) ? (x as { text: string }).text : String(x))).filter(Boolean)
           : []
-        if (doing.length > 0) {
-          flatItems.push({
-            ...userInfo,
-            project: {
-              text: doing[0],
-              peopleNeeded: (need as string[]).map((x) => ({ text: x })),
-              createdAt: Date.now(),
+        const doing = Array.isArray(pd.collaborationPossibility)
+          ? (pd.collaborationPossibility as unknown[]).filter((x) => (typeof x === 'string' && (x as string).trim()) || (x && typeof x === 'object' && 'text' in (x as object) && ((x as { isPublic?: boolean }).isPublic !== false))).map((x) => (typeof x === 'object' && x && 'text' in (x as object) ? (x as { text: string }).text.trim() : (x as string).trim())).filter(Boolean)
+          : []
+        const projectText = doing[0] || 'Project'
+        if (need.length > 0) {
+          for (const lookForText of need) {
+            plazaItems.push({
+              ...userInfo,
+              lookFor: { text: lookForText },
+              project: {
+                text: projectText,
+                createdAt: Date.now(),
+              },
+              projectCreatedAt: Date.now(),
               interaction: { likeCount: 0, favoriteCount: 0, commentCount: 0, myLiked: false, myFavorited: false, comments: [] },
-            },
-          })
+            })
+          }
         }
-        doing.slice(1).forEach((t) =>
-          flatItems.push({
-            ...userInfo,
-            project: {
-              text: t,
-              peopleNeeded: [],
-              createdAt: Date.now(),
-              interaction: { likeCount: 0, favoriteCount: 0, commentCount: 0, myLiked: false, myFavorited: false, comments: [] },
-            },
-          })
-        )
       }
     }
 
-    flatItems.sort((a, b) => b.project.createdAt - a.project.createdAt)
+    plazaItems.sort((a, b) => b.project.createdAt - a.project.createdAt)
 
-    return NextResponse.json({ items: flatItems })
+    return NextResponse.json({ items: plazaItems })
   } catch (e) {
     console.error('[square]', e)
     return NextResponse.json({ error: 'Failed to load square' }, { status: 500 })

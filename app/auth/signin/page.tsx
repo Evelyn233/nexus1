@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, Suspense } from 'react'
-import { signIn, useSession } from 'next-auth/react'
+import { signIn, useSession, getSession } from 'next-auth/react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 
@@ -51,6 +51,8 @@ function SignInForm() {
       hasRedirectedRef.current = true
       
       let targetUrl = callbackUrl || '/profile'
+      const userType = (session?.user as { userType?: string })?.userType
+      if ((!callbackUrl || callbackUrl === '/profile') && userType === 'project') targetUrl = '/project'
       
       // 保留 /get-started 的查询参数（type, linkSuffix, name），其他路径移除查询参数
       if (!targetUrl.startsWith('/get-started')) {
@@ -60,7 +62,7 @@ function SignInForm() {
       }
       
       if (targetUrl.includes('/auth/signin')) {
-        targetUrl = '/profile'
+        targetUrl = userType === 'project' ? '/project' : '/profile'
       }
       
       // 构建干净的 URL，只添加一个时间戳参数
@@ -213,16 +215,31 @@ function SignInForm() {
         }
         
         // 🔥 等待更长时间确保session cookie已完全设置并同步到middleware
-        // 在Vercel上，cookie同步可能需要更长时间
         console.log('⏳ [SIGNIN] 等待session完全同步（3秒）...')
         await new Promise(resolve => setTimeout(resolve, 3000))
         console.log('✅ [SIGNIN] Session同步完成')
+        
+        // 登录后根据 DB 中的 userType 决定默认去向：
+        // 通过 /api/user/info 读取 profileData.userType，避免 session 尚未正确带上 userType
+        try {
+          const infoRes = await fetch('/api/user/info', { credentials: 'include' })
+          if (infoRes.ok) {
+            const info = await infoRes.json().catch(() => ({} as any))
+            const pd = (info?.profileData || {}) as { userType?: string }
+            const typeFromDb = pd.userType
+            if ((!callbackUrl || callbackUrl === '/profile') && typeFromDb === 'project') {
+              targetUrl = '/project'
+              console.log('🔄 [SIGNIN] 根据 DB userType=project，重定向到 /project')
+            }
+          }
+        } catch (e) {
+          console.warn('⚠️ [SIGNIN] 读取 /api/user/info 失败，按默认 targetUrl 处理', e)
+        }
         
         // 先设置loading为false
         setIsLoading(false)
         
         // 🔥 使用 window.location.replace 强制跳转（不会在历史记录中留下登录页）
-        // 构建干净的 URL，只添加一个时间戳参数
         const finalUrl = `${targetUrl}?t=${Date.now()}`
         
         // 🔥 构建绝对 URL，确保跳转正确

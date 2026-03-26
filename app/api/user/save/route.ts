@@ -34,22 +34,28 @@ export async function POST(request: Request) {
     if (body.hairLength !== undefined) updateData.hairLength = body.hairLength || null
     if (body.image !== undefined) updateData.image = body.image || null
     if (body.profileSlug !== undefined) updateData.profileSlug = typeof body.profileSlug === 'string' ? (body.profileSlug.trim() || null) : null
+    // userType 不传给 prisma.user.update，避免 Prisma client 未生成该字段时报错；改存 profileData
+    const userTypeValue = body.userType !== undefined
+      ? ((typeof body.userType === 'string' ? body.userType.trim().toLowerCase() : '') === 'project' ? 'project' : 'person')
+      : null
 
-    // profileData：与库中已有数据合并，避免局部保存（如只改 tag）时覆盖 qaList、socialLinks 等
-    if (body.profileData !== undefined) {
-      let merged: Record<string, unknown> = {}
-      const current = await prisma.user.findUnique({
-        where: { email: session.user.email },
-        select: { profileData: true }
-      })
-      if (current?.profileData) {
-        try {
-          const existing = typeof current.profileData === 'string' ? JSON.parse(current.profileData) : current.profileData
-          if (existing && typeof existing === 'object') merged = { ...existing }
-        } catch (_) {}
-      }
-      const incoming = body.profileData && typeof body.profileData === 'object' ? body.profileData : {}
-      merged = { ...merged, ...incoming }
+    // profileData：与库中已有数据合并，避免局部保存（如只改 tag）时覆盖 qaList、socialLinks 等；userType 也写入 profileData
+    let merged: Record<string, unknown> = {}
+    const current = await prisma.user.findUnique({
+      where: { email: session.user.email },
+      select: { profileData: true }
+    })
+    if (current?.profileData) {
+      try {
+        const existing = typeof current.profileData === 'string' ? JSON.parse(current.profileData) : current.profileData
+        if (existing && typeof existing === 'object') merged = { ...existing }
+      } catch (_) {}
+    }
+    if (body.profileData !== undefined && body.profileData && typeof body.profileData === 'object') {
+      merged = { ...merged, ...body.profileData }
+    }
+    if (userTypeValue) merged.userType = userTypeValue
+    if (body.profileData !== undefined || userTypeValue) {
       updateData.profileData = JSON.stringify(merged)
     }
 
@@ -57,10 +63,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true, user: null })
     }
 
-    // 更新用户基本信息到Prisma
+    // 只传 Prisma User 表里确定存在的字段；不传 userType（若 DB 未迁移或 client 未 generate 会报 Unknown argument）
+    const prismaData: Record<string, unknown> = {}
+    const allowedKeys = ['name', 'gender', 'birthDate', 'height', 'weight', 'location', 'personality', 'hairLength', 'image', 'profileSlug', 'profileData'] as const
+    for (const key of allowedKeys) {
+      if (updateData[key] !== undefined) (prismaData as Record<string, unknown>)[key] = updateData[key]
+    }
+    // 确保绝不传入 userType，避免 Prisma 报错
+    delete prismaData.userType
+
     const updatedUser = await prisma.user.update({
       where: { email: session.user.email },
-      data: updateData as any
+      data: prismaData as Parameters<typeof prisma.user.update>[0]['data']
     })
 
     console.log('✅ [USER-SAVE] 用户基本信息已保存到Prisma')
