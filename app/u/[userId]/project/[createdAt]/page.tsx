@@ -189,7 +189,7 @@ export default function ProjectPage() {
   const shortDetail = project?.detail?.trim() ? (detailExpanded ? project.detail : project.detail.slice(0, 200)) : ''
   const showReadMore = (project?.detail?.trim()?.length ?? 0) > 200
 
-  const loadProject = useCallback((options?: { bustCache?: boolean }) => {
+  const loadProject = useCallback((options?: { bustCache?: boolean }): Promise<void> => {
     if (!userId || isNaN(createdAt)) return Promise.resolve()
     const url = `/api/project?userId=${encodeURIComponent(userId)}&createdAt=${createdAt}${options?.bustCache ? `&_t=${Date.now()}` : ''}`
     return fetch(url, { cache: 'no-store' })
@@ -209,7 +209,8 @@ export default function ProjectPage() {
       return
     }
     let cancelled = false
-    loadProject().finally(() => { if (!cancelled) setLoading(false) })
+    const promise = loadProject()
+    promise.finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
   }, [userId, createdAt, loadProject])
 

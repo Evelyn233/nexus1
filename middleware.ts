@@ -54,7 +54,22 @@ export default withAuth(
       if (isAuth) {
         const cb = req.nextUrl.searchParams.get('callbackUrl') || ''
         // 从 Create Project 进来的登录：callbackUrl 指向 /get-started，直接送去 get-started（让它处理项目初始化，而不是落到 /project 或 /profile）
-        if (cb.startsWith('/get-started')) {
+        // 解析 callbackUrl 获取路径部分
+        const getCallbackPath = (url: string) => {
+          if (!url) return ''
+          try {
+            // 如果是绝对URL，提取pathname
+            if (url.startsWith('http')) {
+              return new URL(url).pathname
+            }
+            // 如果是相对URL，直接返回
+            return url.split('?')[0]
+          } catch {
+            return ''
+          }
+        }
+        const cbPath = getCallbackPath(cb)
+        if (cbPath.startsWith('/get-started')) {
           console.log('🔄 [MIDDLEWARE] 已登录访问登录页且带 get-started callback，重定向到 callbackUrl:', cb)
           const targetUrl = new URL(cb, req.url)
           targetUrl.searchParams.set('t', Date.now().toString())
