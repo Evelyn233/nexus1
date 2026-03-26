@@ -13,7 +13,7 @@ export default function SignUpPage() {
   const imageParam = searchParams.get('image') || ''
   const callbackUrl = searchParams.get('callbackUrl') || ''
   const forceSignup = searchParams.get('forceSignup') === '1'
-  // 从 callbackUrl 解析 linkSuffix（Create Profile 时输入的用户名），预填到姓名
+  // Parse linkSuffix from callbackUrl (username entered during Create Profile), pre-fill to name
   const linkSuffixFromCallback = (() => {
     if (!callbackUrl || !callbackUrl.startsWith('/')) return ''
     try {
@@ -29,7 +29,6 @@ export default function SignUpPage() {
   const [emailCodeSending, setEmailCodeSending] = useState(false)
   const [emailCodeSent, setEmailCodeSent] = useState(false)
   const [emailCodeCountdown, setEmailCodeCountdown] = useState(0)
-  const [devEmailCode, setDevEmailCode] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState('')
@@ -39,8 +38,8 @@ export default function SignUpPage() {
     if (linkSuffixFromCallback && !name) setName(linkSuffixFromCallback)
   }, [linkSuffixFromCallback])
 
-  // 已登录且 callback 是 get-started 时，直接去 get-started（Create Project 流程）
-  // forceSignup=1 时不自动跳转，确保 Personal 流程先停留在注册页
+  // If already logged in and callback is get-started, redirect to get-started (Create Project flow)
+  // forceSignup=1 prevents auto-redirect, ensuring Personal flow stays on signup page
   useEffect(() => {
     if (status !== 'authenticated' || !session?.user) return
     if (!forceSignup && callbackUrl.startsWith('/get-started') && !callbackUrl.includes('/auth/')) {
@@ -59,12 +58,12 @@ export default function SignUpPage() {
   const handleSendEmailCode = async () => {
     setError('')
     if (!email) {
-      setError('请先填写邮箱')
+      setError('Please enter your email first')
       return
     }
     const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!EMAIL_REGEX.test(email)) {
-      setError('邮箱格式不正确')
+      setError('Invalid email format')
       return
     }
     if (emailCodeCountdown > 0 || emailCodeSending) return
@@ -78,16 +77,13 @@ export default function SignUpPage() {
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
-        setError(data?.error || '验证码发送失败')
+        setError(data?.error || 'Failed to send verification code')
         return
       }
       setEmailCodeSent(true)
       setEmailCodeCountdown(60)
-      if (data?.dev_code) {
-        setDevEmailCode(data.dev_code)
-      }
     } catch {
-      setError('验证码发送失败，请稍后重试')
+      setError('Failed to send verification code, please try again later')
     } finally {
       setEmailCodeSending(false)
     }
@@ -98,25 +94,25 @@ export default function SignUpPage() {
     setError('')
 
     if (!emailCode) {
-      setError('请先获取并输入邮箱验证码（本地测试可填 000000 跳过）')
+      setError('Please request and enter the email verification code')
       return
     }
 
-    // 验证
+    // Validate
     if (password !== confirmPassword) {
-      setError('两次输入的密码不一致')
+      setError('Passwords do not match')
       return
     }
 
     if (password.length < 6) {
-      setError('密码至少需要6个字符')
+      setError('Password must be at least 6 characters')
       return
     }
 
     setIsLoading(true)
 
     try {
-      // 注册
+      // Register
       const response = await fetch('/api/auth/register', {
         method: 'POST',
         headers: {
@@ -128,12 +124,12 @@ export default function SignUpPage() {
       const data = await response.json()
 
       if (!response.ok) {
-        setError(data.error || '注册失败')
+        setError(data.error || 'Registration failed')
         setIsLoading(false)
         return
       }
 
-      // 注册成功后自动登录（CredentialsProvider 期望字段名为 emailOrPhone）
+      // Auto sign in after registration
       const result = await signIn('credentials', {
         emailOrPhone: email,
         password,
@@ -141,12 +137,10 @@ export default function SignUpPage() {
       })
 
       if (result?.ok) {
-        // 新用户注册后直接进入提问/聊天，不强制先建立 profile
         if (promptParam) {
           const q = `prompt=${encodeURIComponent(promptParam)}${imageParam ? `&image=${encodeURIComponent(imageParam)}` : ''}&autoStart=true`
           router.push(`/chat-new?${q}`)
         } else if (callbackUrl && callbackUrl.startsWith('/') && !callbackUrl.includes('/auth/') && !callbackUrl.includes('/user-info')) {
-          // 用整页跳转，确保 get-started 加载时能拿到 session cookie，避免客户端 session 未就绪被重定向回首页
           window.location.href = callbackUrl
         } else {
           window.location.href = '/profile'
@@ -155,7 +149,7 @@ export default function SignUpPage() {
         router.push('/auth/signin')
       }
     } catch (error) {
-      setError('注册失败，请稍后重试')
+      setError('Registration failed, please try again later')
       setIsLoading(false)
     }
   }
@@ -173,26 +167,26 @@ export default function SignUpPage() {
             />
           </div>
           <h2 className="mt-6 text-2xl font-bold text-gray-900">
-            创建账号
+            Create Account
           </h2>
           <p className="mt-2 text-sm text-gray-600">
-            开始您的专属AI生活助手之旅
+            Start your personal AI assistant journey
           </p>
         </div>
 
-        {/* 错误提示 */}
+        {/* Error */}
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm">
             {error}
           </div>
         )}
 
-        {/* 注册表单 */}
+        {/* Sign up form */}
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="space-y-4">
             <div>
               <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-                姓名
+                Name
               </label>
               <input
                 id="name"
@@ -202,13 +196,13 @@ export default function SignUpPage() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-teal-500 focus:border-teal-500"
-                placeholder="您的姓名"
+                placeholder="Your name"
               />
             </div>
 
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                邮箱 *
+                Email *
               </label>
               <div className="mt-1 flex gap-2">
                 <input
@@ -228,12 +222,12 @@ export default function SignUpPage() {
                   disabled={emailCodeSending || emailCodeCountdown > 0}
                   className="px-3 py-2 text-sm rounded-lg border border-teal-500 text-teal-600 hover:bg-teal-50 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
                 >
-                  {emailCodeCountdown > 0 ? `${emailCodeCountdown}s 后重试` : (emailCodeSent ? '重新发送' : '发送验证码')}
+                  {emailCodeCountdown > 0 ? `${emailCodeCountdown}s` : (emailCodeSent ? 'Resend' : 'Send Code')}
                 </button>
               </div>
               <div className="mt-2">
                 <label htmlFor="email-code" className="block text-xs font-medium text-gray-600">
-                  邮箱验证码 *
+                  Verification Code *
                 </label>
                 <input
                   id="email-code"
@@ -242,22 +236,14 @@ export default function SignUpPage() {
                   value={emailCode}
                   onChange={(e) => setEmailCode(e.target.value)}
                   className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-teal-500 focus:border-teal-500"
-                  placeholder="请输入6位验证码（本地测试可填 000000）"
+                  placeholder="Enter 6-digit code"
                 />
-                <p className="mt-1 text-xs text-gray-500">
-                  本地测试：验证码填 <span className="font-mono font-semibold">000000</span> 可跳过邮箱验证
-                </p>
-                {devEmailCode && (
-                  <p className="mt-1 text-xs text-gray-500">
-                    开发环境验证码：<span className="font-mono font-semibold">{devEmailCode}</span>
-                  </p>
-                )}
               </div>
             </div>
 
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                密码 *
+                Password *
               </label>
               <input
                 id="password"
@@ -268,13 +254,13 @@ export default function SignUpPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-teal-500 focus:border-teal-500"
-                placeholder="至少6个字符"
+                placeholder="At least 6 characters"
               />
             </div>
 
             <div>
               <label htmlFor="confirm-password" className="block text-sm font-medium text-gray-700">
-                确认密码 *
+                Confirm Password *
               </label>
               <input
                 id="confirm-password"
@@ -285,7 +271,7 @@ export default function SignUpPage() {
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-teal-500 focus:border-teal-500"
-                placeholder="再次输入密码"
+                placeholder="Re-enter password"
               />
             </div>
           </div>
@@ -299,13 +285,13 @@ export default function SignUpPage() {
               className="h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-300 rounded"
             />
             <label htmlFor="terms" className="ml-2 block text-sm text-gray-700">
-              我同意{' '}
+              I agree to the{' '}
               <Link href="/terms" className="text-teal-600 hover:text-teal-500">
-                服务条款
+                Terms of Service
               </Link>{' '}
-              和{' '}
+              and{' '}
               <Link href="/privacy" className="text-teal-600 hover:text-teal-500">
-                隐私政策
+                Privacy Policy
               </Link>
             </label>
           </div>
@@ -315,22 +301,22 @@ export default function SignUpPage() {
             disabled={isLoading}
             className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isLoading ? '注册中...' : '注册'}
+            {isLoading ? 'Creating account...' : 'Sign Up'}
           </button>
         </form>
 
-        {/* 登录链接 */}
+        {/* Sign in link */}
         <div className="mt-6 space-y-2">
           <p className="text-center text-sm text-gray-600">
-            已有账号？{' '}
+            Already have an account?{' '}
             <Link href={callbackUrl ? `/auth/signin?callbackUrl=${encodeURIComponent(callbackUrl)}` : '/auth/signin'} className="font-medium text-teal-600 hover:text-teal-500">
-              立即登录
+              Sign In
             </Link>
           </p>
           <p className="text-center text-sm text-gray-600">
-            使用手机号注册？{' '}
+            Prefer phone?{' '}
             <Link href="/auth/signup-phone" className="font-medium text-teal-600 hover:text-teal-500">
-              📱 手机号注册
+              Sign up with phone
             </Link>
           </p>
         </div>

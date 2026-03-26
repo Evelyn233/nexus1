@@ -8,6 +8,7 @@ export default withAuth(
     const pathname = req.nextUrl.pathname
     const isSignInPage = pathname === '/auth/signin'
     const isRootPage = pathname === '/'
+    const isGetStartedPage = pathname === '/get-started' || pathname.startsWith('/get-started/')
 
     console.log('🔍 [MIDDLEWARE]', {
       pathname,
@@ -23,28 +24,49 @@ export default withAuth(
       return NextResponse.redirect(new URL('/profile', req.url))
     }
 
-    // 🔥 根路径是公开的 landing page
-    if (isRootPage) {
-      // 已登录用户访问根路径，重定向到 profile
-      if (isAuth) {
-        console.log('🔄 [MIDDLEWARE] 已登录用户访问根路径，重定向到 profile')
-        const profileUrl = new URL('/profile', req.url)
-        profileUrl.searchParams.set('t', Date.now().toString())
-        return NextResponse.redirect(profileUrl)
+    // 🔥 已登录用户访问 /profile：若是 project 账号，则统一跳到 /project
+    if (pathname === '/profile' && isAuth) {
+      const userType = (token as { userType?: string })?.userType
+      if (userType === 'project') {
+        console.log('🔄 [MIDDLEWARE] project 账号访问 /profile，重定向到 /project')
+        const targetUrl = new URL('/project', req.url)
+        targetUrl.searchParams.set('t', Date.now().toString())
+        return NextResponse.redirect(targetUrl)
       }
-      // 未登录用户访问根路径，允许访问（显示 landing page）
-      console.log('✅ [MIDDLEWARE] 未登录用户访问根路径（公开页面），允许访问')
+    }
+
+    // 🔥 根路径是公开的 landing page，已登录/未登录都可访问（方便测试首页注册流程）
+    if (isRootPage) {
+      console.log('✅ [MIDDLEWARE] 根路径，允许访问（landing page）')
       return null
+    }
+
+    // 🔥 get-started：未登录时直接去注册页（避免先落到 get-started 再客户端跳转）
+    if (isGetStartedPage && !isAuth) {
+      let from = pathname
+      if (req.nextUrl.search) from += req.nextUrl.search
+      console.log('🔄 [MIDDLEWARE] 未登录访问 get-started，重定向到注册页')
+      return NextResponse.redirect(new URL(`/auth/signup?callbackUrl=${encodeURIComponent(from)}`, req.url))
     }
 
     // 🔥 处理登录页面
     if (isSignInPage) {
       if (isAuth) {
-        // 已登录用户访问登录页，重定向到 profile
-        console.log('🔄 [MIDDLEWARE] 已登录用户访问登录页，重定向到 profile')
-        const profileUrl = new URL('/profile', req.url)
-        profileUrl.searchParams.set('t', Date.now().toString())
-        return NextResponse.redirect(profileUrl)
+        const cb = req.nextUrl.searchParams.get('callbackUrl') || ''
+        // 从 Create Project 进来的登录：callbackUrl 指向 /get-started，直接送去 get-started（让它处理项目初始化，而不是落到 /project 或 /profile）
+        if (cb.startsWith('/get-started')) {
+          console.log('🔄 [MIDDLEWARE] 已登录访问登录页且带 get-started callback，重定向到 callbackUrl:', cb)
+          const targetUrl = new URL(cb, req.url)
+          targetUrl.searchParams.set('t', Date.now().toString())
+          return NextResponse.redirect(targetUrl)
+        }
+        // 其他情况：project 账号去 /project，否则去 /profile
+        const userType = (token as { userType?: string })?.userType
+        const target = userType === 'project' ? '/project' : '/profile'
+        console.log('🔄 [MIDDLEWARE] 已登录用户访问登录页，重定向到', target)
+        const targetUrl = new URL(target, req.url)
+        targetUrl.searchParams.set('t', Date.now().toString())
+        return NextResponse.redirect(targetUrl)
       }
       // 未登录用户访问登录页，允许访问
       console.log('✅ [MIDDLEWARE] 未登录用户访问登录页，允许访问')
@@ -123,6 +145,11 @@ export default withAuth(
         if (pathname === '/' || pathname === '/auth/signin' || pathname.startsWith('/auth/') || pathname === '/square' || pathname.startsWith('/u/')) {
           return true
         }
+
+        // 🔥 get-started 允许进入 middleware 走自定义重定向到 signup
+        if (pathname === '/get-started' || pathname.startsWith('/get-started/')) {
+          return true
+        }
         
         // 🔥 chat-new 页面允许未登录访问，由前端处理认证状态
         if (pathname.startsWith('/chat-new')) {
@@ -157,6 +184,7 @@ export const config = {
   matcher: [
     '/', // 根路径（landing page），允许公开访问
     '/home/:path*', // 重定向到 /profile
+    '/get-started/:path*', // onboarding，未登录时由 middleware 送去 signup
     '/profile/:path*',
     '/chat/:path*',
     '/chat-new/:path*',

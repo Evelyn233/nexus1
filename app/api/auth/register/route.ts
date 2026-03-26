@@ -9,24 +9,21 @@ export async function POST(request: Request) {
     // 验证输入
     if (!email || !password) {
       return NextResponse.json(
-        { error: '邮箱和密码不能为空' },
+        { error: 'Email and password are required' },
         { status: 400 }
       )
     }
 
-    // 本地/测试环境：若用户输入 000000，则跳过验证码数据库校验（即使 email_verification_codes 表不存在也不报错）
-    const isDevSkipCode = process.env.NODE_ENV === 'development' && typeof code === 'string' && code.trim() === '000000'
-
-    if (!isDevSkipCode && (!code || typeof code !== 'string')) {
+    if (!code || typeof code !== 'string') {
       return NextResponse.json(
-        { error: '请先获取并输入邮箱验证码' },
+        { error: 'Please request and enter the email verification code' },
         { status: 400 }
       )
     }
 
     if (password.length < 6) {
       return NextResponse.json(
-        { error: '密码至少需要6个字符' },
+        { error: 'Password must be at least 6 characters' },
         { status: 400 }
       )
     }
@@ -38,47 +35,43 @@ export async function POST(request: Request) {
 
     if (existingUser) {
       return NextResponse.json(
-        { error: '该邮箱已被注册' },
+        { error: 'This email is already registered' },
         { status: 400 }
       )
     }
 
     // 验证邮箱验证码（注册场景）
-    // - 本地开发时，验证码填 000000 可完全跳过数据库校验
-    // - 若数据库尚未创建 email_verification_codes 表（P2021），也直接跳过校验，方便本地测试
     let verificationCode: { id: string } | null = null
-    let skipVerification = isDevSkipCode
-    if (!skipVerification) {
-      try {
-        verificationCode = await prisma.emailVerificationCode.findFirst({
-          where: {
-            email,
-            code,
-            type: 'register',
-            used: false,
-            expires: {
-              gt: new Date(),
-            },
+    try {
+      verificationCode = await prisma.emailVerificationCode.findFirst({
+        where: {
+          email,
+          code,
+          type: 'register',
+          used: false,
+          expires: {
+            gt: new Date(),
           },
-          orderBy: {
-            createdAt: 'desc',
-          },
-        })
-      } catch (err: any) {
-        if (err?.code === 'P2021') {
-          console.warn('⚠️ email_verification_codes 表不存在，本地/测试环境跳过邮箱验证码校验')
-          skipVerification = true
-        } else {
-          throw err
-        }
-      }
-
-      if (!skipVerification && !verificationCode) {
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+      })
+    } catch (err: any) {
+      if (err?.code === 'P2021') {
         return NextResponse.json(
-          { error: '验证码无效或已过期' },
-          { status: 400 }
+          { error: 'Email verification service not initialized. Please contact the administrator.' },
+          { status: 500 }
         )
       }
+      throw err
+    }
+
+    if (!verificationCode) {
+      return NextResponse.json(
+        { error: 'Verification code is invalid or has expired' },
+        { status: 400 }
+      )
     }
 
     // 加密密码
@@ -96,13 +89,11 @@ export async function POST(request: Request) {
 
     console.log('✅ 用户注册成功:', user.email)
 
-    // 标记验证码为已使用（仅在真正做过校验时）
-    if (!skipVerification && verificationCode) {
-      await prisma.emailVerificationCode.update({
-        where: { id: verificationCode.id },
-        data: { used: true },
-      })
-    }
+    // 标记验证码为已使用
+    await prisma.emailVerificationCode.update({
+      where: { id: verificationCode.id },
+      data: { used: true },
+    })
 
     return NextResponse.json(
       {
@@ -118,7 +109,7 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error('❌ 注册失败:', error)
     return NextResponse.json(
-      { error: '注册失败，请稍后重试' },
+      { error: 'Registration failed, please try again later' },
       { status: 500 }
     )
   }

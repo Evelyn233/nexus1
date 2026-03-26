@@ -37,25 +37,25 @@ type ProjectData = {
   creators?: string[]
   createdAt: number
   projectTypeTag?: string
-  /** 是否在 Plaza 上发布 */
+  /** Whether to publish on Plaza */
   showOnPlaza?: boolean
-  /** 可见性 */
+  /** Visibility */
   visibility?: 'individual' | 'public' | 'hidden'
-  /** 对外状态标签，如 Actively Hiring（由 LLM 根据是否开放招募生成） */
+  /** External status label, e.g. Actively Hiring */
   openStatusLabel?: string
-  /** 是否接受 Easy Apply（递简历/个人主页一键申请） */
+  /** Whether to accept Easy Apply (one-click apply via resume/profile) */
   allowEasyApply?: boolean
-  /** 要提供的服务/产品/内容 */
+  /** Service/product/content to provide */
   whatToProvide?: string
-  /** 你能带来什么（英文展示给对方） */
+  /** What you can bring (displayed in English) */
   whatYouCanBring?: string
   /** AI summarized benefit tag (English) */
   whatYouCanBringTag?: string
   /** Culture & Benefit */
   cultureAndBenefit?: string
-  /** 发起人/当前用户在此项目的角色（必选） */
+  /** Initiator/your role in this project (required) */
   initiatorRole?: string
-  /** 一句话描述（选填） */
+  /** One sentence description (optional) */
   oneSentenceDesc?: string
 }
 
@@ -122,7 +122,7 @@ export default function ProjectPage() {
   const [aiSuggestions, setAiSuggestions] = useState<string[]>([])
   const [aiSuggestionsLoading, setAiSuggestionsLoading] = useState(false)
   /** Owner: true = edit mode (ProjectEditor), false = view mode (read-only) */
-  const [editMode, setEditMode] = useState(true)
+  const [editMode, setEditMode] = useState(false)
 
   const currentUserId = (session?.user as { id?: string })?.id
   const isOwner = !!(currentUserId && user?.id && currentUserId === user.id)
@@ -141,7 +141,7 @@ export default function ProjectPage() {
     })
     return acc
   }, {})
-  /** 上面标签：按「找什么」内容分组（contentTag 或 text 简写），仅显示 look for 属性，不含 Partner 等合作方式词 */
+  /** Label counts above: grouped by "what to look for" content (contentTag or text abbreviation), only shows look-for attributes, without Partner etc. */
   const lookingForLabelCounts = (() => {
     const map = new Map<string, { display: string; count: number }>()
     const stripPartner = (s: string) => { const t = s.replace(/\s+Partner\s*$/i, '').trim(); return t || '其他' }
@@ -156,17 +156,17 @@ export default function ProjectPage() {
     })
     return Array.from(map.values())
   })()
-  /** 需要什么样的人 · 简写描述（来自第一条或前两条 peopleNeeded.text） */
+  /** What kind of people needed — brief summary (from first or first two peopleNeeded.text) */
   const peopleNeededSummary =
     peopleNeededList.length > 0
       ? (() => {
           const first = (peopleNeededList[0].text || '').trim()
           if (first) return first.length > 60 ? first.slice(0, 60) + '…' : first
           const labels = Object.keys(collabCounts)
-          return labels.length > 0 ? `需要：${labels.join('、')} 等` : ''
+          return labels.length > 0 ? `Looking for: ${labels.join(', ')} etc.` : ''
         })()
       : ''
-  /** 项目性质：仅项目类型 + 链接/附件的领域标签（AI 识别），不含进度、不含招人条目的 contentTag */
+  /** Project nature: project type + domain tags from links/attachments (AI detected), no stage, no peopleNeeded contentTag */
   const projectNatureTags = (() => {
     const seen = new Set<string>()
     const tags: { label: string }[] = []
@@ -213,7 +213,7 @@ export default function ProjectPage() {
     return () => { cancelled = true }
   }, [userId, createdAt, loadProject])
 
-  // 项目主查看时拉取「缺什么」AI 提示
+  // Fetch AI suggestions for "what's missing" when viewing project as owner
   useEffect(() => {
     if (!project || !user || !isOwner) {
       setAiSuggestions([])
@@ -369,10 +369,10 @@ export default function ProjectPage() {
           <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50/80 px-4 py-3">
             <p className="text-[11px] font-semibold text-amber-800 mb-1.5 flex items-center gap-1.5">
               <Sparkles className="w-3.5 h-3.5 shrink-0" />
-              AI 提示：建议补充
+              AI Suggestions: Recommended additions
             </p>
             {aiSuggestionsLoading ? (
-              <p className="text-[11px] text-amber-700">正在分析…</p>
+              <p className="text-[11px] text-amber-700">Analyzing...</p>
             ) : (
               <ul className="text-[11px] text-amber-800 space-y-0.5 list-disc list-inside">
                 {aiSuggestions.map((s, i) => (
@@ -380,7 +380,7 @@ export default function ProjectPage() {
                 ))}
               </ul>
             )}
-            <p className="text-[10px] text-amber-600 mt-1.5">点击「编辑」可在此页补充以上内容</p>
+            <p className="text-[10px] text-amber-600 mt-1.5">Click "Edit" to add the above content here</p>
           </div>
         )}
         {isOwner && editMode ? (
@@ -429,14 +429,14 @@ export default function ProjectPage() {
             hasProfileAvatar={!!(user?.avatarDataUrl ?? user?.image)}
             onSaved={(updated) => {
               setProject((prev) => prev ? { ...prev, ...updated } : null)
-              // 保存后强制拉最新数据，避免公开页/切回查看模式时还是旧内容（阶段、whatToProvide 等）
+              // After save, force fetch latest data to avoid stale content on public page / after switching to view mode (stage, whatToProvide, etc.)
               loadProject({ bustCache: true })
             }}
             onClose={() => setEditMode(false)}
           />
         ) : (
         <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-          {/* 1. Header：图标 + 标题 + 状态 + 一句话描述 + 小字（Looking for N / 更新时间） */}
+          {/* 1. Header: icon + title + status + one-sentence description + meta (Looking for N / update time) */}
           <div className="p-5 pb-3">
             <div className="flex gap-3">
               {project.image ? (
@@ -499,8 +499,8 @@ export default function ProjectPage() {
             </div>
           </div>
 
-          {/* 2. Attribute tags：圆角标签网格 */}
-          {/* 项目性质：项目类型 + 内容/领域标签（AI 识别），不含进度 */}
+          {/* 2. Attribute tags: rounded tag grid */}
+          {/* Project nature: project type + domain/content tags (AI detected), no stage */}
           {projectNatureTags.length > 0 && (
             <div className="px-5 pb-3">
               <p className="text-[11px] font-semibold text-gray-900 mb-1.5">项目性质 / Nature of project</p>
@@ -517,7 +517,7 @@ export default function ProjectPage() {
             </div>
           )}
 
-          {/* 3. Website / Looking for 数量 + 长描述（Read more） */}
+          {/* 3. Website / Looking for count + long description (Read more) */}
           <div className="px-5 pb-4 border-b border-gray-100">
             <div className="grid grid-cols-2 gap-x-6 gap-y-2 mb-3">
               {firstLink && (
