@@ -58,12 +58,14 @@ export default withAuth(
         const getCallbackPath = (url: string) => {
           if (!url) return ''
           try {
+            // 先 decode URI（searchParams.get 不会自动 decode）
+            const decoded = decodeURIComponent(url)
             // 如果是绝对URL，提取pathname
-            if (url.startsWith('http')) {
-              return new URL(url).pathname
+            if (decoded.startsWith('http://') || decoded.startsWith('https://')) {
+              return new URL(decoded).pathname
             }
             // 如果是相对URL，直接返回
-            return url.split('?')[0]
+            return decoded.split('?')[0]
           } catch {
             return ''
           }
