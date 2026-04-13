@@ -1,6 +1,5 @@
 import { NextAuthOptions } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
-import LinkedInProvider from 'next-auth/providers/linkedin'
 import GoogleProvider from 'next-auth/providers/google'
 import GitHubProvider from 'next-auth/providers/github'
 import { PrismaAdapter } from '@next-auth/prisma-adapter'
@@ -78,7 +77,7 @@ export const authOptions: NextAuthOptions = {
           }
           if (!user.password) {
             console.log('❌ [AUTH] 该账号未设置密码，可能通过第三方登录')
-            throw new Error('该账号通过第三方登录，请使用 LinkedIn 或 GitHub 登录')
+            throw new Error('该账号通过第三方登录，请使用 Google 或 GitHub 登录')
           }
 
           console.log('🔐 [AUTH] 开始验证密码...')
@@ -131,24 +130,6 @@ export const authOptions: NextAuthOptions = {
         ]
       : []),
 
-    // LinkedIn OAuth — personal social login (create / link account)
-    ...(process.env.LINKEDIN_CLIENT_ID && process.env.LINKEDIN_CLIENT_SECRET
-      ? [
-          LinkedInProvider({
-            clientId: process.env.LINKEDIN_CLIENT_ID,
-            clientSecret: process.env.LINKEDIN_CLIENT_SECRET,
-          }),
-        ]
-      : []),
-
-    // GitHub OAuth（可选）
-    ...(process.env.GITHUB_ID && process.env.GITHUB_SECRET
-      ? [GitHubProvider({
-          clientId: process.env.GITHUB_ID,
-          clientSecret: process.env.GITHUB_SECRET,
-        })]
-      : []
-    ),
   ],
 
   session: {
