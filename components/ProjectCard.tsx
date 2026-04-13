@@ -643,8 +643,7 @@ function AttachmentBlock({
             style={{
               width: '100%',
               height: 'auto',
-              maxHeight: '200px',
-              objectFit: 'cover',
+              objectFit: 'contain',
               display: 'block',
             }}
             onError={(e) => {
