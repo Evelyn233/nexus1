@@ -145,13 +145,15 @@ export const authOptions: NextAuthOptions = {
   },
 
   callbacks: {
-    async jwt({ token, user, account }) {
+    async jwt({ token, user, account, isNewUser }) {
+      // 首次登录时
       if (user) {
         token.id = user.id
         token.email = user.email
         token.name = user.name
         token.picture = user.image
         token.userType = (user as { userType?: string }).userType === 'project' ? 'project' : 'person'
+        token.isNewUser = isNewUser
       }
       return token
     },
