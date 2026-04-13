@@ -49,8 +49,9 @@ export function ProfileProjectsPreviewSection({
                   .filter(Boolean)
               : []
             const uniqueLookingForTags: string[] = Array.from(new Set(lookingForTags)).slice(0, 3) as string[]
-            const typeTag =
-              typeof proj?.projectTypeTag === 'string' && proj.projectTypeTag.trim() ? proj.projectTypeTag.trim() : ''
+            const typeTags: string[] = Array.isArray(proj?.projectTypeTags)
+              ? proj.projectTypeTags.filter((t: unknown): boolean => typeof t === 'string' && !!t.trim()).map((t: string) => t.trim())
+              : (typeof proj?.projectTypeTag === 'string' && proj.projectTypeTag.trim() ? [proj.projectTypeTag.trim()] : [])
 
             return (
               <li key={proj?.createdAt ?? i}>
@@ -63,11 +64,13 @@ export function ProfileProjectsPreviewSection({
                     <span className="truncate block text-[11px] font-medium text-gray-800">
                       {(proj?.text ?? 'Untitled').toString()}
                     </span>
-                    {typeTag ? (
+                    {typeTags.length > 0 ? (
                       <div className="mt-1.5 flex flex-wrap gap-1">
-                        <span className="inline-flex items-center px-1.5 py-0.5 rounded-full border border-violet-200 bg-violet-50 text-violet-700 text-[9px] font-medium">
-                          {typeTag}
-                        </span>
+                        {typeTags.slice(0, 3).map((t, idx) => (
+                          <span key={`tt-${t}-${idx}`} className="inline-flex items-center px-1.5 py-0.5 rounded-full border border-violet-200 bg-violet-50 text-violet-700 text-[9px] font-medium">
+                            {t}
+                          </span>
+                        ))}
                       </div>
                     ) : null}
                     {uniqueLookingForTags.length > 0 ? (

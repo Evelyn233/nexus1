@@ -16,25 +16,77 @@ export default function GetStartedPage() {
   const [avatarCropImageSrc, setAvatarCropImageSrc] = useState<string | null>(null)
   const [avatarUploading, setAvatarUploading] = useState(false)
 
-  const initialNameFromUrl = (searchParams.get('name')?.trim() || searchParams.get('linkSuffix')?.trim() || '').replace(/\s+/g, ' ')
-  const [projectName, setProjectName] = useState(initialNameFromUrl || '')
+  const initialNameFromUrl = (searchParams.get('name')?.trim() || '').replace(/\s+/g, ' ')
+  const initialCreatorFromUrl = (searchParams.get('creator')?.trim() || '').replace(/\s+/g, ' ')
+  const [projectName, setProjectName] = useState(() => {
+    if (initialNameFromUrl) return initialNameFromUrl
+    if (typeof window !== 'undefined') {
+      return sessionStorage.getItem('pending_project_name') || ''
+    }
+    return ''
+  })
+  const [creatorDisplayName, setCreatorDisplayName] = useState(() => {
+    if (initialCreatorFromUrl) return initialCreatorFromUrl
+    if (typeof window !== 'undefined') {
+      return sessionStorage.getItem('pending_creator_display') || ''
+    }
+    return ''
+  })
   const [role, setRole] = useState('')
   const [whatToProvide, setWhatToProvide] = useState('')
   const [oneSentenceDesc, setOneSentenceDesc] = useState('')
+  const [detail, setDetail] = useState('')
+  const [projectTypeTag, setProjectTypeTag] = useState('')
+  const [cultureAndBenefit, setCultureAndBenefit] = useState('')
+  const [referenceUrl, setReferenceUrl] = useState('')
+  const [peopleNeededText, setPeopleNeededText] = useState('')
   const [saving, setSaving] = useState(false)
-  const [touched, setTouched] = useState<{ name?: boolean; role?: boolean; provide?: boolean }>({})
+  const [touched, setTouched] = useState<{ creator?: boolean; name?: boolean; role?: boolean; provide?: boolean }>({})
   const [step, setStep] = useState<'form' | 'tags'>('form')
   const [suggestedTags, setSuggestedTags] = useState<string[]>([])
   const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [customTag, setCustomTag] = useState('')
   const [generatingTags, setGeneratingTags] = useState(false)
-  const pendingRef = useRef<{ name: string; role: string; provide: string; oneSentence?: string } | null>(null)
+  const pendingRef = useRef<{ name: string; role: string; provide: string; oneSentence?: string; detail?: string; projectTypeTag?: string; cultureAndBenefit?: string; referenceUrl?: string; peopleNeeded?: { text: string }[] } | null>(null)
 
   useEffect(() => {
-    if (!projectName && initialNameFromUrl) {
-      setProjectName(initialNameFromUrl)
+    // Restore from sessionStorage (survives OAuth)
+    if (!projectName && typeof window !== 'undefined') {
+      const saved = sessionStorage.getItem('pending_project_name')
+      if (saved) setProjectName(saved)
     }
-  }, [initialNameFromUrl, projectName])
+    if (!creatorDisplayName && typeof window !== 'undefined') {
+      const savedC = sessionStorage.getItem('pending_creator_display')
+      if (savedC) setCreatorDisplayName(savedC)
+    }
+    if (initialNameFromUrl) setProjectName(initialNameFromUrl)
+    if (initialCreatorFromUrl) setCreatorDisplayName(initialCreatorFromUrl)
+  }, [initialNameFromUrl, initialCreatorFromUrl])
+
+  // Clean up sessionStorage after values are present
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    if (projectName) {
+      sessionStorage.removeItem('pending_project_name')
+      sessionStorage.removeItem('pending_project_slug')
+    }
+    if (creatorDisplayName) sessionStorage.removeItem('pending_creator_display')
+  }, [projectName, creatorDisplayName])
+
+  // 已登录且 URL 未带 creator：用资料里的展示名补全（不要用项目名当账号名）
+  useEffect(() => {
+    if (status !== 'authenticated' || creatorDisplayName.trim()) return
+    fetch('/api/user/info', { credentials: 'include', cache: 'no-store' })
+      .then((r) => r.json())
+      .then((data) => {
+        const n =
+          (typeof data?.userInfo?.displayName === 'string' && data.userInfo.displayName.trim()) ||
+          (typeof data?.userInfo?.name === 'string' && data.userInfo.name.trim()) ||
+          ''
+        if (n) setCreatorDisplayName(n)
+      })
+      .catch(() => {})
+  }, [status, creatorDisplayName])
 
   // 确保已登录；若刚注册 cookie 未就绪，重试一次
   useEffect(() => {
@@ -57,7 +109,7 @@ export default function GetStartedPage() {
   const type = searchParams.get('type') === 'project' ? 'project' : 'personal'
   const linkSuffix = searchParams.get('linkSuffix')?.trim() || ''
 
-  const showValidationError = (field: 'name' | 'role' | 'provide') => {
+  const showValidationError = (field: 'creator' | 'name' | 'role' | 'provide') => {
     setTouched((prev) => ({ ...prev, [field]: true }))
   }
 
@@ -194,8 +246,7 @@ export default function GetStartedPage() {
         return
       }
 
-      const pathId = (session?.user as { id?: string })?.id ?? linkSuffix
-      router.replace(`/u/${encodeURIComponent(pathId)}/project/${createData.createdAt}`)
+      router.replace(`/u/${encodeURIComponent(linkSuffix)}/project/${createData.createdAt}`)
     } catch (e) {
       setError('Something went wrong')
     } finally {
@@ -215,18 +266,21 @@ export default function GetStartedPage() {
     }
 
     const trimmedName = projectName.trim()
+    const trimmedCreator = creatorDisplayName.trim()
     const trimmedProvide = whatToProvide.trim()
     const trimmedRole = role.trim()
 
+    const missingCreator = !trimmedCreator
     const missingName = !trimmedName
     const missingRole = !trimmedRole
     const missingProvide = !trimmedProvide
 
-    if (missingName || missingRole || missingProvide) {
+    if (missingCreator || missingName || missingRole || missingProvide) {
+      if (missingCreator) showValidationError('creator')
       if (missingName) showValidationError('name')
       if (missingRole) showValidationError('role')
       if (missingProvide) showValidationError('provide')
-      setError('请先填写必填信息再创建项目')
+      setError('请先填写你的名字与项目必填信息')
       return
     }
 
@@ -242,6 +296,11 @@ export default function GetStartedPage() {
         role: trimmedRole,
         provide: trimmedProvide,
         oneSentence: oneSentenceDesc.trim() || undefined,
+        detail: detail.trim() || undefined,
+        projectTypeTag: projectTypeTag.trim() || undefined,
+        cultureAndBenefit: cultureAndBenefit.trim() || undefined,
+        referenceUrl: referenceUrl.trim() || undefined,
+        peopleNeeded: peopleNeededText.trim() ? [{ text: peopleNeededText.trim() }] : [],
       }
       pendingRef.current = payload
 
@@ -251,11 +310,12 @@ export default function GetStartedPage() {
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({
-          name: trimmedName,
+          name: trimmedCreator,
           profileSlug: linkSuffix,
           userType: 'project',
           profileData: {
             userType: 'project',
+            publicDisplayName: trimmedCreator,
             lastProjectOnboarding: {
               name: trimmedName,
               initiatorRole: trimmedRole,
@@ -270,6 +330,8 @@ export default function GetStartedPage() {
         if (saveRes.status === 409 || saveData.error === 'Username already taken') {
           const params = new URLSearchParams({ error: 'username_taken', linkSuffix })
           params.set('type', 'project')
+          // Pass project name back so user sees it on landing page
+          params.set('name', encodeURIComponent(trimmedName))
           router.replace(`/?${params.toString()}`)
           return
         }
@@ -371,6 +433,25 @@ export default function GetStartedPage() {
 
         {step === 'form' ? (
           <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-xs font-medium text-gray-200 mb-1.5">
+              你怎么称呼（账号展示名）Your display name <span className="text-amber-400">*</span>
+            </label>
+            <p className="text-[11px] text-teal-200/50 mb-1.5">
+              与「项目名称」不同；会写入个人资料并用于 /u/ 链接对应的主人名称。
+            </p>
+            <input
+              type="text"
+              value={creatorDisplayName}
+              onChange={(e) => setCreatorDisplayName(e.target.value)}
+              onBlur={() => showValidationError('creator')}
+              placeholder="例如：艺名、真实姓名或常用昵称"
+              className={`w-full px-3 py-2 rounded-lg text-sm bg-[#02040a] border ${
+                touched.creator && !creatorDisplayName.trim() ? 'border-red-400' : 'border-teal-500/50'
+              } text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500/60`}
+            />
+          </div>
+
           <div>
             <label className="block text-xs font-medium text-gray-200 mb-1.5">
               项目名称 Project name <span className="text-amber-400">*</span>

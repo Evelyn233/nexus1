@@ -227,9 +227,11 @@ export async function GET() {
           const openStatusLabel = typeof (p as Record<string, unknown>).openStatusLabel === 'string' && String((p as Record<string, unknown>).openStatusLabel).trim()
             ? String((p as Record<string, unknown>).openStatusLabel).trim().slice(0, 48)
             : undefined
-          const projectTypeTag = typeof (p as Record<string, unknown>).projectTypeTag === 'string' && String((p as Record<string, unknown>).projectTypeTag).trim()
-            ? String((p as Record<string, unknown>).projectTypeTag).trim().slice(0, 24)
-            : undefined
+          const projectTypeTags = Array.isArray((p as Record<string, unknown>).projectTypeTags)
+            ? ((p as Record<string, unknown>).projectTypeTags as unknown[]).filter((t): t is string => typeof t === 'string' && t.trim().length > 0).map((t: string) => t.trim()).slice(0, 10)
+            : (typeof (p as Record<string, unknown>).projectTypeTag === 'string' && ((p as Record<string, unknown>).projectTypeTag as string).trim().length > 0
+                ? [String((p as Record<string, unknown>).projectTypeTag).trim().slice(0, 24)]
+                : [])
           const allowEasyApply = (p as Record<string, unknown>).allowEasyApply === true
           const whatToProvide = typeof (p as Record<string, unknown>).whatToProvide === 'string' && String((p as Record<string, unknown>).whatToProvide).trim()
             ? String((p as Record<string, unknown>).whatToProvide).trim().slice(0, 300)
@@ -256,7 +258,7 @@ export async function GET() {
                   ...(stageOrder && stageOrder.length > 0 ? { stageOrder } : {}),
                   createdAt: projectCreatedAt,
                   ...(openStatusLabel ? { openStatusLabel } : {}),
-                  ...(projectTypeTag ? { projectTypeTag } : {}),
+                  ...(projectTypeTags.length > 0 ? { projectTypeTags } : {}),
                   ...(whatToProvide ? { whatToProvide } : {}),
                   ...(allowEasyApply ? { allowEasyApply: true } : {}),
                 },

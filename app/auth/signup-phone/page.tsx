@@ -138,10 +138,10 @@ export default function SignUpPhonePage() {
         {/* Logo */}
         <div className="text-center">
           <div className="flex items-center justify-center mb-4">
-            <img 
-              src="/logo-nexus.jpeg" 
-              alt="logo" 
-              className="h-16 w-auto object-contain rounded-lg"
+            <img
+              src="/logo-nexus.jpeg"
+              alt="Nexus"
+              className="h-14 w-auto max-w-[260px] mx-auto object-contain"
             />
           </div>
           <h2 className="mt-2 text-xl font-semibold text-gray-900">📱 手机号注册</h2>

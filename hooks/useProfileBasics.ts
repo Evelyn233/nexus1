@@ -2,6 +2,40 @@
 
 import { useState } from 'react'
 
+export interface LinkedInProfileData {
+  name?: string
+  headline?: string
+  location?: string
+  company?: string
+  education?: string
+  bio?: string
+  skills?: string[]
+  photoUrl?: string
+  linkedinUrl?: string
+  username?: string
+  experiences?: Array<{
+    id: string
+    title: string
+    company: string
+    employmentType?: string
+    location?: string
+    startDate?: string
+    endDate?: string
+    current?: boolean
+    description?: string
+  }>
+  educationItems?: Array<{
+    id: string
+    school: string
+    degree?: string
+    fieldOfStudy?: string
+    startDate?: string
+    endDate?: string
+    grade?: string
+    description?: string
+  }>
+}
+
 export function useProfileBasics() {
   const [userInfo, setUserInfo] = useState<any>(null)
   const [avatarDataUrl, setAvatarDataUrl] = useState<string | null>(null)
@@ -14,6 +48,13 @@ export function useProfileBasics() {
   const [showLinksInPreview, setShowLinksInPreview] = useState(true)
   const [showExperienceInPreview, setShowExperienceInPreview] = useState(true)
   const [showQABlockInPreview, setShowQABlockInPreview] = useState(true)
+  
+  // LinkedIn imported data
+  const [linkedinData, setLinkedinData] = useState<LinkedInProfileData | null>(null)
+  const [linkedinImported, setLinkedinImported] = useState(false)
+
+  // Open to Work toggle
+  const [openToWork, setOpenToWork] = useState(false)
 
   return {
     userInfo,
@@ -38,6 +79,14 @@ export function useProfileBasics() {
     setShowExperienceInPreview,
     showQABlockInPreview,
     setShowQABlockInPreview,
+    // LinkedIn
+    linkedinData,
+    setLinkedinData,
+    linkedinImported,
+    setLinkedinImported,
+    // Open to Work
+    openToWork,
+    setOpenToWork,
   }
 }
 

@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { User, Share2, Heart, Bookmark, MessageCircle, ArrowLeft, LayoutGrid, Sparkles, LogOut, Pencil } from 'lucide-react'
+import { User, Share2, Heart, Bookmark, MessageCircle, ArrowLeft, LayoutGrid, LogOut, Pencil, FileText, ExternalLink } from 'lucide-react'
 import { signOut } from 'next-auth/react'
 import { ProjectEditor } from '@/components/ProjectEditor'
 import { useAuth } from '@/hooks/useAuth'
@@ -36,6 +36,7 @@ type ProjectData = {
   attachments?: { url: string; name: string; addedAt?: number; stageTag?: string; contentTag?: string }[]
   creators?: string[]
   createdAt: number
+  projectTypeTags?: string[]
   projectTypeTag?: string
   /** Whether to publish on Plaza */
   showOnPlaza?: boolean
@@ -62,10 +63,18 @@ type ProjectData = {
 type UserData = {
   id: string
   name: string | null
+  /** 项目页展示用：当账号名与项目标题相同时由接口解析为 headline / slug 等 */
+  displayName?: string | null
   image: string | null
   profileSlug: string
   oneSentenceDesc?: string | null
   avatarDataUrl?: string | null
+}
+
+function personDisplayName(u: UserData): string {
+  const d = u.displayName?.trim()
+  if (d) return d
+  return u.name?.trim() || 'Anonymous'
 }
 
 function formatTime(ts: number): string {
@@ -84,6 +93,13 @@ function formatStageDate(ts: number): string {
   return `${d.getDate()}/${d.getMonth() + 1}/${String(d.getFullYear()).slice(-2)}`
 }
 
+/** 公开页：判断附件 URL 是否适合作为图片预览 */
+function isAttachmentImageUrl(url: string): boolean {
+  const raw = url.split('?')[0].split('#')[0].toLowerCase()
+  if (raw.startsWith('data:image/')) return true
+  return /\.(jpg|jpeg|png|gif|webp|svg|bmp|avif)$/i.test(raw)
+}
+
 const INITIATOR_ROLE_LABELS: Record<string, string> = {
   initiator: '发起人 Initiator',
   'co-initiator': '联合发起 Co-initiator',
@@ -93,7 +109,9 @@ const INITIATOR_ROLE_LABELS: Record<string, string> = {
 }
 function initiatorRoleLabel(value: string | undefined): string {
   if (!value?.trim()) return '发起人 Initiator'
-  return INITIATOR_ROLE_LABELS[value.trim()] ?? value
+  const key = value.trim().toLowerCase()
+  if (key === 'initator') return INITIATOR_ROLE_LABELS.initiator
+  return INITIATOR_ROLE_LABELS[value.trim()] ?? value.trim()
 }
 
 export default function ProjectPage() {
@@ -119,10 +137,121 @@ export default function ProjectPage() {
     location?: string
   } | null>(null)
   const [detailExpanded, setDetailExpanded] = useState(false)
-  const [aiSuggestions, setAiSuggestions] = useState<string[]>([])
-  const [aiSuggestionsLoading, setAiSuggestionsLoading] = useState(false)
   /** Owner: true = edit mode (ProjectEditor), false = view mode (read-only) */
   const [editMode, setEditMode] = useState(false)
+  const [linkCopied, setLinkCopied] = useState(false)
+  /** After Share: show on-page hint + full URL (not only button “Copied!”) */
+  const [sharePanelOpen, setSharePanelOpen] = useState(false)
+  const [absolutePageUrl, setAbsolutePageUrl] = useState('')
+
+  // ── Interaction states ──────────────────────────────────────────────────────
+  const [liked, setLiked] = useState(false)
+  const [likeCount, setLikeCount] = useState(0)
+  const [likeLoading, setLikeLoading] = useState(false)
+  const [bookmarked, setBookmarked] = useState(false)
+  const [bookmarkLoading, setBookmarkLoading] = useState(false)
+  const [comments, setComments] = useState<{
+    id: string; userId: string; text: string; createdAt: string;
+    user: { name: string | null; image: string | null; profileSlug: string | null }
+  }[]>([])
+  const [commentText, setCommentText] = useState('')
+  const [commentSubmitting, setCommentSubmitting] = useState(false)
+  const [commentSectionOpen, setCommentSectionOpen] = useState(false)
+  const commentsEndRef = useRef<HTMLDivElement>(null)
+
+  // Fetch like/bookmark/comment status
+  const fetchInteractionStatus = useCallback(async () => {
+    if (!user?.id || isNaN(createdAt)) return
+    try {
+      const [likeRes, bmRes, commentRes] = await Promise.all([
+        fetch(`/api/project/like?targetUserId=${user.id}&projectCreatedAt=${createdAt}`),
+        fetch(`/api/project/bookmark?targetUserId=${user.id}&projectCreatedAt=${createdAt}`),
+        fetch(`/api/project/comment?targetUserId=${user.id}&projectCreatedAt=${createdAt}`),
+      ])
+      const [likeData, bmData, commentData] = await Promise.all([
+        likeRes.json().catch(() => ({ liked: false, count: 0 })),
+        bmRes.json().catch(() => ({ bookmarked: false, count: 0 })),
+        commentRes.json().catch(() => ({ comments: [] })),
+      ])
+      setLiked(likeData.liked ?? false)
+      setLikeCount(likeData.count ?? 0)
+      setBookmarked(bmData.bookmarked ?? false)
+      if (!commentSectionOpen) setComments(commentData.comments ?? [])
+    } catch { /* silently fail */ }
+  }, [user?.id, createdAt, commentSectionOpen])
+
+  useEffect(() => {
+    if (!project) return
+    fetchInteractionStatus()
+  }, [project, fetchInteractionStatus])
+
+  const toggleLike = async () => {
+    if (!isAuthenticated) { router.push(`/auth/signin?callbackUrl=${encodeURIComponent(`/u/${userId}/project/${createdAt}`)}`); return }
+    if (likeLoading || !user?.id) return
+    setLikeLoading(true)
+    const prev = liked
+    setLiked(!prev)
+    setLikeCount((c) => c + (prev ? -1 : 1))
+    try {
+      const res = await fetch('/api/project/like', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ targetUserId: user.id, projectCreatedAt: createdAt }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (res.ok) { setLiked(data.liked ?? !prev); setLikeCount(data.count ?? likeCount) }
+      else { setLiked(prev); setLikeCount((c) => c + (prev ? 1 : -1)) }
+    } catch { setLiked(prev); setLikeCount((c) => c + (prev ? 1 : -1)) }
+    setLikeLoading(false)
+  }
+
+  const toggleBookmark = async () => {
+    if (!isAuthenticated) { router.push(`/auth/signin?callbackUrl=${encodeURIComponent(`/u/${userId}/project/${createdAt}`)}`); return }
+    if (bookmarkLoading || !user?.id) return
+    setBookmarkLoading(true)
+    const prev = bookmarked
+    setBookmarked(!prev)
+    try {
+      const res = await fetch('/api/project/bookmark', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ targetUserId: user.id, projectCreatedAt: createdAt }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) setBookmarked(prev)
+    } catch { setBookmarked(prev) }
+    setBookmarkLoading(false)
+  }
+
+  const toggleCommentSection = async () => {
+    if (!commentSectionOpen && comments.length === 0 && user?.id) {
+      try {
+        const res = await fetch(`/api/project/comment?targetUserId=${user.id}&projectCreatedAt=${createdAt}`)
+        const data = await res.json().catch(() => ({ comments: [] }))
+        setComments(data.comments ?? [])
+      } catch { /* ignore */ }
+    }
+    setCommentSectionOpen((o) => !o)
+  }
+
+  const submitComment = async () => {
+    if (!isAuthenticated) { router.push(`/auth/signin?callbackUrl=${encodeURIComponent(`/u/${userId}/project/${createdAt}`)}`); return }
+    if (!commentText.trim() || commentSubmitting || !user?.id) return
+    setCommentSubmitting(true)
+    try {
+      const res = await fetch('/api/project/comment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ targetUserId: user.id, projectCreatedAt: createdAt, text: commentText.trim() }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (res.ok && data.comment) {
+        setComments((prev) => [...prev, data.comment])
+        setCommentText('')
+        setTimeout(() => commentsEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100)
+      }
+    } finally { setCommentSubmitting(false) }
+  }
 
   const currentUserId = (session?.user as { id?: string })?.id
   const isOwner = !!(currentUserId && user?.id && currentUserId === user.id)
@@ -176,7 +305,8 @@ export default function ProjectPage() {
       seen.add(key)
       tags.push({ label: label.trim() })
     }
-    if (project?.projectTypeTag) add(project.projectTypeTag)
+    ;(project?.projectTypeTags ?? []).forEach((t: string) => add(t))
+    if (!tags.length && project?.projectTypeTag) add(project.projectTypeTag as string)
     ;(project?.references ?? []).forEach((r) => {
       if (r.contentTag) add(r.contentTag)
     })
@@ -209,41 +339,14 @@ export default function ProjectPage() {
       return
     }
     let cancelled = false
-    const promise = loadProject()
-    promise.finally(() => { if (!cancelled) setLoading(false) })
+    void loadProject().finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
   }, [userId, createdAt, loadProject])
 
-  // Fetch AI suggestions for "what's missing" when viewing project as owner
   useEffect(() => {
-    if (!project || !user || !isOwner) {
-      setAiSuggestions([])
-      return
-    }
-    setAiSuggestionsLoading(true)
-    fetch('/api/analyze-project-completeness', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        project: {
-          text: project.text,
-          detail: project.detail,
-          whatToProvide: project.whatToProvide,
-          cultureAndBenefit: project.cultureAndBenefit,
-          peopleNeeded: project.peopleNeeded,
-          stage: project.stage,
-          stageOrder: project.stageOrder,
-          references: project.references,
-          attachments: project.attachments,
-          projectTypeTag: project.projectTypeTag,
-        },
-      }),
-    })
-      .then((r) => r.ok ? r.json() : { suggestions: [] })
-      .then((data) => { setAiSuggestions(Array.isArray(data?.suggestions) ? data.suggestions : []) })
-      .catch(() => setAiSuggestions([]))
-      .finally(() => setAiSuggestionsLoading(false))
-  }, [isOwner, project?.text, project?.detail, project?.whatToProvide, project?.cultureAndBenefit, project?.peopleNeeded?.length, project?.stage, project?.stageOrder?.length, project?.references?.length, project?.attachments?.length, project?.projectTypeTag])
+    if (typeof window === 'undefined') return
+    setAbsolutePageUrl(window.location.href)
+  }, [userId, createdAt])
 
   const handleEngage = () => {
     if (!isAuthenticated) {
@@ -298,6 +401,8 @@ export default function ProjectPage() {
   }
 
   const profileLink = currentUserId && user?.id && currentUserId === user.id ? '/profile' : `/u/${userId}`
+  const projectShareUrl = typeof window !== 'undefined' ? window.location.href : `/u/${userId}/project/${createdAt}`
+  const displayShareUrl = absolutePageUrl || projectShareUrl
 
   if (loading) {
     return (
@@ -340,6 +445,22 @@ export default function ProjectPage() {
                 {editMode ? 'View' : 'Edit'}
               </button>
             )}
+            <button
+              type="button"
+              onClick={() => {
+                const url = typeof window !== 'undefined' ? window.location.href : projectShareUrl
+                if (typeof window !== 'undefined') setAbsolutePageUrl(url)
+                navigator.clipboard.writeText(url).catch(() => {})
+                setLinkCopied(true)
+                setSharePanelOpen(true)
+                setTimeout(() => setLinkCopied(false), 2000)
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100"
+              title="Copy project link"
+            >
+              <Share2 className="w-3.5 h-3.5" />
+              {linkCopied ? 'Copied!' : 'Share'}
+            </button>
             <Link
               href={profileLink}
               className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100"
@@ -365,25 +486,43 @@ export default function ProjectPage() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-2xl px-4 py-6">
-        {isOwner && (aiSuggestions.length > 0 || aiSuggestionsLoading) && !editMode && (
-          <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50/80 px-4 py-3">
-            <p className="text-[11px] font-semibold text-amber-800 mb-1.5 flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 shrink-0" />
-              AI Suggestions: Recommended additions
+      {sharePanelOpen && (
+        <div className="border-b border-teal-200/80 bg-teal-50/90">
+          <div className="mx-auto max-w-2xl px-4 py-3 flex flex-col gap-2">
+            <p className="text-sm text-teal-900 font-medium leading-snug">
+              {isOwner
+                ? '这是你的项目公开页：他人打开下方链接即可查看本页。链接已复制到剪贴板。'
+                : '这是本项目的页面链接，已复制到剪贴板。'}
             </p>
-            {aiSuggestionsLoading ? (
-              <p className="text-[11px] text-amber-700">Analyzing...</p>
-            ) : (
-              <ul className="text-[11px] text-amber-800 space-y-0.5 list-disc list-inside">
-                {aiSuggestions.map((s, i) => (
-                  <li key={i}>{s}</li>
-                ))}
-              </ul>
-            )}
-            <p className="text-[10px] text-amber-600 mt-1.5">Click "Edit" to add the above content here</p>
+            <div className="flex flex-wrap items-center gap-2">
+              <code className="flex-1 min-w-0 truncate rounded-md bg-white/80 px-2 py-1.5 text-xs text-gray-800 border border-teal-100" title={displayShareUrl}>
+                {displayShareUrl}
+              </code>
+              <button
+                type="button"
+                className="shrink-0 rounded-lg border border-teal-300 bg-white px-3 py-1.5 text-xs font-medium text-teal-800 hover:bg-teal-50"
+                onClick={() => {
+                  const u = typeof window !== 'undefined' ? window.location.href : displayShareUrl
+                  navigator.clipboard.writeText(u).catch(() => {})
+                  setLinkCopied(true)
+                  setTimeout(() => setLinkCopied(false), 2000)
+                }}
+              >
+                再复制
+              </button>
+              <button
+                type="button"
+                className="shrink-0 rounded-lg px-2 py-1.5 text-xs text-gray-500 hover:bg-white/60"
+                onClick={() => setSharePanelOpen(false)}
+              >
+                关闭
+              </button>
+            </div>
           </div>
-        )}
+        </div>
+      )}
+
+      <main className="mx-auto max-w-2xl px-4 py-6">
         {isOwner && editMode ? (
           <ProjectEditor
             project={{
@@ -415,7 +554,7 @@ export default function ProjectPage() {
                 location: p.location,
               })),
               attachments: project.attachments,
-              projectTypeTag: project.projectTypeTag,
+              projectTypeTags: project.projectTypeTags,
               showOnPlaza: project.showOnPlaza,
               visibility: project.visibility,
               openStatusLabel: project.openStatusLabel,
@@ -426,7 +565,7 @@ export default function ProjectPage() {
             }}
             userId={user.id}
             createdAt={createdAt}
-            userName={user.name ?? undefined}
+            userName={personDisplayName(user)}
             hasProfileAvatar={!!(user?.avatarDataUrl ?? user?.image)}
             onSaved={(updated) => {
               setProject((prev) => prev ? { ...prev, ...updated } : null)
@@ -448,8 +587,12 @@ export default function ProjectPage() {
                 </div>
               )}
               <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h1 className="text-lg font-bold text-gray-900">{project.text}</h1>
+                <p className="text-[10px] font-medium text-gray-400 uppercase tracking-wide">发起人 · Profile</p>
+                <h1 className="text-xl font-bold text-gray-900 leading-tight mt-0.5">{personDisplayName(user)}</h1>
+                <p className="text-[12px] text-gray-500 mt-1">{initiatorRoleLabel(project.initiatorRole)}</p>
+                <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1">
+                  <span className="text-[11px] font-medium text-gray-500 shrink-0">项目</span>
+                  <span className="text-sm font-semibold text-teal-800 min-w-0">{project.text}</span>
                   {project.stage && (
                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-[11px] font-medium">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
@@ -472,13 +615,16 @@ export default function ProjectPage() {
                     {!detailExpanded && showReadMore && '...'}
                   </p>
                 ) : null}
-                {(project.whatToProvide?.trim() || project.projectTypeTag || lookingForLabelCounts.length > 0) && (
+                {(project.whatToProvide?.trim() || (project.projectTypeTags?.length ?? 0) > 0 || project.projectTypeTag || lookingForLabelCounts.length > 0) && (
                   <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                    {project.projectTypeTag && (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-violet-50 border border-violet-200 text-violet-700 text-[10px] font-medium">
-                        {project.projectTypeTag}
+                    {((project.projectTypeTags?.length ?? 0) > 0
+                      ? (project.projectTypeTags ?? [])
+                      : (project.projectTypeTag ? [project.projectTypeTag] : [])
+                    ).map((t: string) => (
+                      <span key={t} className="inline-flex items-center px-2 py-0.5 rounded-full bg-violet-50 border border-violet-200 text-violet-700 text-[10px] font-medium">
+                        {t}
                       </span>
-                    )}
+                    ))}
                     {project.whatToProvide?.trim() && (
                       <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-cyan-50 border border-cyan-200 text-cyan-700 text-[10px] font-medium max-w-[320px] truncate" title={project.whatToProvide.trim()}>
                         {project.whatToProvide.trim()}
@@ -588,15 +734,26 @@ export default function ProjectPage() {
                   })
                 : (project.stage ? [project.stage] : ['Idea'])
               const currentStage = project.stage || order[order.length - 1] || order[0] || 'Idea'
-              const currentIdx = order.findIndex((x) => x.toLowerCase() === currentStage.toLowerCase())
-              const litCount = currentIdx >= 0 ? currentIdx + 1 : order.length
+              const currentLower = currentStage.toLowerCase()
+              // 公开查看：不展示尚未进入的阶段（无 stageEnteredAt 且非当前 stage）
+              let orderVisible = order.filter((s) => {
+                const key = Object.keys(enteredAt).find((k) => k.toLowerCase() === s.toLowerCase()) ?? s
+                const entered = typeof enteredAt[key] === 'number'
+                return entered || s.toLowerCase() === currentLower
+              })
+              if (orderVisible.length === 0 && currentStage) {
+                orderVisible = [currentStage]
+              }
+              const currentIdx = orderVisible.findIndex((x) => x.toLowerCase() === currentLower)
+              const litCount = currentIdx >= 0 ? currentIdx + 1 : orderVisible.length
               return (
                 <div className="flex flex-wrap items-center gap-y-1">
-                  {order.map((s, idx) => {
+                  {orderVisible.map((s, idx) => {
                     const isLit = idx < litCount
                     const key = Object.keys(enteredAt).find((k) => k.toLowerCase() === s.toLowerCase()) ?? s
                     const ts = enteredAt[key] ?? (idx === 0 ? project.createdAt : undefined)
                     const showTime = ts != null
+                    const stageAttachments = isLit ? (project.attachments ?? []).filter((a) => a.stageTag?.toLowerCase() === s.toLowerCase()).length : 0
                     return (
                       <div key={`${s}-${idx}`} className="flex items-center">
                         <div className={showTime ? 'flex flex-col items-center shrink-0' : 'flex items-center'}>
@@ -614,7 +771,12 @@ export default function ProjectPage() {
                             </span>
                           )}
                         </div>
-                        {idx < order.length - 1 && (
+                        {isLit && stageAttachments > 0 && (
+                          <span className="ml-1 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-violet-100 text-violet-700 border border-violet-200 text-[9px] font-medium shrink-0">
+                            {stageAttachments}
+                          </span>
+                        )}
+                        {idx < orderVisible.length - 1 && (
                           <div className={`w-4 h-0.5 shrink-0 mx-0.5 ${idx < litCount - 1 ? 'bg-teal-500' : 'bg-gray-200'}`} aria-hidden />
                         )}
                       </div>
@@ -626,7 +788,7 @@ export default function ProjectPage() {
           </div>
 
           {/* People：卡片可点击，发起人跳个人页，合作者按姓名 slug 尝试跳转 */}
-          {((project.creators ?? []).length > 0 || user.name) && (
+          {((project.creators ?? []).length > 0 || user.name || user.displayName) && (
             <div className="px-5 py-3 border-b border-gray-100">
               <p className="text-[11px] font-semibold text-gray-900 mb-2">People</p>
               <div className="space-y-3">
@@ -635,7 +797,7 @@ export default function ProjectPage() {
                   className="flex items-start gap-3 p-3 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 hover:border-gray-300 transition-colors cursor-pointer"
                 >
                   <div className="flex-1 min-w-0">
-                    <p className="text-[14px] font-bold text-gray-900">{user.name || 'Anonymous'}</p>
+                    <p className="text-[14px] font-bold text-gray-900">{personDisplayName(user)}</p>
                     <p className="text-[11px] text-gray-500 mt-0.5">{initiatorRoleLabel(project.initiatorRole)}</p>
                     {(project.oneSentenceDesc?.trim() || user.oneSentenceDesc) && (
                       <p className="text-[11px] text-gray-600 mt-1 leading-snug">{project.oneSentenceDesc?.trim() || user.oneSentenceDesc}</p>
@@ -645,7 +807,7 @@ export default function ProjectPage() {
                     <img src={resolveImageUrl(user.image)} alt="" className="w-12 h-12 rounded-full object-cover shrink-0 border border-gray-200" />
                   ) : (
                     <div className="w-12 h-12 rounded-full bg-gray-200 shrink-0 flex items-center justify-center text-gray-600 text-lg font-semibold">
-                      {(user.name || '?').charAt(0).toUpperCase()}
+                      {(personDisplayName(user) || '?').charAt(0).toUpperCase()}
                     </div>
                   )}
                 </Link>
@@ -837,38 +999,69 @@ export default function ProjectPage() {
           )}
 
           {(project.attachments ?? []).length > 0 && (
-            <div className="px-5 py-3 border-b border-gray-100">
-              <p className="text-[11px] font-semibold text-gray-900 mb-2">Attachments</p>
-              <div className="space-y-1">
-                {(project.attachments ?? []).map((a, i) => (
-                  <a
-                    key={i}
-                    href={resolveImageUrl(a.url)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-2 py-1.5 hover:bg-gray-50"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <span className="text-[11px] text-gray-800 truncate block">{a.name}</span>
-                      <div className="flex items-center gap-1 mt-0.5 flex-wrap">
-                        {a.stageTag ? (
-                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-teal-100 text-teal-700 border border-teal-200 text-[9px] font-medium">
-                            <span className="w-1.5 h-1.5 rounded-full bg-teal-500 shrink-0" />
-                            {a.stageTag}
-                          </span>
+            <div className="px-5 py-4 border-b border-gray-100">
+              <p className="text-[13px] font-bold text-gray-900">项目动态</p>
+              <p className="text-[10px] text-gray-500 mt-0.5 mb-3">阶段资料与附件（含图片预览）</p>
+              <div className="space-y-4">
+                {[...(project.attachments ?? [])]
+                  .slice()
+                  .sort((a, b) => (b.addedAt ?? 0) - (a.addedAt ?? 0))
+                  .map((a, i) => {
+                    const href = resolveImageUrl(a.url)
+                    const showImage = isAttachmentImageUrl(a.url)
+                    const when = typeof a.addedAt === 'number' && !Number.isNaN(a.addedAt) ? a.addedAt : null
+                    return (
+                      <article
+                        key={`${a.url}-${a.addedAt ?? i}`}
+                        className="rounded-xl border border-gray-200/90 bg-gradient-to-b from-white to-gray-50/80 p-3 shadow-sm"
+                      >
+                        <div className="flex flex-wrap items-center gap-2 text-[10px] text-gray-500 mb-1.5">
+                          {when != null && <time dateTime={new Date(when).toISOString()}>{formatTime(when)}</time>}
+                          {a.stageTag ? (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-teal-100 text-teal-800 border border-teal-200 text-[9px] font-semibold">
+                              <span className="w-1.5 h-1.5 rounded-full bg-teal-500 shrink-0" />
+                              {a.stageTag}
+                            </span>
+                          ) : null}
+                          {a.contentTag ? (
+                            <span className="px-1.5 py-0.5 rounded-full bg-violet-100 text-violet-700 border border-violet-200 text-[9px] font-medium">{a.contentTag}</span>
+                          ) : null}
+                        </div>
+                        <h3 className="text-[13px] font-semibold text-gray-900 leading-snug">{a.name || '附件'}</h3>
+                        {showImage ? (
+                          <a
+                            href={href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="mt-2 block rounded-lg overflow-hidden border border-gray-200 bg-gray-100 focus:outline-none focus:ring-2 focus:ring-teal-400/50"
+                          >
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={href}
+                              alt=""
+                              loading="lazy"
+                              className="w-full max-h-72 object-contain bg-gray-50"
+                            />
+                          </a>
                         ) : (
-                          <span className="px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-400 border border-gray-200 text-[9px]">节点 —</span>
+                          <a
+                            href={
+                              href.startsWith('/') || href.startsWith('http') || href.startsWith('data:')
+                                ? href
+                                : ensureAbsoluteUrl(href) || href
+                            }
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="mt-2 inline-flex items-center gap-1.5 text-[12px] font-medium text-teal-700 hover:text-teal-800"
+                          >
+                            <FileText className="w-3.5 h-3.5 shrink-0" />
+                            打开文件
+                            <ExternalLink className="w-3 h-3 shrink-0 opacity-70" />
+                          </a>
                         )}
-                        {a.contentTag ? (
-                          <span className="px-1.5 py-0.5 rounded-full bg-violet-100 text-violet-700 border border-violet-200 text-[9px] font-medium">{a.contentTag}</span>
-                        ) : (
-                          <span className="px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-400 border border-gray-200 text-[9px]">tag —</span>
-                        )}
-                      </div>
-                    </div>
-                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-700 shrink-0">FILE</span>
-                  </a>
-                ))}
+                      </article>
+                    )
+                  })}
               </div>
             </div>
           )}
@@ -876,30 +1069,44 @@ export default function ProjectPage() {
           <div className="px-5 py-3 border-t border-gray-100 flex items-center justify-between gap-2 flex-wrap">
             <Link href={profileLink} className="flex items-center gap-1.5 min-w-0 hover:opacity-80">
               <User className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-              <span className="truncate text-[13px] font-semibold text-gray-800">{user.name || 'Anonymous'}</span>
+              <span className="truncate text-[13px] font-semibold text-gray-800">{personDisplayName(user)}</span>
             </Link>
             <div className="flex items-center gap-2 flex-wrap">
             <button
               type="button"
-              onClick={() => router.push(`/auth/signin?callbackUrl=${encodeURIComponent(`/u/${userId}/project/${createdAt}`)}`)}
-              className="inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] border bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
+              onClick={() => void toggleLike()}
+              className={`inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] border ${
+                liked
+                  ? 'bg-pink-50 text-pink-600 border-pink-200 hover:bg-pink-100'
+                  : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+              }`}
             >
-              <Heart className="w-3.5 h-3.5" />
-              0
+              <Heart className={`w-3.5 h-3.5 ${liked ? 'fill-pink-500' : ''}`} />
+              {likeCount}
             </button>
             <button
               type="button"
-              className="inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] border bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
+              onClick={() => void toggleBookmark()}
+              className={`inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] border ${
+                bookmarked
+                  ? 'bg-amber-50 text-amber-600 border-amber-200 hover:bg-amber-100'
+                  : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+              }`}
             >
-              <Bookmark className="w-3.5 h-3.5" />
-              0
+              <Bookmark className={`w-3.5 h-3.5 ${bookmarked ? 'fill-amber-500' : ''}`} />
+              Saved
             </button>
             <button
               type="button"
-              className="inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] border bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
+              onClick={() => void toggleCommentSection()}
+              className={`inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] border ${
+                commentSectionOpen
+                  ? 'bg-sky-50 text-sky-600 border-sky-200 hover:bg-sky-100'
+                  : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+              }`}
             >
-              <MessageCircle className="w-3.5 h-3.5" />
-              0
+              <MessageCircle className={`w-3.5 h-3.5 ${commentSectionOpen ? 'fill-sky-500' : ''}`} />
+              {comments.length}
             </button>
             <button
               type="button"
@@ -910,6 +1117,61 @@ export default function ProjectPage() {
             </button>
             </div>
           </div>
+
+          {commentSectionOpen && (
+            <div className="px-5 pb-4 pt-2 border-t border-gray-100 space-y-3 bg-white">
+              {comments.length === 0 && (
+                <p className="text-xs text-gray-400 text-center py-2">No comments yet. Be the first!</p>
+              )}
+              {comments.map((c) => (
+                <div key={c.id} className="flex gap-2">
+                  <div className="shrink-0 w-7 h-7 rounded-full bg-teal-100 flex items-center justify-center overflow-hidden">
+                    {c.user.image ? (
+                      <img src={c.user.image} alt={c.user.name ?? ''} className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-[10px] font-bold text-teal-700">{(c.user.name ?? '?')[0].toUpperCase()}</span>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-baseline gap-2 mb-0.5">
+                      <span className="text-[11px] font-semibold text-gray-800">{c.user.name ?? 'Anonymous'}</span>
+                      <span className="text-[10px] text-gray-400">
+                        {(() => {
+                          const diff = Date.now() - new Date(c.createdAt).getTime()
+                          if (diff < 60000) return 'just now'
+                          if (diff < 3600000) return `${Math.floor(diff / 60000)}m`
+                          if (diff < 86400000) return `${Math.floor(diff / 3600000)}h`
+                          return `${Math.floor(diff / 86400000)}d`
+                        })()}
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-700 leading-relaxed">{c.text}</p>
+                  </div>
+                </div>
+              ))}
+              <div ref={commentsEndRef} />
+              <div className="flex gap-2 items-end">
+                <textarea
+                  value={commentText}
+                  onChange={(e) => setCommentText(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void submitComment() }
+                  }}
+                  placeholder="Write a quick comment... (Enter to send)"
+                  rows={1}
+                  className="flex-1 px-2.5 py-1.5 text-xs border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-teal-400/40 placeholder:text-gray-400"
+                />
+                <button
+                  type="button"
+                  onClick={() => void submitComment()}
+                  disabled={!commentText.trim() || commentSubmitting}
+                  className="shrink-0 px-3 py-1.5 text-xs font-medium text-white bg-teal-600 hover:bg-teal-700 disabled:opacity-40 rounded-lg transition-colors"
+                >
+                  {commentSubmitting ? '...' : 'Send'}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
         )}
       </main>
@@ -982,7 +1244,7 @@ export default function ProjectPage() {
               <h3 className="text-sm font-semibold text-gray-900">Engage with: {project.text}</h3>
               <button type="button" className="p-1 rounded hover:bg-gray-100" onClick={() => { setShowEngageModal(false); setPeopleDetailModal(null) }}>×</button>
             </div>
-            <p className="text-xs text-gray-500 mb-2">To: {user.name || 'Anonymous'}</p>
+            <p className="text-xs text-gray-500 mb-2">To: {personDisplayName(user)}</p>
             {project.allowEasyApply && (
               <div className="mb-3 p-3 rounded-lg border border-green-200 bg-green-50/50">
                 <p className="text-xs font-medium text-gray-800 mb-2">Easy Apply</p>

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma, withRetry } from '@/lib/prisma'
+import { resolvePublicProfileDisplayName } from '@/lib/profileDisplayName'
 
 // 强制动态渲染
 export const dynamic = 'force-dynamic'
@@ -43,9 +44,18 @@ export async function GET() {
       } catch {}
     }
 
+    const pdObj =
+      profileData && typeof profileData === 'object' ? (profileData as Record<string, unknown>) : {}
+    const displayName = resolvePublicProfileDisplayName({
+      accountName: user.name,
+      profileData: pdObj,
+      profileSlug: (user as { profileSlug?: string | null }).profileSlug ?? null,
+    })
+
     const userInfo = {
       id: user.id,
       name: user.name,
+      displayName,
       avatarDataUrl: user.image || null,
       profileSlug: (user as { profileSlug?: string | null }).profileSlug ?? null,
       userType: (user as { userType?: string }).userType ?? profileData?.userType ?? 'person'

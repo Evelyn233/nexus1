@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { prisma, withRetry } from '@/lib/prisma'
 import { authOptions } from '@/lib/auth'
+import { resolvePublicProfileDisplayName } from '@/lib/profileDisplayName'
 
 export const dynamic = 'force-dynamic'
 
@@ -73,28 +74,9 @@ export async function GET(request: NextRequest) {
         const obj = x && typeof x === 'object' ? (x as Record<string, unknown>) : null
         return obj && toNum(obj.createdAt) === targetTs
       }) as Record<string, unknown> | undefined : null
-    const findProjectNearest = (arr: unknown[]) => {
-      if (targetTs == null || !Array.isArray(arr) || arr.length === 0) return undefined
-      let best: Record<string, unknown> | undefined
-      let bestDiff = Number.POSITIVE_INFINITY
-      for (const x of arr) {
-        const obj = x && typeof x === 'object' ? (x as Record<string, unknown>) : null
-        if (!obj) continue
-        const ts = toNum(obj.createdAt)
-        if (ts == null) continue
-        const diff = Math.abs(ts - targetTs)
-        if (diff < bestDiff) {
-          best = obj
-          bestDiff = diff
-        }
-      }
-      return best
-    }
+    // 必须精确匹配 createdAt：不要用「时间最接近」的项目顶替，否则公开链接会错开到另一个项目（例如 podcast 页显示成 nexus）
     let p = findProjectExact(projects)
     if (!p) p = findProjectExact(collab)
-    // Fallback: use nearest createdAt when no exact match (links稍微旧一点也能打开)
-    if (!p) p = findProjectNearest(projects)
-    if (!p) p = findProjectNearest(collab)
 
     if (!p || !(p.text ?? '').toString().trim()) {
       return NextResponse.json({ error: 'Project not found' }, { status: 404 })
@@ -102,6 +84,11 @@ export async function GET(request: NextRequest) {
 
     const STAGE_RECOMMENDED = ['Idea', 'Planning']
     const text = String(p.text ?? '').trim()
+    const displayName = resolvePublicProfileDisplayName({
+      accountName: user.name,
+      profileData: pd,
+      profileSlug: user.profileSlug,
+    })
     const detail = typeof p.detail === 'string' ? p.detail.trim() : undefined
     const image = typeof p.image === 'string' && p.image.trim() ? p.image.trim() : typeof p.detailImage === 'string' && p.detailImage.trim() ? p.detailImage.trim() : undefined
     const rawStage = typeof p.stage === 'string' && p.stage.trim() ? p.stage.trim() : undefined
@@ -192,9 +179,11 @@ export async function GET(request: NextRequest) {
           .filter((c): c is string => typeof c === 'string' && c.trim().length > 0)
           .map((c) => c.trim())
       : []
-    const projectTypeTag = typeof (p as Record<string, unknown>).projectTypeTag === 'string' && (p as Record<string, unknown>).projectTypeTag
-      ? String((p as Record<string, unknown>).projectTypeTag).trim().slice(0, 20)
-      : undefined
+    const projectTypeTags = Array.isArray((p as Record<string, unknown>).projectTypeTags)
+      ? ((p as Record<string, unknown>).projectTypeTags as unknown[]).filter((t): t is string => typeof t === 'string' && t.trim().length > 0).map((t: string) => t.trim()).slice(0, 10)
+      : (typeof (p as Record<string, unknown>).projectTypeTag === 'string' && ((p as Record<string, unknown>).projectTypeTag as string).trim().length > 0
+          ? [String((p as Record<string, unknown>).projectTypeTag).trim().slice(0, 20)]
+          : [])
     const openStatusLabel = typeof (p as Record<string, unknown>).openStatusLabel === 'string' && (p as Record<string, unknown>).openStatusLabel
       ? String((p as Record<string, unknown>).openStatusLabel).trim().slice(0, 48)
       : undefined
@@ -241,7 +230,7 @@ export async function GET(request: NextRequest) {
         attachments,
         creators,
         createdAt: typeof p.createdAt === 'number' ? p.createdAt : createdAt,
-        projectTypeTag,
+        projectTypeTags,
         openStatusLabel,
         allowEasyApply,
         whatToProvide,
@@ -256,6 +245,7 @@ export async function GET(request: NextRequest) {
       user: {
         id: user.id,
         name: user.name,
+        displayName,
         image: user.image,
         profileSlug: slug,
         oneSentenceDesc,
@@ -339,6 +329,7 @@ export async function PATCH(request: NextRequest) {
     if (Array.isArray(body.attachments)) p.attachments = body.attachments
     if (Array.isArray(body.creators)) p.creators = body.creators
     if (typeof body.projectTypeTag === 'string') p.projectTypeTag = body.projectTypeTag.trim().slice(0, 20) || undefined
+    if (Array.isArray(body.projectTypeTags)) p.projectTypeTags = (body.projectTypeTags as unknown[]).filter((t): t is string => typeof t === 'string' && t.trim().length > 0).map((t: string) => t.trim()).slice(0, 10)
     if (typeof body.openStatusLabel === 'string') p.openStatusLabel = body.openStatusLabel.trim().slice(0, 48) || undefined
     if (typeof body.allowEasyApply === 'boolean') p.allowEasyApply = body.allowEasyApply
     if (typeof body.whatToProvide === 'string') p.whatToProvide = body.whatToProvide.trim().slice(0, 2000) || undefined

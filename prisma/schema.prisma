@@ -46,6 +46,9 @@ model User {
   metadata                UserMetadata?
   payments                UserPayment[]
   wallet                  UserWallet?
+  projectLikes            ProjectLike[]
+  projectBookmarks        ProjectBookmark[]
+  projectComments         ProjectComment[]
 
   @@map("users")
 }
@@ -331,4 +334,47 @@ model AppConfig {
   updatedAt DateTime @updatedAt
 
   @@map("app_config")
+}
+
+// 项目互动：点赞、收藏、评论
+model ProjectLike {
+  id              String   @id @default(cuid())
+  userId          String
+  targetUserId    String
+  projectCreatedAt BigInt
+  createdAt       DateTime @default(now())
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, targetUserId, projectCreatedAt])
+  @@index([userId])
+  @@index([targetUserId, projectCreatedAt])
+  @@map("project_likes")
+}
+
+model ProjectBookmark {
+  id              String   @id @default(cuid())
+  userId          String
+  targetUserId    String
+  projectCreatedAt BigInt
+  createdAt       DateTime @default(now())
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, targetUserId, projectCreatedAt])
+  @@index([userId])
+  @@index([targetUserId, projectCreatedAt])
+  @@map("project_bookmarks")
+}
+
+model ProjectComment {
+  id              String   @id @default(cuid())
+  userId          String
+  targetUserId    String
+  projectCreatedAt BigInt
+  text            String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([targetUserId, projectCreatedAt])
+  @@map("project_comments")
 }

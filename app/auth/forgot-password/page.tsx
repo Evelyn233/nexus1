@@ -23,10 +23,10 @@ export default function ForgotPasswordPage() {
     <div className="min-h-screen bg-gradient-to-br from-teal-50 to-cyan-50 flex items-center justify-center px-4">
       <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-2xl shadow-xl">
         <div className="text-center">
-          <img 
-            src="/logo-nexus.jpeg" 
-            alt="logo" 
-            className="h-20 w-auto object-contain rounded-lg mx-auto"
+          <img
+            src="/logo-nexus.jpeg"
+            alt="Nexus"
+            className="h-16 w-auto max-w-[280px] mx-auto object-contain"
           />
           <h2 className="mt-6 text-2xl font-bold text-gray-900">
             Forgot Password

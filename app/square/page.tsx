@@ -30,6 +30,7 @@ type ProjectInfo = {
   stageOrder?: string[]
   createdAt: number
   openStatusLabel?: string
+  projectTypeTags?: string[]
   projectTypeTag?: string
   whatToProvide?: string
   peopleNeeded?: PeopleNeededWithTags[]
@@ -334,7 +335,7 @@ export default function PlazaPage() {
             <img
               src="/logo-nexus.jpeg"
               alt="Nexus"
-              className="h-10 w-auto object-contain rounded-lg cursor-pointer hover:opacity-80"
+              className="h-9 sm:h-10 w-auto max-w-[200px] object-contain object-left cursor-pointer hover:opacity-80"
               onClick={() => router.push('/profile')}
             />
           </div>
@@ -414,8 +415,15 @@ export default function PlazaPage() {
                           </span>
                         )}
                       </div>
+                      <p className="text-[10px] text-teal-700 font-medium mb-1">
+                        主创 · <span className="text-gray-600 font-normal">{item.userName || 'Anonymous'}</span>
+                      </p>
                       {(() => {
-                        const provideText = item.project.whatToProvide?.trim() || item.project.projectTypeTag || undefined
+                        const provideText =
+                          item.project.whatToProvide?.trim() ||
+                          (item.project.projectTypeTags?.[0]) ||
+                          item.project.projectTypeTag ||
+                          undefined
                         return provideText ? (
                           <div className="flex flex-col gap-1 mb-1.5">
                             <div className="flex flex-wrap items-center gap-1">
@@ -614,14 +622,15 @@ export default function PlazaPage() {
                 </p>
               )}
             {needDetail.item &&
-              !!(needDetail.item.project.whatToProvide?.trim() || needDetail.item.project.projectTypeTag) && (
+              !!(needDetail.item.project.whatToProvide?.trim() || (needDetail.item.project.projectTypeTags?.length ?? 0) > 0 || needDetail.item.project.projectTypeTag) && (
                 <div className="mb-2 rounded-lg border border-cyan-100 bg-cyan-50/50 px-2 py-1.5">
                   <p className="text-[10px] font-semibold text-cyan-900 mb-0.5">What they can offer</p>
                   <p className="text-xs text-cyan-800 whitespace-pre-wrap">
                     {(() => {
                       const t =
                         needDetail.item!.project.whatToProvide?.trim() ||
-                        needDetail.item!.project.projectTypeTag ||
+                        needDetail.item!.project.projectTypeTags?.join(', ') ??
+                        needDetail.item!.project.projectTypeTag ??
                         ''
                       return t.length > 400 ? `${t.slice(0, 400)}…` : t
                     })()}

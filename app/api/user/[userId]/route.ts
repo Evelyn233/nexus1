@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma, withRetry } from '@/lib/prisma'
+import { resolvePublicProfileDisplayName } from '@/lib/profileDisplayName'
 
 // 强制动态渲染
 export const dynamic = 'force-dynamic'
@@ -86,6 +87,7 @@ export async function GET(
       experiences?: { id: string; title: string; company: string; employmentType?: string; location?: string; startDate?: string; endDate?: string; current?: boolean; description?: string }[]
       education?: { id: string; school: string; degree?: string; fieldOfStudy?: string; startDate?: string; endDate?: string; grade?: string; description?: string }[]
       qaList?: { question: string; answer: string }[]
+      openToWork?: boolean
     } = {}
     if (user.profileData) {
       try {
@@ -114,7 +116,7 @@ export async function GET(
             const ALLOWED_STAGES = ['Idea', 'Planning']
             const allowedSet = new Set(ALLOWED_STAGES)
             if (Array.isArray(pd?.projects)) {
-              return (pd.projects as { text?: string; visibility?: string; showOnPlaza?: boolean; peopleNeeded?: Array<string | { text?: string; detail?: string }>; createdAt?: number; stage?: string; stageOrder?: string[]; stageEnteredAt?: Record<string, number>; creators?: string[] }[])
+              return (pd.projects as { text?: string; visibility?: string; showOnPlaza?: boolean; peopleNeeded?: Array<string | { text?: string; detail?: string }>; createdAt?: number; stage?: string; stageOrder?: string[]; stageEnteredAt?: Record<string, number>; creators?: string[]; projectTypeTag?: string; initiatorRole?: string }[])
                 .filter((p) => (p.text ?? '').trim() && p.visibility !== 'hidden' && (p.showOnPlaza === true || p.visibility === 'public'))
                 .map((p) => {
                   const rawOrder = Array.isArray(p.stageOrder) && p.stageOrder.length > 0
@@ -165,6 +167,11 @@ export async function GET(
                             return Number.isNaN(parsed) ? Date.now() : parsed
                           })()
                         : Date.now()
+                  const projectTypeTags = Array.isArray((p as Record<string, unknown>).projectTypeTags)
+                    ? ((p as Record<string, unknown>).projectTypeTags as unknown[]).filter((t): t is string => typeof t === 'string' && t.trim().length > 0).map((t: string) => t.trim())
+                    : (typeof (p as Record<string, unknown>).projectTypeTag === 'string' && ((p as Record<string, unknown>).projectTypeTag as string).trim().length > 0 ? [((p as Record<string, unknown>).projectTypeTag as string).trim()] : [])
+                  const initiatorRole =
+                    typeof p.initiatorRole === 'string' && p.initiatorRole.trim() ? p.initiatorRole.trim() : undefined
                   return {
                     text: (p.text ?? '').trim(),
                     createdAt,
@@ -173,6 +180,8 @@ export async function GET(
                     stageOrder,
                     stageEnteredAt,
                     creators,
+                    ...(projectTypeTags.length > 0 ? { projectTypeTags } : {}),
+                    ...(initiatorRole ? { initiatorRole } : {}),
                   }
                 })
             }
@@ -238,7 +247,8 @@ export async function GET(
                 description: typeof x.description === 'string' ? x.description : undefined,
               }))
             : undefined,
-          qaList: qaList.length > 0 ? qaList : undefined
+          qaList: qaList.length > 0 ? qaList : undefined,
+          openToWork: pd?.openToWork === true ? true : undefined,
         }
       } catch (_) {}
     }
@@ -251,11 +261,28 @@ export async function GET(
       communicationStyle: user.metadata.communicationStyle ? JSON.parse(user.metadata.communicationStyle) : [],
       emotionalPattern: user.metadata.emotionalPattern ? JSON.parse(user.metadata.emotionalPattern) : []
     } : null
+
+    let pdForName: Record<string, unknown> = {}
+    try {
+      if (user.profileData) {
+        pdForName =
+          typeof user.profileData === 'string' ? JSON.parse(user.profileData) : (user.profileData as Record<string, unknown>)
+      }
+    } catch {
+      pdForName = {}
+    }
+    const displayName = resolvePublicProfileDisplayName({
+      accountName: user.name,
+      profileData: pdForName,
+      profileSlug: (user as { profileSlug?: string | null }).profileSlug ?? null,
+    })
+
     return NextResponse.json({
       success: true,
       user: {
         id: user.id,
         name: user.name,
+        displayName,
         image: user.image,
         location: user.location,
         createdAt: user.createdAt,

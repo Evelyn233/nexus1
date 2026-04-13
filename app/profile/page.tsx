@@ -71,6 +71,10 @@ function ProfilePageInner() {
     setShowExperienceInPreview,
     showQABlockInPreview,
     setShowQABlockInPreview,
+    setLinkedinData,
+    setLinkedinImported,
+    openToWork,
+    setOpenToWork,
   } = useProfileBasics()
   const [isLoadingData, setIsLoadingData] = useState(true)
   // When the crop modal is open, the avatar overlay would block the crop UI, making users think "nothing changed after upload"
@@ -323,6 +327,7 @@ function ProfilePageInner() {
       databaseSources,
       avatarDataUrl: avatarDataUrl ?? null,
       tagsSaveToDb,
+      openToWork,
     }
   })
   const getProfileDataFromState = useCallback((overrides: Record<string, unknown> = {}) => ({
@@ -501,88 +506,93 @@ function ProfilePageInner() {
             setProjectsList(
               pd.projects
                 .filter((x: unknown) => x && typeof x === 'object' && 'text' in (x as object))
-                .map((x: { text?: string; visibility?: string; showOnPlaza?: boolean; peopleNeeded?: Array<string | { text?: string; detail?: string }>; detail?: string; references?: Array<{ title?: string; url?: string; cover?: string; stageTag?: string; contentTag?: string }>; detailImage?: string; attachments?: Array<{ url?: string; name?: string; addedAt?: number; stageTag?: string; contentTag?: string }>; stage?: string; stageOrder?: string[]; stageEnteredAt?: Record<string, number>; creators?: string[]; createdAt?: number; projectTypeTag?: string; openStatusLabel?: string; allowEasyApply?: boolean; whatToProvide?: string; cultureAndBenefit?: string }) => ({
-                  text: String(x.text ?? '').trim(),
-                  visibility: (x.visibility === 'public' ? 'public' : x.visibility === 'hidden' ? 'hidden' : 'individual') as 'individual' | 'public' | 'hidden',
-                  showOnPlaza: x.showOnPlaza === true || (x.visibility === 'public' && x.showOnPlaza !== false),
-                  projectTypeTag: typeof x.projectTypeTag === 'string' && x.projectTypeTag.trim() ? x.projectTypeTag.trim() : undefined,
-                  openStatusLabel: typeof x.openStatusLabel === 'string' && x.openStatusLabel.trim() ? x.openStatusLabel.trim().slice(0, 48) : undefined,
-                  allowEasyApply: x.allowEasyApply === true,
-                  whatToProvide: typeof x.whatToProvide === 'string' && x.whatToProvide.trim() ? x.whatToProvide.trim() : undefined,
-                  cultureAndBenefit: typeof (x as { cultureAndBenefit?: string }).cultureAndBenefit === 'string' && (x as { cultureAndBenefit: string }).cultureAndBenefit.trim() ? (x as { cultureAndBenefit: string }).cultureAndBenefit.trim() : undefined,
-                  initiatorRole: typeof (x as { initiatorRole?: string }).initiatorRole === 'string' && (x as { initiatorRole: string }).initiatorRole.trim() ? (x as { initiatorRole: string }).initiatorRole.trim() : undefined,
-                  oneSentenceDesc: typeof (x as { oneSentenceDesc?: string }).oneSentenceDesc === 'string' && (x as { oneSentenceDesc: string }).oneSentenceDesc.trim() ? (x as { oneSentenceDesc: string }).oneSentenceDesc.trim() : undefined,
-                  peopleNeeded: Array.isArray(x.peopleNeeded)
-                    ? x.peopleNeeded
-                        .map((item) => {
-                          if (typeof item === 'string') {
-                            const text = item.trim()
-                            return text ? { text } : null
-                          }
-                          if (item && typeof item === 'object') {
-                            const text = String(item.text ?? '').trim()
-                            const detail = typeof item.detail === 'string' ? item.detail.trim() : ''
-                            const stageTag = typeof (item as any).stageTag === 'string' ? (item as any).stageTag.trim() : undefined
-                            const contentTag = typeof (item as any).contentTag === 'string' ? (item as any).contentTag.trim() : undefined
-                            const collabIntent = typeof (item as any).collabIntent === 'string' && (item as any).collabIntent.trim() ? (item as any).collabIntent.trim() : undefined
-                            const image = typeof (item as any).image === 'string' && (item as any).image.trim() ? (item as any).image.trim() : undefined
-                            const link = typeof (item as any).link === 'string' && (item as any).link.trim() ? (item as any).link.trim() : undefined
-                            const workMode = (item as any).workMode === 'local' ? 'local' as const : 'remote' as const
-                            const location = typeof (item as any).location === 'string' && (item as any).location.trim() ? (item as any).location.trim() : undefined
-                            return text ? { text, detail: detail || undefined, stageTag: stageTag || undefined, contentTag: contentTag || undefined, collabIntent, image, link, workMode, ...(workMode === 'local' && location ? { location } : {}) } : null
-                          }
-                          return null
-                        })
-                        .filter((v): v is PeopleNeededItem => v !== null)
-                    : undefined,
-                  detail: typeof x.detail === 'string' ? x.detail.trim() : undefined,
-                  references: Array.isArray(x.references)
-                    ? x.references
-                        .map((r) => {
-                          const url = typeof r?.url === 'string' ? r.url.trim() : ''
-                          const title = typeof r?.title === 'string' ? r.title.trim() : ''
-                          const cover = typeof r?.cover === 'string' ? r.cover.trim() : ''
-                          const description = typeof (r as { description?: string })?.description === 'string' ? (r as { description: string }).description.trim() : undefined
-                          if (!url) return null
-                          return {
-                            title: title || url,
-                            url,
-                            ...(cover ? { cover } : {}),
-                            ...(description ? { description } : {}),
-                            ...(typeof r?.stageTag === 'string' && r.stageTag.trim() ? { stageTag: r.stageTag.trim() } : {}),
-                            ...(typeof r?.contentTag === 'string' && r.contentTag.trim() ? { contentTag: r.contentTag.trim() } : {}),
-                            ...(typeof (r as { contributor?: string })?.contributor === 'string' && (r as { contributor: string }).contributor.trim() ? { contributor: (r as { contributor: string }).contributor.trim() } : {}),
-                          }
-                        })
-                        .filter((v): v is ProjectReference => !!v)
-                    : undefined,
-                  detailImage: typeof x.detailImage === 'string' ? x.detailImage.trim() : undefined,
-                  attachments: Array.isArray(x.attachments)
-                    ? x.attachments
-                        .map((a): ProjectAttachment | null => (a && typeof a.url === 'string' && a.url.trim() ? { url: a.url.trim(), name: typeof a.name === 'string' ? a.name.trim() || a.url : a.url, addedAt: typeof a.addedAt === 'number' ? a.addedAt : undefined, ...(typeof a.stageTag === 'string' && a.stageTag.trim() ? { stageTag: a.stageTag.trim() } : {}), ...(typeof a.contentTag === 'string' && a.contentTag.trim() ? { contentTag: a.contentTag.trim() } : {}), ...(typeof (a as { contributor?: string }).contributor === 'string' && (a as { contributor: string }).contributor.trim() ? { contributor: (a as { contributor: string }).contributor.trim() } : {}) } : null))
-                        .filter((v): v is ProjectAttachment => !!v)
-                    : undefined,
-                  stage: typeof x.stage === 'string' && x.stage.trim() ? x.stage.trim() : undefined,
-                  stageOrder: Array.isArray(x.stageOrder) && x.stageOrder.length > 0
-                    ? x.stageOrder.filter((s): s is string => typeof s === 'string' && s.trim().length > 0).map((s) => s.trim())
-                    : undefined,
-                  stageEnteredAt: x.stageEnteredAt && typeof x.stageEnteredAt === 'object'
-                    ? Object.fromEntries(Object.entries(x.stageEnteredAt).filter(([, v]) => typeof v === 'number').map(([k, v]) => [k, v as number]))
-                    : undefined,
-                  aiSuggestedStages: Array.isArray((x as { aiSuggestedStages?: string[] }).aiSuggestedStages)
-                    ? (x as { aiSuggestedStages: string[] }).aiSuggestedStages.filter((s): s is string => typeof s === 'string' && s.trim().length > 0).map((s) => s.trim())
-                    : undefined,
-                  creators: Array.isArray(x.creators) ? x.creators.filter((s): s is string => typeof s === 'string' && s.trim().length > 0).map((s) => s.trim()) : undefined,
-                  createdAt:
-                    typeof x.createdAt === 'number' && !Number.isNaN(x.createdAt)
-                      ? x.createdAt
-                      : typeof x.createdAt === 'string'
-                        ? (() => {
-                            const parsed = parseInt(x.createdAt as string, 10)
-                            return Number.isNaN(parsed) ? Date.now() : parsed
-                          })()
-                        : Date.now(),
-                }))
+                .map((x: { text?: string; visibility?: string; showOnPlaza?: boolean; peopleNeeded?: Array<string | { text?: string; detail?: string }>; detail?: string; references?: Array<{ title?: string; url?: string; cover?: string; stageTag?: string; contentTag?: string }>; detailImage?: string; attachments?: Array<{ url?: string; name?: string; addedAt?: number; stageTag?: string; contentTag?: string }>; stage?: string; stageOrder?: string[]; stageEnteredAt?: Record<string, number>; creators?: string[]; createdAt?: number; projectTypeTags?: string[]; projectTypeTag?: string; openStatusLabel?: string; allowEasyApply?: boolean; whatToProvide?: string; cultureAndBenefit?: string }) => {
+                  const rawTags: string[] = Array.isArray(x.projectTypeTags)
+                    ? (x.projectTypeTags as string[]).filter((t) => typeof t === 'string' && t.trim().length > 0).map((t) => t.trim())
+                    : (typeof x.projectTypeTag === 'string' && (x.projectTypeTag as string).trim().length > 0 ? [(x.projectTypeTag as string).trim()] : [])
+                  return {
+                    text: String(x.text ?? '').trim(),
+                    visibility: (x.visibility === 'public' ? 'public' : x.visibility === 'hidden' ? 'hidden' : 'individual') as 'individual' | 'public' | 'hidden',
+                    showOnPlaza: x.showOnPlaza === true || (x.visibility === 'public' && x.showOnPlaza !== false),
+                    projectTypeTags: rawTags,
+                    openStatusLabel: typeof x.openStatusLabel === 'string' && x.openStatusLabel.trim() ? x.openStatusLabel.trim().slice(0, 48) : undefined,
+                    allowEasyApply: x.allowEasyApply === true,
+                    whatToProvide: typeof x.whatToProvide === 'string' && x.whatToProvide.trim() ? x.whatToProvide.trim() : undefined,
+                    cultureAndBenefit: typeof (x as { cultureAndBenefit?: string }).cultureAndBenefit === 'string' && (x as { cultureAndBenefit: string }).cultureAndBenefit.trim() ? (x as { cultureAndBenefit: string }).cultureAndBenefit.trim() : undefined,
+                    initiatorRole: typeof (x as { initiatorRole?: string }).initiatorRole === 'string' && (x as { initiatorRole: string }).initiatorRole.trim() ? (x as { initiatorRole: string }).initiatorRole.trim() : undefined,
+                    oneSentenceDesc: typeof (x as { oneSentenceDesc?: string }).oneSentenceDesc === 'string' && (x as { oneSentenceDesc: string }).oneSentenceDesc.trim() ? (x as { oneSentenceDesc: string }).oneSentenceDesc.trim() : undefined,
+                    peopleNeeded: Array.isArray(x.peopleNeeded)
+                      ? x.peopleNeeded
+                          .map((item) => {
+                            if (typeof item === 'string') {
+                              const text = item.trim()
+                              return text ? { text } : null
+                            }
+                            if (item && typeof item === 'object') {
+                              const text = String(item.text ?? '').trim()
+                              const detail = typeof item.detail === 'string' ? item.detail.trim() : ''
+                              const stageTag = typeof (item as any).stageTag === 'string' ? (item as any).stageTag.trim() : undefined
+                              const contentTag = typeof (item as any).contentTag === 'string' ? (item as any).contentTag.trim() : undefined
+                              const collabIntent = typeof (item as any).collabIntent === 'string' && (item as any).collabIntent.trim() ? (item as any).collabIntent.trim() : undefined
+                              const image = typeof (item as any).image === 'string' && (item as any).image.trim() ? (item as any).image.trim() : undefined
+                              const link = typeof (item as any).link === 'string' && (item as any).link.trim() ? (item as any).link.trim() : undefined
+                              const workMode = (item as any).workMode === 'local' ? 'local' as const : 'remote' as const
+                              const location = typeof (item as any).location === 'string' && (item as any).location.trim() ? (item as any).location.trim() : undefined
+                              return text ? { text, detail: detail || undefined, stageTag: stageTag || undefined, contentTag: contentTag || undefined, collabIntent, image, link, workMode, ...(workMode === 'local' && location ? { location } : {}) } : null
+                            }
+                            return null
+                          })
+                          .filter((v): v is PeopleNeededItem => v !== null)
+                      : undefined,
+                    detail: typeof x.detail === 'string' ? x.detail.trim() : undefined,
+                    references: Array.isArray(x.references)
+                      ? x.references
+                          .map((r) => {
+                            const url = typeof r?.url === 'string' ? r.url.trim() : ''
+                            const title = typeof r?.title === 'string' ? r.title.trim() : ''
+                            const cover = typeof r?.cover === 'string' ? r.cover.trim() : ''
+                            const description = typeof (r as { description?: string })?.description === 'string' ? (r as { description: string }).description.trim() : undefined
+                            if (!url) return null
+                            return {
+                              title: title || url,
+                              url,
+                              ...(cover ? { cover } : {}),
+                              ...(description ? { description } : {}),
+                              ...(typeof r?.stageTag === 'string' && r.stageTag.trim() ? { stageTag: r.stageTag.trim() } : {}),
+                              ...(typeof r?.contentTag === 'string' && r.contentTag.trim() ? { contentTag: r.contentTag.trim() } : {}),
+                              ...(typeof (r as { contributor?: string })?.contributor === 'string' && (r as { contributor: string }).contributor.trim() ? { contributor: (r as { contributor: string }).contributor.trim() } : {}),
+                            }
+                          })
+                          .filter((v): v is ProjectReference => !!v)
+                      : undefined,
+                    detailImage: typeof x.detailImage === 'string' ? x.detailImage.trim() : undefined,
+                    attachments: Array.isArray(x.attachments)
+                      ? x.attachments
+                          .map((a): ProjectAttachment | null => (a && typeof a.url === 'string' && a.url.trim() ? { url: a.url.trim(), name: typeof a.name === 'string' ? a.name.trim() || a.url : a.url, addedAt: typeof a.addedAt === 'number' ? a.addedAt : undefined, ...(typeof a.stageTag === 'string' && a.stageTag.trim() ? { stageTag: a.stageTag.trim() } : {}), ...(typeof a.contentTag === 'string' && a.contentTag.trim() ? { contentTag: a.contentTag.trim() } : {}), ...(typeof (a as { contributor?: string }).contributor === 'string' && (a as { contributor: string }).contributor.trim() ? { contributor: (a as { contributor: string }).contributor.trim() } : {}) } : null))
+                          .filter((v): v is ProjectAttachment => !!v)
+                      : undefined,
+                    stage: typeof x.stage === 'string' && x.stage.trim() ? x.stage.trim() : undefined,
+                    stageOrder: Array.isArray(x.stageOrder) && x.stageOrder.length > 0
+                      ? x.stageOrder.filter((s): s is string => typeof s === 'string' && s.trim().length > 0).map((s) => s.trim())
+                      : undefined,
+                    stageEnteredAt: x.stageEnteredAt && typeof x.stageEnteredAt === 'object'
+                      ? Object.fromEntries(Object.entries(x.stageEnteredAt).filter(([, v]) => typeof v === 'number').map(([k, v]) => [k, v as number]))
+                      : undefined,
+                    aiSuggestedStages: Array.isArray((x as { aiSuggestedStages?: string[] }).aiSuggestedStages)
+                      ? (x as { aiSuggestedStages: string[] }).aiSuggestedStages.filter((s): s is string => typeof s === 'string' && s.trim().length > 0).map((s) => s.trim())
+                      : undefined,
+                    creators: Array.isArray(x.creators) ? x.creators.filter((s): s is string => typeof s === 'string' && s.trim().length > 0).map((s) => s.trim()) : undefined,
+                    createdAt:
+                      typeof x.createdAt === 'number' && !Number.isNaN(x.createdAt)
+                        ? x.createdAt
+                        : typeof x.createdAt === 'string'
+                          ? (() => {
+                              const parsed = parseInt(x.createdAt as string, 10)
+                              return Number.isNaN(parsed) ? Date.now() : parsed
+                            })()
+                          : Date.now(),
+                  }
+                })
                 .filter((p: { text: string }) => p.text)
             )
           } else {
@@ -628,6 +638,7 @@ function ProfilePageInner() {
           else setPendingRagCount(0)
           if (pd.avatarDataUrl) setAvatarDataUrl(pd.avatarDataUrl)
           if (pd.userSay) setUserSay(pd.userSay)
+          if (pd.openToWork === true) setOpenToWork(true)
           const fromApi = pd.oneSentenceDesc && typeof pd.oneSentenceDesc === 'string'
           if (fromApi) {
             setOneSentenceDesc(pd.oneSentenceDesc)
@@ -740,6 +751,158 @@ function ProfilePageInner() {
       console.warn('saveProfileDataToDb failed:', e)
     }
   }
+
+  // Landing → signup: apply LinkedIn-derived profile from localStorage once after server data is loaded
+  useEffect(() => {
+    if (!isAuthenticated || isLoadingData) return
+    let cancelled = false
+    const run = async () => {
+      try {
+        const pending = localStorage.getItem('pendingProfile')
+        if (!pending) return
+        const data = JSON.parse(pending) as {
+          intent?: string
+          lookingFor?: string
+          linkSuffix?: string
+          linkedinUrl?: string
+          linkedinProfile?: Record<string, unknown>
+        }
+        localStorage.removeItem('pendingProfile')
+        const li = data.linkedinProfile
+        if (!li || cancelled) return
+
+        setLinkedinData(li as import('@/hooks/useProfileBasics').LinkedInProfileData)
+        setLinkedinImported(true)
+
+        const lookingFor =
+          typeof data.lookingFor === 'string'
+            ? data.lookingFor.trim()
+            : ''
+        const headline = typeof li.headline === 'string' ? li.headline.trim() : ''
+        const bio = typeof li.bio === 'string' ? li.bio.trim() : ''
+        const oneSentence = lookingFor || headline
+        const skills = Array.isArray(li.skills)
+          ? (li.skills as unknown[])
+              .filter((s): s is string => typeof s === 'string' && s.trim().length > 0)
+              .map((s) => s.trim())
+          : []
+        const photoUrl = typeof li.photoUrl === 'string' ? li.photoUrl.trim() : ''
+        const displayName = typeof li.name === 'string' ? li.name.trim() : ''
+        const linkedinProfileUrl = typeof li.linkedinUrl === 'string' ? li.linkedinUrl.trim() : (data.linkedinUrl?.trim() ?? '')
+
+        const mapExp = (raw: unknown[]): import('@/lib/profileTypes').ExperienceItem[] =>
+          raw
+            .filter((x): x is Record<string, unknown> => x != null && typeof x === 'object')
+            .map((x) => ({
+              id: typeof x.id === 'string' ? x.id : `exp-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+              title: typeof x.title === 'string' ? x.title : '',
+              company: typeof x.company === 'string' ? x.company : '',
+              employmentType: typeof x.employmentType === 'string' ? x.employmentType : undefined,
+              location: typeof x.location === 'string' ? x.location : undefined,
+              startDate: typeof x.startDate === 'string' ? x.startDate : undefined,
+              endDate: typeof x.endDate === 'string' ? x.endDate : undefined,
+              current: x.current === true,
+              description: typeof x.description === 'string' ? x.description : undefined,
+            }))
+            .filter((e) => e.title || e.company)
+
+        const mapEdu = (raw: unknown[]): import('@/lib/profileTypes').EducationItem[] =>
+          raw
+            .filter((x): x is Record<string, unknown> => x != null && typeof x === 'object')
+            .map((x) => ({
+              id: typeof x.id === 'string' ? x.id : `edu-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+              school: typeof x.school === 'string' ? x.school : '',
+              degree: typeof x.degree === 'string' ? x.degree : undefined,
+              fieldOfStudy: typeof x.fieldOfStudy === 'string' ? x.fieldOfStudy : undefined,
+              startDate: typeof x.startDate === 'string' ? x.startDate : undefined,
+              endDate: typeof x.endDate === 'string' ? x.endDate : undefined,
+              grade: typeof x.grade === 'string' ? x.grade : undefined,
+              description: typeof x.description === 'string' ? x.description : undefined,
+            }))
+            .filter((e) => e.school)
+
+        const expId = `linkedin-exp-${Date.now()}`
+        const eduId = `linkedin-edu-${Date.now()}`
+        const experiencesOut: import('@/lib/profileTypes').ExperienceItem[] =
+          Array.isArray(li.experiences) && li.experiences.length > 0
+            ? mapExp(li.experiences as unknown[])
+            : headline || (typeof li.company === 'string' && li.company)
+              ? (() => {
+                  const title = headline.includes(' at ') ? headline.split(' at ')[0]!.trim() : headline
+                  return [
+                    {
+                      id: expId,
+                      title: title || headline,
+                      company: typeof li.company === 'string' ? li.company : '',
+                      location: typeof li.location === 'string' ? li.location : undefined,
+                      current: true,
+                      description: bio || undefined,
+                    },
+                  ]
+                })()
+              : []
+
+        const educationOut: import('@/lib/profileTypes').EducationItem[] =
+          Array.isArray(li.educationItems) && li.educationItems.length > 0
+            ? mapEdu(li.educationItems as unknown[])
+            : typeof li.education === 'string' && li.education.trim()
+              ? [{ id: eduId, school: li.education.trim() }]
+              : []
+
+        if (oneSentence) setOneSentenceDesc(oneSentence)
+        const userSayMerged =
+          lookingFor && bio ? `${lookingFor}\n\n${bio}` : bio || lookingFor || ''
+        if (userSayMerged) setUserSay(userSayMerged)
+        if (skills.length) {
+          setTags(skills)
+          setSelectedTags(skills)
+        }
+        if (experiencesOut.length) setExperiences(experiencesOut)
+        if (educationOut.length) setEducation(educationOut)
+        setSocialLinks((prev) => (linkedinProfileUrl ? { ...prev, linkedin: linkedinProfileUrl } : prev))
+        if (photoUrl) setAvatarDataUrl(photoUrl)
+        const intentVal = data.intent === 'find-job' || data.intent === 'find-talent' ? data.intent : undefined
+        // Auto-enable Open to Work if intent is 'find-job'
+        if (intentVal === 'find-job') setOpenToWork(true)
+        if (displayName) {
+          setUserInfo((prev: Record<string, unknown> | null) => (prev ? { ...prev, name: displayName } : prev))
+        }
+
+        const slug = typeof data.linkSuffix === 'string' ? data.linkSuffix.trim() : ''
+        const mergedSocial = {
+          ...socialLinks,
+          ...(linkedinProfileUrl ? { linkedin: linkedinProfileUrl } : {}),
+        }
+
+        await fetch('/api/user/save', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ...(displayName ? { name: displayName } : {}),
+            ...(slug ? { profileSlug: slug } : {}),
+            ...(photoUrl ? { image: photoUrl } : {}),
+            profileData: {
+              oneSentenceDesc: oneSentence,
+              userSay: (lookingFor && bio ? `${lookingFor}\n\n${bio}` : bio || lookingFor) || oneSentence,
+              ...(lookingFor ? { lookingFor } : {}),
+              tags: skills,
+              selectedTags: skills,
+              ...(experiencesOut.length ? { experiences: experiencesOut } : {}),
+              ...(educationOut.length ? { education: educationOut } : {}),
+              socialLinks: mergedSocial,
+              ...(intentVal ? { onboardingIntent: intentVal } : {}),
+              // Auto-enable Open to Work if user intent is 'find-job'
+              ...(intentVal === 'find-job' ? { openToWork: true } : {}),
+            },
+          }),
+        })
+      } catch (_) {}
+    }
+    void run()
+    return () => {
+      cancelled = true
+    }
+  }, [isAuthenticated, isLoadingData, socialLinks])
 
   const regenerateTagsAndInsights = useCallback(async () => {
     try {
@@ -1455,6 +1618,16 @@ Return ONLY a valid JSON object with keys "tags" and "insights". No other text.`
     )
   }
 
+  const isProfileSetup = !!(
+    userInfo?.name?.trim() ||
+    avatarDataUrl ||
+    oneSentenceDesc?.trim() ||
+    (tags?.length ?? 0) > 0 ||
+    (experiences?.length ?? 0) > 0 ||
+    (socialLinks ? Object.keys(socialLinks).length > 0 : false) ||
+    (projectsList?.length ?? 0) > 0
+  )
+
   if (isProjectAccount) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-teal-50 via-cyan-50 to-blue-50 flex items-center justify-center px-4">
@@ -1476,6 +1649,45 @@ Return ONLY a valid JSON object with keys "tags" and "insights". No other text.`
             </Link>
           </div>
           <p className="text-xs text-gray-500 mt-4">If not redirected automatically, click the button above.</p>
+        </div>
+      </div>
+    )
+  }
+
+  // 未建立 Profile 引导
+  if (isAuthenticated && !isLoadingData && !isProfileSetup) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-teal-50 via-cyan-50 to-blue-50 flex items-center justify-center px-4">
+        <div className="w-full max-w-md rounded-2xl bg-white/80 backdrop-blur border border-white/40 shadow-lg p-6 text-center">
+          <div className="w-16 h-16 rounded-full bg-teal-100 flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+          </div>
+          <h1 className="text-lg font-semibold text-gray-900 mb-2">完善你的个人资料</h1>
+          <p className="text-sm text-gray-600 mb-6">
+            在这里你可以介绍自己、分享你的项目和协作需求。只需几步就能完成设置！
+          </p>
+          <div className="space-y-3">
+            <button
+              onClick={() => router.push('/get-started')}
+              className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-teal-600 text-white font-medium hover:bg-teal-700 transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+              开始设置
+            </button>
+            <button
+              onClick={() => router.push('/')}
+              className="w-full inline-flex items-center justify-center px-4 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors text-sm"
+            >
+              先看看首页
+            </button>
+          </div>
+          <div className="mt-6 pt-4 border-t border-gray-100">
+            <p className="text-xs text-gray-400">你可以随时返回这里编辑个人资料</p>
+          </div>
         </div>
       </div>
     )
@@ -1579,6 +1791,55 @@ Return ONLY a valid JSON object with keys "tags" and "insights". No other text.`
           }
         }}
       />
+
+      {/* Open to Work */}
+      <div className="max-w-2xl mx-auto px-4 pt-6 w-full">
+        <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${openToWork ? 'bg-green-100' : 'bg-gray-100'}`}>
+                <Briefcase className={`w-5 h-5 ${openToWork ? 'text-green-600' : 'text-gray-400'}`} />
+              </div>
+              <div>
+                <p className="font-semibold text-gray-900 text-sm">Open to Work</p>
+                <p className="text-xs text-gray-500">
+                  {openToWork ? 'Recruiters can see you are available' : 'Hidden from public profile'}
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={async () => {
+                const next = !openToWork
+                setOpenToWork(next)
+                try {
+                  const res = await fetch('/api/user/info', { cache: 'no-store' })
+                  if (res.ok) {
+                    const info = await res.json()
+                    const existing = info.profileData && typeof info.profileData === 'object' ? { ...info.profileData } : {}
+                    await fetch('/api/user/save', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ profileData: { ...existing, openToWork: next } })
+                    })
+                  }
+                } catch (e) {
+                  console.warn('openToWork save failed:', e)
+                }
+              }}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 shrink-0 ${
+                openToWork ? 'bg-green-500' : 'bg-gray-300'
+              }`}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${
+                  openToWork ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
+            </button>
+          </div>
+        </div>
+      </div>
 
       {/* Profile: daily question + preview */}
       <div className="max-w-2xl mx-auto px-4 py-6 flex flex-col gap-6 items-stretch">
@@ -1760,6 +2021,13 @@ Return ONLY a valid JSON object with keys "tags" and "insights". No other text.`
               </div>
               {/* Tags, name, one sentence, gender/base: below avatar, not overlapping */}
               <div className="w-full px-4 flex flex-col items-center gap-2">
+                {/* Open to Work badge */}
+                {openToWork && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-green-500 text-white shadow-sm">
+                    <Briefcase className="w-3 h-3" />
+                    Open to Work
+                  </span>
+                )}
                 {showTagsInPreview && selectedTags.length > 0 && (
                   <div className="flex flex-wrap justify-center gap-1.5 w-full">
                     {selectedTags.map((tag, i) => (

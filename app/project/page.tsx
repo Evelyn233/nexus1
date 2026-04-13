@@ -109,15 +109,33 @@ export default function ProjectPage() {
           <ul className="space-y-3">
             {projects.map((p: ProjectItem) => {
               const ts = p.createdAt
-              const href = slug && ts ? `/u/${encodeURIComponent(slug)}/project/${ts}` : '#'
+              const projectLink = slug && ts ? `${typeof window !== 'undefined' ? window.location.origin : ''}/u/${encodeURIComponent(slug)}/project/${ts}` : ''
               return (
                 <li key={ts ?? Math.random()}>
                   <Link
-                    href={href}
-                    className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-4 py-3 hover:bg-white/10 transition-colors"
+                    href={projectLink ? `/u/${encodeURIComponent(slug)}/project/${ts}` : '#'}
+                    className="block rounded-xl border border-white/10 bg-white/5 px-4 py-3 hover:bg-white/10 transition-colors"
                   >
-                    <span className="font-medium text-white">{(p.text ?? 'Untitled').toString().trim() || 'Untitled'}</span>
-                    <ArrowRight className="w-4 h-4 text-gray-400 shrink-0" />
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="font-medium text-white">{(p.text ?? 'Untitled').toString().trim() || 'Untitled'}</span>
+                      <ArrowRight className="w-4 h-4 text-gray-400 shrink-0" />
+                    </div>
+                    {projectLink && (
+                      <div className="mt-2 flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault()
+                            navigator.clipboard.writeText(projectLink).catch(() => {})
+                          }}
+                          className="text-[11px] text-teal-400 hover:text-teal-300 underline underline-offset-2"
+                          title="Copy share link"
+                        >
+                          {projectLink.replace(/^https?:\/\//, '')}
+                        </button>
+                        <span className="text-[10px] text-gray-500">Click to copy & share</span>
+                      </div>
+                    )}
                   </Link>
                 </li>
               )

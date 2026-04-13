@@ -24,6 +24,11 @@ export async function POST(request: NextRequest) {
     const whatToProvide = typeof body?.whatToProvide === 'string' ? body.whatToProvide.trim() : undefined
     const initiatorRole = typeof body?.initiatorRole === 'string' ? body.initiatorRole.trim() : undefined
     const oneSentenceDesc = typeof body?.oneSentenceDesc === 'string' ? body.oneSentenceDesc.trim() : undefined
+    const projectTypeTag = typeof body?.projectTypeTag === 'string' ? body.projectTypeTag.trim() : undefined
+    const cultureAndBenefit = typeof body?.cultureAndBenefit === 'string' ? body.cultureAndBenefit.trim() : undefined
+    const referenceUrl = typeof body?.referenceUrl === 'string' ? body.referenceUrl.trim() : undefined
+    const peopleNeeded = Array.isArray(body?.peopleNeeded) ? body.peopleNeeded : undefined
+    const attachments = Array.isArray(body?.attachments) ? body.attachments : undefined
 
     const user = await prisma.user.findUnique({
       where: { email: session.user.email },
@@ -46,6 +51,17 @@ export async function POST(request: NextRequest) {
     if (whatToProvide) newProject.whatToProvide = whatToProvide
     if (initiatorRole) newProject.initiatorRole = initiatorRole
     if (oneSentenceDesc) newProject.oneSentenceDesc = oneSentenceDesc
+    if (projectTypeTag) newProject.projectTypeTag = projectTypeTag
+    if (cultureAndBenefit) newProject.cultureAndBenefit = cultureAndBenefit
+    if (referenceUrl) newProject.references = [{ title: referenceUrl, url: referenceUrl }]
+    if (peopleNeeded?.length) newProject.peopleNeeded = peopleNeeded
+    if (attachments?.length) {
+      newProject.attachments = attachments.map((a: { url?: string; name?: string }) => ({
+        url: (a.url || '').trim(),
+        name: (a.name || '').trim(),
+        addedAt: Date.now(),
+      }))
+    }
     projects.push(newProject)
 
     const merged = { ...pd, projects }

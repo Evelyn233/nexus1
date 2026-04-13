@@ -33,7 +33,8 @@ type ProjectData = {
   references?: ProjectReference[]
   peopleNeeded: PeopleNeededItem[]
   attachments?: ProjectAttachment[]
-  projectTypeTag?: string
+  /** 项目类型标签列表，支持多选 */
+  projectTypeTags?: string[]
   /** 是否在 Plaza 上发布 */
   showOnPlaza?: boolean
   /** 可见性：individual | public | hidden */
@@ -146,6 +147,11 @@ export function ProjectEditor({ project, userId, createdAt, userName, hasProfile
   // which intermediate stages should be marked as reached.
   const [stageConnectModal, setStageConnectModal] = useState<null | { fromStage: string; toStage: string; intermediates: string[] }>(null)
   const [stageConnectChecked, setStageConnectChecked] = useState<Record<string, boolean>>({})
+  // 进入新阶段后：询问是否上传该阶段的资料（链接或图片）
+  const [stageUploadModal, setStageUploadModal] = useState<null | { stage: string }>(null)
+  const [stageUploadLinkDraft, setStageUploadLinkDraft] = useState('')
+  const [stageUploadNameDraft, setStageUploadNameDraft] = useState('')
+  const [stageUploadFileUploading, setStageUploadFileUploading] = useState(false)
   const [editingStageDate, setEditingStageDate] = useState<string | null>(null)
   const [editingStageDateDraft, setEditingStageDateDraft] = useState('')
   const [benefitTagLoading, setBenefitTagLoading] = useState(false)
@@ -154,6 +160,11 @@ export function ProjectEditor({ project, userId, createdAt, userName, hasProfile
   const [projectTypeSuggestions, setProjectTypeSuggestions] = useState<string[]>([])
   const [projectTypeLoading, setProjectTypeLoading] = useState(false)
   const [projectTypeSuggestionsLoading, setProjectTypeSuggestionsLoading] = useState(false)
+  /** 「ai」= 点选推荐 chips；「custom」= 在自定义框输入 */
+  const [projectTypePickSource, setProjectTypePickSource] = useState<'ai' | 'custom' | null>(() =>
+    (project.projectTypeTags?.length ?? 0) > 0 ? 'ai' :
+    (project as any).projectTypeTag?.trim() ? 'ai' : null,
+  )
   const [linkEditDraft, setLinkEditDraft] = useState<ProjectReference | null>(null)
   const [linkEditIndex, setLinkEditIndex] = useState<number | null>(null)
   const [linkEditCoverUploading, setLinkEditCoverUploading] = useState(false)
@@ -181,7 +192,7 @@ export function ProjectEditor({ project, userId, createdAt, userName, hasProfile
   const plazaPrerequisitesOk =
     (state.initiatorRole ?? '').trim() &&
     (state.whatToProvide ?? '').trim() &&
-    (state.projectTypeTag ?? '').trim() &&
+    ((state.projectTypeTags?.length ?? 0) > 0) &&
     (state.whatYouCanBring ?? '').trim()
   /** 当前未开启 Plaza 时：无头像则整项禁用；有头像但未填齐必填则不可勾选开启（已开启时可随时取消） */
   const plazaCheckboxDisabled =
@@ -190,7 +201,7 @@ export function ProjectEditor({ project, userId, createdAt, userName, hasProfile
   if (hasProfileAvatar) {
     if (!(state.initiatorRole ?? '').trim()) plazaBlockerLabels.push('你在这个项目的角色')
     if (!(state.whatToProvide ?? '').trim()) plazaBlockerLabels.push('What this project provides')
-    if (!(state.projectTypeTag ?? '').trim()) plazaBlockerLabels.push('项目类型')
+    if (!(state.projectTypeTags?.length ?? 0)) plazaBlockerLabels.push('项目类型')
     if (!(state.whatYouCanBring ?? '').trim()) plazaBlockerLabels.push('What benefit can you bring to them')
   }
 
@@ -228,7 +239,7 @@ export function ProjectEditor({ project, userId, createdAt, userName, hasProfile
         contributor: r.contributor?.trim() || undefined,
       })),
     attachments: s.attachments,
-    projectTypeTag: s.projectTypeTag?.trim() || undefined,
+    projectTypeTags: (s.projectTypeTags ?? []).map((t: string) => t.trim()).filter(Boolean).slice(0, 10),
     showOnPlaza: s.showOnPlaza,
     visibility: s.visibility || 'individual',
     openStatusLabel: s.openStatusLabel?.trim() || undefined,
@@ -283,11 +294,15 @@ export function ProjectEditor({ project, userId, createdAt, userName, hasProfile
     }
 
     // Always set the clicked stage immediately (so user sees the progress update).
+    let triggeredUploadModal = false
     setState((prev) => {
       const nextStageOrder =
         prev.stageOrder && prev.stageOrder.some((s) => s.toLowerCase() === toStage.toLowerCase())
           ? prev.stageOrder
           : [...(prev.stageOrder && prev.stageOrder.length > 0 ? prev.stageOrder : STAGE_DEFAULT), toStage]
+      const alreadyEntered = Object.entries(prev.stageEnteredAt ?? {}).some(([k, v]) => !!v && k.toLowerCase() === toStage.toLowerCase())
+      // 首次进入该阶段：触发上传资料询问弹窗
+      if (!alreadyEntered) triggeredUploadModal = true
       return {
         ...prev,
         stage: toStage,
@@ -295,6 +310,12 @@ export function ProjectEditor({ project, userId, createdAt, userName, hasProfile
         stageEnteredAt: { ...(prev.stageEnteredAt || {}), [toStage]: prev.stageEnteredAt?.[toStage] ?? Date.now() },
       }
     })
+
+    if (triggeredUploadModal) {
+      setStageUploadModal({ stage: toStage })
+      setStageUploadLinkDraft('')
+      setStageUploadNameDraft('')
+    }
 
     // If this is a non-adjacent jump within the known stage sequence, ask user which intermediates to connect.
     if (fromIdx >= 0 && toIdx >= 0 && Math.abs(toIdx - fromIdx) > 1) {
@@ -379,7 +400,7 @@ export function ProjectEditor({ project, userId, createdAt, userName, hasProfile
   }
 
   const save = useCallback(async (options?: { silent?: boolean }) => {
-    console.log('[ProjectEditor save] triggered, showOnPlaza:', state.showOnPlaza, 'stage:', state.stage, 'stageOrder:', state.stageOrder, 'whatToProvide:', state.whatToProvide, 'projectTypeTag:', state.projectTypeTag, 'whatYouCanBring:', state.whatYouCanBring)
+    console.log('[ProjectEditor save] triggered, showOnPlaza:', state.showOnPlaza, 'stage:', state.stage, 'stageOrder:', state.stageOrder, 'whatToProvide:', state.whatToProvide, 'projectTypeTags:', (state as any).projectTypeTags, 'whatYouCanBring:', state.whatYouCanBring)
     const roleTrim = (state.initiatorRole ?? '').trim()
     if (!roleTrim) {
       if (!options?.silent) alert('请填写「你在这个项目的角色」(Your role in this project is required)')
@@ -396,7 +417,7 @@ export function ProjectEditor({ project, userId, createdAt, userName, hasProfile
     // 强制必填项（按你的流程）：你一旦填写了 Looking for，就必须补上 What you can bring
     // 同时：勾选 Plaza 时也必须有 What this project provides + 项目类型
     const missingProvide = !(state.whatToProvide ?? '').trim()
-    const missingType = !(state.projectTypeTag ?? '').trim()
+    const missingType = !((state as any).projectTypeTags?.length ?? 0)
     const missingBring = !(state.whatYouCanBring ?? '').trim()
 
     const parts: string[] = []
@@ -513,7 +534,8 @@ export function ProjectEditor({ project, userId, createdAt, userName, hasProfile
           })
         )
 
-        let nextProjectTypeTag = state.projectTypeTag
+        let nextProjectTypeTag = (state as any).projectTypeTag ?? ''
+        let projectTypeFilledByAi = false
         if (!nextProjectTypeTag?.trim() && state.text?.trim()) {
           try {
             const typeRes = await fetch('/api/generate-project-type-tag', {
@@ -529,6 +551,7 @@ export function ProjectEditor({ project, userId, createdAt, userName, hasProfile
             const typeJson = await typeRes.json().catch(() => ({}))
             if (typeRes.ok && typeof typeJson?.projectTypeTag === 'string' && typeJson.projectTypeTag.trim()) {
               nextProjectTypeTag = typeJson.projectTypeTag.trim()
+              projectTypeFilledByAi = true
             }
           } catch {
             // silent
@@ -557,15 +580,23 @@ export function ProjectEditor({ project, userId, createdAt, userName, hasProfile
         }
 
         peopleChanged = JSON.stringify(nextPeople) !== JSON.stringify(state.peopleNeeded || [])
-        typeChanged = (nextProjectTypeTag || '') !== (state.projectTypeTag || '')
-        if (peopleChanged || typeChanged) {
-          nextState = { ...state, peopleNeeded: nextPeople, projectTypeTag: nextProjectTypeTag }
-          setState(nextState)
+        const aiNewTag = nextProjectTypeTag.trim()
+        const prevTags: string[] = (state as any).projectTypeTags ?? []
+        const mergedTags = aiNewTag && !prevTags.includes(aiNewTag)
+          ? [...prevTags, aiNewTag].slice(0, 10)
+          : prevTags
+        const aiTagChanged = aiNewTag && !prevTags.includes(aiNewTag)
+        if (peopleChanged || aiTagChanged) {
+          const newState: ProjectData = { ...state, peopleNeeded: nextPeople, projectTypeTags: mergedTags }
+          nextState = newState
+          setState(newState)
+          if (projectTypeFilledByAi && aiNewTag) setProjectTypePickSource('ai')
         }
       }
 
       // 关键：AI 产出要落库，否则父组件重新 loadProject 时看起来像“没生成”
-      if (!options?.silent && (peopleChanged || typeChanged)) {
+      const hasTypeTags = ((nextState as any).projectTypeTags?.length ?? 0) > 0
+      if (!options?.silent && (peopleChanged || hasTypeTags)) {
         try {
           const persistRes = await fetch(`/api/project?userId=${encodeURIComponent(userId)}&createdAt=${createdAt}`, {
             method: 'PATCH',
@@ -764,7 +795,7 @@ export function ProjectEditor({ project, userId, createdAt, userName, hasProfile
     }
     const vPlaza = virtualState.showOnPlaza === true
     const missingProvide = !(virtualState.whatToProvide ?? '').trim()
-    const missingType = !(virtualState.projectTypeTag ?? '').trim()
+    const missingType = !((virtualState as any).projectTypeTags?.length ?? 0)
     const missingBring = !(virtualState.whatYouCanBring ?? '').trim()
     const plazaParts: string[] = []
     if (vPlaza && missingProvide) plazaParts.push('What this project provides')
@@ -1103,7 +1134,15 @@ export function ProjectEditor({ project, userId, createdAt, userName, hasProfile
       })
       const data = await res.json().catch(() => ({}))
       if (res.ok && data?.projectTypeTag) {
-        setState((prev) => ({ ...prev, projectTypeTag: data.projectTypeTag }))
+        const newTag = String(data.projectTypeTag).trim()
+        if (newTag) {
+          setState((p: ProjectData) => {
+            const prevTags: string[] = (p as any).projectTypeTags ?? []
+            if (prevTags.includes(newTag)) return p
+            return { ...p, projectTypeTags: [...prevTags, newTag].slice(0, 10) }
+          })
+          setProjectTypePickSource('ai')
+        }
       }
     } catch {
       // silent
@@ -1343,14 +1382,14 @@ export function ProjectEditor({ project, userId, createdAt, userName, hasProfile
           />
         </div>
 
-        {/* 2. Project type：上方 AI 推荐，下方用户自定义可修改，与 profile 一致 */}
+        {/* 2. Project type：点 AI 标签 = 选中为项目类型（芯片可删），不填入下方自定义框 */}
         <div className="rounded-xl border border-violet-200 bg-violet-50/30 p-3">
           <label className="block text-[11px] font-medium text-gray-700 mb-1">
             项目类型
             {requirePlazaFields && <span className="text-amber-600">（必填）</span>}
           </label>
           <div className="flex items-center justify-between gap-2 mb-1">
-            <p className="text-[10px] text-gray-500">AI 推荐（输入后自动生成，点击选用）</p>
+            <p className="text-[10px] text-gray-500">AI 推荐（点击即选中为项目类型；再点同一项可取消）</p>
             <button
               type="button"
               onClick={() => { void fetchProjectTypeSuggestions() }}
@@ -1369,28 +1408,90 @@ export function ProjectEditor({ project, userId, createdAt, userName, hasProfile
             {projectTypeSuggestionsLoading && projectTypeSuggestions.length === 0 ? (
               <span className="text-[10px] text-gray-400">根据项目生成中…</span>
             ) : null}
-            {projectTypeSuggestions.map((tag) => (
-              <button
-                key={tag}
-                type="button"
-                onClick={() => setState((p) => ({ ...p, projectTypeTag: tag }))}
-                className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded border text-[11px] ${
-                  state.projectTypeTag?.trim() === tag
-                    ? 'border-violet-500 bg-violet-100 text-violet-800'
-                    : 'border-gray-200 bg-gray-100 text-gray-500 hover:bg-gray-200'
-                }`}
-              >
-                <Sparkles className="w-3 h-3" />
-                {tag}
-              </button>
-            ))}
+            {projectTypeSuggestions.map((tag) => {
+              const selectedTags = (state as any).projectTypeTags ?? []
+              const isSelected = selectedTags.includes(tag)
+              return (
+                <button
+                  key={tag}
+                  type="button"
+                  onClick={() => {
+                    const prev: string[] = (state as any).projectTypeTags ?? []
+                    const already = prev.includes(tag)
+                    const next = already
+                      ? prev.filter((t) => t !== tag)
+                      : [...prev, tag].slice(0, 10)
+                    setProjectTypePickSource('ai')
+                    setState((p: ProjectData) => ({ ...p, projectTypeTags: next }))
+                  }}
+                  className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded border text-[11px] ${
+                    isSelected
+                      ? 'border-violet-500 bg-violet-100 text-violet-800'
+                      : 'border-gray-200 bg-gray-100 text-gray-500 hover:bg-gray-200'
+                  }`}
+                >
+                  <Sparkles className="w-3 h-3" />
+                  {tag}
+                </button>
+              )
+            })}
           </div>
-          <p className="text-[10px] text-gray-500 mb-1">用户自定义（可修改，直接保存即可）</p>
+          {/* 已选标签列表：可逐个删除 */}
+          {(state as any).projectTypeTags?.length > 0 && (
+            <div className="mb-2">
+              <p className="text-[10px] text-gray-500 mb-1">已选标签（点击 × 移除）</p>
+              <div className="flex flex-wrap gap-1">
+                {((state as any).projectTypeTags as string[]).map((tag) => (
+                  <span
+                    key={tag}
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-violet-600 text-white text-[11px] font-medium"
+                  >
+                    {tag}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const prev: string[] = (state as any).projectTypeTags ?? []
+                        setState((p: ProjectData) => ({ ...p, projectTypeTags: prev.filter((t) => t !== tag) }))
+                      }}
+                      className="p-0.5 rounded-full hover:bg-white/20"
+                      aria-label={`移除 ${tag}`}
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+          <p className="text-[10px] text-gray-500 mb-1">自定义添加（输入后按回车添加为标签）</p>
           <input
             type="text"
-            value={state.projectTypeTag ?? ''}
-            onChange={(e) => setState((p) => ({ ...p, projectTypeTag: e.target.value }))}
-            placeholder="e.g. 纪录片、播客、社区"
+            id="project-type-custom-input"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault()
+                const input = e.currentTarget as HTMLInputElement
+                const v = input.value.trim()
+                if (v) {
+                  const prev: string[] = (state as any).projectTypeTags ?? []
+                  if (!prev.includes(v)) {
+                    setState((p: ProjectData) => ({ ...p, projectTypeTags: [...prev, v].slice(0, 10) }))
+                  }
+                  input.value = ''
+                }
+              }
+            }}
+            onBlur={(e) => {
+              const v = (e.currentTarget as HTMLInputElement).value.trim()
+              if (v) {
+                const prev: string[] = (state as any).projectTypeTags ?? []
+                if (!prev.includes(v)) {
+                  setState((p: ProjectData) => ({ ...p, projectTypeTags: [...prev, v].slice(0, 10) }))
+                }
+                e.currentTarget.value = ''
+              }
+            }}
+            placeholder="输入标签后回车，如：播客、纪录片、社区"
             className="w-full px-2 py-1 text-[11px] border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-400/40"
           />
         </div>
@@ -1646,6 +1747,123 @@ export function ProjectEditor({ project, userId, createdAt, userName, hasProfile
               </div>
             </div>
           )}
+
+          {/* Stage upload modal: ask user to add links/images for the newly entered stage */}
+          {stageUploadModal && (
+            <div
+              className="fixed inset-0 z-[260] bg-black/40 flex items-center justify-center p-4"
+              onClick={() => setStageUploadModal(null)}
+            >
+              <div
+                className="w-full max-w-sm bg-white rounded-xl shadow-xl p-4 border border-gray-200"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm font-semibold text-gray-900">为 {stageUploadModal.stage} 添加资料</h3>
+                  <button type="button" className="p-1 rounded hover:bg-gray-100 text-gray-500" onClick={() => setStageUploadModal(null)} aria-label="Close">
+                    ×
+                  </button>
+                </div>
+                <p className="text-xs text-gray-500 mb-3">
+                  刚进入 <strong>{stageUploadModal.stage}</strong> 阶段，可添加链接或上传<strong>图片 / 文档</strong>（会自动标记为该阶段），并会出现在<strong>公开项目页的「项目动态」</strong>中。如暂无可跳过。
+                </p>
+
+                <div className="space-y-2 mb-3">
+                  <input
+                    type="text"
+                    value={stageUploadNameDraft}
+                    onChange={(e) => setStageUploadNameDraft(e.target.value)}
+                    placeholder="标题（选填，如「官网」「Pitch Deck」）"
+                    className="w-full px-2.5 py-1.5 text-xs border border-gray-300 rounded-lg"
+                  />
+                  <input
+                    type="url"
+                    value={stageUploadLinkDraft}
+                    onChange={(e) => setStageUploadLinkDraft(e.target.value)}
+                    placeholder="链接 URL（或仅用下方上传图片/文件）"
+                    className="w-full px-2.5 py-1.5 text-xs border border-gray-300 rounded-lg"
+                  />
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="file"
+                      accept="image/*,application/pdf,.pdf,.doc,.docx,.ppt,.pptx,.zip,.txt"
+                      id={`stage-upload-file-${stageUploadModal.stage}`}
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0]
+                        if (!file) return
+                        e.target.value = ''
+                        setStageUploadFileUploading(true)
+                        try {
+                          const formData = new FormData()
+                          formData.append('file', file)
+                          const res = await fetch('/api/file/upload', { method: 'POST', body: formData })
+                          const data = await res.json().catch(() => ({}))
+                          if (!res.ok || !data?.url) { alert('上传失败'); return }
+                          const attName = stageUploadNameDraft.trim() || data.originalName || file.name
+                          setState((prev) => ({
+                            ...prev,
+                            attachments: [...(prev.attachments || []), {
+                              url: data.url,
+                              name: attName,
+                              addedAt: Date.now(),
+                              stageTag: stageUploadModal.stage,
+                              contributor: contributorName,
+                            }],
+                          }))
+                          setStageUploadModal(null)
+                        } catch { alert('上传失败') }
+                        finally { setStageUploadFileUploading(false) }
+                      }}
+                    />
+                    <label
+                      htmlFor={`stage-upload-file-${stageUploadModal.stage}`}
+                      className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border text-xs cursor-pointer transition-colors ${
+                        stageUploadFileUploading
+                          ? 'border-gray-200 bg-gray-100 text-gray-400'
+                          : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                      }`}
+                    >
+                      {stageUploadFileUploading ? '上传中…' : '上传图片或文件'}
+                    </label>
+                  </div>
+                  <p className="text-[10px] text-gray-400">图片会在公开页显示预览；其他文件显示为可下载链接。</p>
+                </div>
+
+                <div className="flex justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setStageUploadModal(null)}
+                    className="px-4 py-2 text-xs text-gray-500 hover:bg-gray-100 rounded-lg"
+                  >
+                    跳过
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!stageUploadLinkDraft.trim()) return
+                      const attName = stageUploadNameDraft.trim() || stageUploadLinkDraft.trim()
+                      setState((prev) => ({
+                        ...prev,
+                        attachments: [...(prev.attachments || []), {
+                          url: stageUploadLinkDraft.trim(),
+                          name: attName,
+                          addedAt: Date.now(),
+                          stageTag: stageUploadModal.stage,
+                          contributor: contributorName,
+                        }],
+                      }))
+                      setStageUploadModal(null)
+                    }}
+                    disabled={!stageUploadLinkDraft.trim()}
+                    className="px-4 py-2 text-xs font-medium text-white bg-teal-600 hover:bg-teal-700 rounded-lg disabled:opacity-50"
+                  >
+                    添加链接
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* 当前标签：三种样式（实心 teal / 浅紫描边 / 浅绿描边+绿点）- 放在 Stage 后面 */}
@@ -1657,11 +1875,13 @@ export function ProjectEditor({ project, userId, createdAt, userName, hasProfile
               <span className="w-2 h-2 rounded-full bg-white shrink-0" />
               {state.stage?.trim() || 'Idea'}
             </span>
-            {/* 样式2：浅紫底 + 紫边 + 紫字，无图标 */}
-            {state.projectTypeTag?.trim() ? (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-violet-50 border border-violet-200 text-violet-700 text-[11px] font-medium">
-                {state.projectTypeTag.trim()}
-              </span>
+            {/* 样式2：浅紫底 + 紫边 + 紫字，无图标 — 支持多选 */}
+            {((state as any).projectTypeTags?.length ?? 0) > 0 ? (
+              (state as any).projectTypeTags.map((tag: string) => (
+                <span key={tag} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-violet-50 border border-violet-200 text-violet-700 text-[11px] font-medium">
+                  {tag}
+                </span>
+              ))
             ) : (
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-violet-50 border border-violet-200 text-violet-500 text-[11px]">
                 项目类型

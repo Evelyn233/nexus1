@@ -71,7 +71,7 @@ export type ProjectItem = {
   aiSuggestedStages?: string[]
   creators?: string[]
   createdAt?: number
-  projectTypeTag?: string
+  projectTypeTags?: string[]
   openStatusLabel?: string
   allowEasyApply?: boolean
   whatToProvide?: string

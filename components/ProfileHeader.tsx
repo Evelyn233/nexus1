@@ -84,8 +84,8 @@ export function ProfileHeader({
           </div>
           <img
             src="/logo-nexus.jpeg"
-            alt="logo"
-            className="h-12 w-auto object-contain rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
+            alt="Nexus"
+            className="h-10 sm:h-11 w-auto max-w-[220px] object-contain object-left cursor-pointer hover:opacity-80 transition-opacity"
             onClick={() => router.push('/profile')}
           />
         </div>
