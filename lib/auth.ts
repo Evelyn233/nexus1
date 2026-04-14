@@ -102,8 +102,8 @@ export const authOptions: NextAuthOptions = {
             throw new Error('账号或密码错误')
           }
 
-          // userType 从 profileData 取（DB 可能无 userType 列）
-          let userType: 'person' | 'project' = 'person'
+          // userType 从 profileData 取（DB 可能无 userType 列），默认 project
+          let userType: 'person' | 'project' = 'project'
           if (user.profileData) {
             try {
               const pd = typeof user.profileData === 'string' ? JSON.parse(user.profileData) : user.profileData
@@ -194,6 +194,20 @@ export const authOptions: NextAuthOptions = {
             // 重要：覆盖 user.id 为已有用户的 ID
             user.id = existingUser.id
 
+            // 确保已有用户的 profileData 包含 userType: project
+            if (existingUser.profileData) {
+              const pd = typeof existingUser.profileData === 'string' 
+                ? JSON.parse(existingUser.profileData) 
+                : existingUser.profileData
+              if (!pd.userType || pd.userType === 'person') {
+                pd.userType = 'project'
+                await prisma.user.update({
+                  where: { id: existingUser.id },
+                  data: { profileData: JSON.stringify(pd) }
+                })
+              }
+            }
+
             // 删除临时 OAuth 用户（如果该用户没有其他 account）
             if (account?.provider && account?.providerAccountId) {
               const oauthAccountsCount = await prisma.account.count({
@@ -206,6 +220,14 @@ export const authOptions: NextAuthOptions = {
                 console.log('   [AUTH] 删除临时 OAuth 用户')
               }
             }
+          } else {
+            // 新用户：设置 userType 为 project（冷启动阶段）
+            const profileData = JSON.stringify({ userType: 'project' })
+            await prisma.user.update({
+              where: { id: user.id },
+              data: { profileData }
+            })
+            console.log('   [AUTH] 新用户设置 userType=project')
           }
         } catch (e) {
           console.error('❌ [AUTH] signIn callback 错误:', e)
@@ -224,7 +246,7 @@ export const authOptions: NextAuthOptions = {
         token.email = user.email
         token.name = user.name
         token.picture = user.image
-        token.userType = (user as { userType?: string }).userType === 'project' ? 'project' : 'person'
+        token.userType = (user as { userType?: string }).userType === 'project' ? 'project' : 'project'
       }
       return token
     },
@@ -235,8 +257,8 @@ export const authOptions: NextAuthOptions = {
         session.user.email = token.email as string
         session.user.name = token.name as string
         session.user.image = token.picture as string
-        // 每次读 session 时从 DB 取最新 userType（从 profileData JSON 取，避免查询 users.userType 列可能不存在）
-        let userType: 'person' | 'project' = token.userType === 'project' ? 'project' : 'person'
+        // 每次读 session 时从 DB 取最新 userType（从 profileData JSON 取，默认 project）
+        let userType: 'person' | 'project' = 'project'
         if (token.id && process.env.DATABASE_URL) {
           try {
             const rows = await prisma.$queryRawUnsafe<{ profileData: string | null }[]>(

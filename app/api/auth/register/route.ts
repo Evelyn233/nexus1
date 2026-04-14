@@ -77,13 +77,14 @@ export async function POST(request: Request) {
     // 加密密码
     const hashedPassword = await bcrypt.hash(password, 12)
 
-    // 创建用户（schema 默认 userType=person；若从首页「Create Project」走 get-started 会再改为 project）
+    // 创建用户 - 冷启动阶段全部设置为 project 类型
     const user = await prisma.user.create({
       data: {
         name: name || email.split('@')[0],
         email,
         password: hashedPassword,
         emailVerified: new Date(),
+        profileData: JSON.stringify({ userType: 'project' }),
       }
     })
 
