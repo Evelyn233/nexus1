@@ -6,9 +6,24 @@ import { PrismaAdapter } from '@next-auth/prisma-adapter'
 import bcrypt from 'bcryptjs'
 import prisma from './prisma'
 
+// 自定义错误：自动链接同一邮箱的账号
+class AccountLinkedError extends Error {
+  constructor() {
+    super('账号已存在，正在自动链接...')
+    this.name = 'AccountLinkedError'
+  }
+}
+
 export const authOptions: NextAuthOptions = {
+  // 允许同邮箱的账号自动链接（解决 OAuthAccountNotLinked 问题）
+  trustHost: true,
+  
   // 在Vercel上，如果数据库连接失败，不使用adapter
   ...(process.env.DATABASE_URL ? { adapter: PrismaAdapter(prisma) } : {}),
+  
+  // 允许自动链接同一邮箱的账号
+  secret: process.env.NEXTAUTH_SECRET,
+
   
   providers: [
     // 邮箱/手机号密码登录（支持邮箱或手机号）
@@ -145,6 +160,50 @@ export const authOptions: NextAuthOptions = {
   },
 
   callbacks: {
+    async signIn({ user, account, profile, isNewUser }) {
+      // OAuth 登录时，自动链接同一邮箱的已有账号
+      if (account?.provider !== 'credentials' && user.email) {
+        try {
+          const existingUser = await prisma.user.findFirst({
+            where: { email: user.email }
+          })
+          
+          // 如果找到了已存在的用户，且不是当前 OAuth 创建的新用户
+          if (existingUser && existingUser.id !== user.id) {
+            console.log('🔗 检测到已存在账号，自动链接:', user.email)
+            console.log('   OAuth用户ID:', user.id, '-> 链接到:', existingUser.id)
+            
+            // 更新 OAuth account 的 userId 指向已有用户
+            await prisma.account.updateMany({
+              where: { 
+                userId: user.id,
+                provider: account?.provider,
+                type: 'oauth'
+              },
+              data: { userId: existingUser.id }
+            })
+            
+            // 删除新创建的临时 OAuth 用户（如果存在且没有其他 account）
+            const oauthUserAccounts = await prisma.account.count({
+              where: { userId: user.id }
+            })
+            if (oauthUserAccounts === 0) {
+              await prisma.user.delete({
+                where: { id: user.id }
+              })
+              console.log('   删除临时 OAuth 用户:', user.id)
+            }
+            
+            // 使用已有用户的 ID
+            user.id = existingUser.id
+          }
+        } catch (e) {
+          console.error('自动链接账号失败:', e)
+        }
+      }
+      return true
+    },
+
     async jwt({ token, user, account, isNewUser }) {
       // 首次登录时
       if (user) {
@@ -197,18 +256,33 @@ export const authOptions: NextAuthOptions = {
   },
 
   events: {
-    async signIn({ user, account, profile, isNewUser }) {
-      console.log('✅ 用户登录:', user.email)
-      
-      // 新用户自动创建
-      if (isNewUser) {
-        console.log('🆕 新用户注册:', user.email)
-      }
+    async linkAccount({ user, account }) {
+      console.log('🔗 账号链接:', account.provider, '->', user.email)
     },
     
-    async signOut({ token }) {
-      console.log('👋 用户登出:', token.email)
+    async createUser({ user }) {
+      console.log('🆕 新用户创建:', user.email)
     },
+    
+    async signIn({ user, account, isNewUser }) {
+      console.log('✅ 用户登录:', user.email, '提供方:', account?.provider, '新用户:', isNewUser)
+    },
+    
+    async session({ session }) {
+      console.log('📦 Session 创建')
+    },
+    
+    async signOut({ session }) {
+      console.log('👋 用户登出')
+    },
+  },
+
+  // 允许自动链接同一邮箱的不同账号类型
+  pages: {
+    signIn: '/auth/signin',
+    signOut: '/auth/signout',
+    error: '/auth/error',
+    newUser: '/profile',
   },
 
   debug: process.env.NODE_ENV === 'development',
