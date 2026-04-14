@@ -185,7 +185,7 @@ export const authOptions: NextAuthOptions = {
 
             // 检查是否已有相同 provider 的 account
             const hasSameProvider = existingUser.accounts.some(
-              a => a.provider === account.provider
+              a => a.provider === account!.provider
             )
 
             if (!hasSameProvider && existingUser.accounts.length > 0) {
@@ -198,8 +198,8 @@ export const authOptions: NextAuthOptions = {
             if (account?.providerAccountId) {
               await prisma.account.updateMany({
                 where: {
-                  provider: account.provider,
-                  providerAccountId: account.providerAccountId
+                  provider: account!.provider,
+                  providerAccountId: account!.providerAccountId
                 },
                 data: { userId: existingUser.id }
               })
@@ -287,7 +287,7 @@ export const authOptions: NextAuthOptions = {
 
   events: {
     async linkAccount({ user, account }) {
-      console.log('🔗 账号链接:', account.provider, '->', user.email)
+      console.log('🔗 账号链接:', account!.provider, '->', user.email)
     },
     
     async createUser({ user }) {
@@ -321,8 +321,8 @@ export const authOptions: NextAuthOptions = {
             if (account?.provider && account?.providerAccountId) {
               await prisma.account.updateMany({
                 where: {
-                  provider: account.provider,
-                  providerAccountId: account.providerAccountId
+                  provider: account!.provider,
+                  providerAccountId: account!.providerAccountId
                 },
                 data: { userId: existingUser.id }
               })
