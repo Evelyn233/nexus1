@@ -160,59 +160,75 @@ export const authOptions: NextAuthOptions = {
   },
 
   callbacks: {
-    async signIn({ user, account, profile, isNewUser }) {
-      // OAuth 登录时，自动链接同一邮箱的已有账号
-      if (account?.provider !== 'credentials' && user.email) {
+    async signIn({ user, account, profile }) {
+      console.log('🔑 [AUTH] signIn callback - provider:', account?.provider, 'email:', user?.email, 'user.id:', user?.id)
+
+      // 如果是 OAuth 登录且用户有邮箱
+      if (account?.provider !== 'credentials' && user?.email) {
         try {
+          // 查找已存在的用户（按 email 和 phone 都查一下）
           const existingUser = await prisma.user.findFirst({
-            where: { email: user.email }
-          })
-          
-          // 如果找到了已存在的用户，且不是当前 OAuth 创建的新用户
-          if (existingUser && existingUser.id !== user.id) {
-            console.log('🔗 检测到已存在账号，自动链接:', user.email)
-            console.log('   OAuth用户ID:', user.id, '-> 链接到:', existingUser.id)
-            
-            // 更新 OAuth account 的 userId 指向已有用户
-            await prisma.account.updateMany({
-              where: { 
-                userId: user.id,
-                provider: account?.provider,
-                type: 'oauth'
-              },
-              data: { userId: existingUser.id }
-            })
-            
-            // 删除新创建的临时 OAuth 用户（如果存在且没有其他 account）
-            const oauthUserAccounts = await prisma.account.count({
-              where: { userId: user.id }
-            })
-            if (oauthUserAccounts === 0) {
-              await prisma.user.delete({
-                where: { id: user.id }
-              })
-              console.log('   删除临时 OAuth 用户:', user.id)
+            where: {
+              OR: [
+                { email: user.email },
+                { phone: user.email } // Google 有时返回的电话号格式可能匹配
+              ]
             }
-            
-            // 使用已有用户的 ID
+          })
+
+          if (existingUser) {
+            console.log('🔗 [AUTH] 发现已存在用户:', existingUser.email || existingUser.phone)
+            console.log('   [AUTH] OAuth 临时用户ID:', user.id, '-> 链接到:', existingUser.id)
+
+            // 保存旧用户ID用于后续清理
+            const tempUserId = user.id
+
+            // 如果 account 信息完整，更新 account 指向已有用户
+            if (account?.provider && account?.providerAccountId) {
+              await prisma.account.updateMany({
+                where: {
+                  provider: account.provider,
+                  providerAccountId: account.providerAccountId
+                },
+                data: { userId: existingUser.id }
+              })
+              console.log('   [AUTH] Account 记录已更新')
+            }
+
+            // 重要：覆盖 user.id 为已有用户的 ID
             user.id = existingUser.id
+
+            // 删除临时 OAuth 用户（如果该用户没有其他 account）
+            if (account?.provider && account?.providerAccountId) {
+              const oauthAccountsCount = await prisma.account.count({
+                where: { userId: tempUserId }
+              })
+              if (oauthAccountsCount === 0) {
+                await prisma.user.delete({
+                  where: { id: tempUserId }
+                })
+                console.log('   [AUTH] 删除临时 OAuth 用户')
+              }
+            }
           }
         } catch (e) {
-          console.error('自动链接账号失败:', e)
+          console.error('❌ [AUTH] signIn callback 错误:', e)
         }
       }
+
       return true
     },
 
-    async jwt({ token, user, account, isNewUser }) {
-      // 首次登录时
+    async jwt({ token, user, account }) {
+      console.log('🔐 [AUTH] jwt callback - user:', user?.id, 'account:', account?.provider)
+      
+      // 首次登录时，从 user 对象获取 ID
       if (user) {
         token.id = user.id
         token.email = user.email
         token.name = user.name
         token.picture = user.image
         token.userType = (user as { userType?: string }).userType === 'project' ? 'project' : 'person'
-        token.isNewUser = isNewUser
       }
       return token
     },
@@ -266,6 +282,55 @@ export const authOptions: NextAuthOptions = {
     
     async signIn({ user, account, isNewUser }) {
       console.log('✅ 用户登录:', user.email, '提供方:', account?.provider, '新用户:', isNewUser)
+
+      // 如果是 OAuth 登录且不是新用户（即账号已存在但未链接）
+      if (account?.provider !== 'credentials' && !isNewUser && user?.email && process.env.DATABASE_URL) {
+        try {
+          // 查找已存在的用户（支持 email 和 phone）
+          const existingUser = await prisma.user.findFirst({
+            where: {
+              OR: [
+                { email: user.email },
+                { phone: user.email }
+              ]
+            }
+          })
+
+          if (existingUser && existingUser.id !== user.id) {
+            console.log('🔗 [EVENT] 检测到已存在账号，自动链接:', user.email)
+            console.log('   [EVENT] OAuth 用户ID:', user.id, '-> 链接到:', existingUser.id)
+
+            // 保存旧用户ID用于后续清理
+            const tempUserId = user.id
+
+            // 更新 account 的 userId
+            if (account?.provider && account?.providerAccountId) {
+              await prisma.account.updateMany({
+                where: {
+                  provider: account.provider,
+                  providerAccountId: account.providerAccountId
+                },
+                data: { userId: existingUser.id }
+              })
+            }
+
+            // 删除临时 OAuth 用户（如果该用户没有其他 account）
+            if (process.env.DATABASE_URL) {
+              const oauthAccountsCount = await prisma.account.count({
+                where: { userId: tempUserId }
+              })
+              if (oauthAccountsCount === 0) {
+                await prisma.user.delete({
+                  where: { id: tempUserId }
+                })
+                console.log('   [EVENT] 删除临时 OAuth 用户')
+              }
+            }
+          }
+        } catch (e) {
+          console.error('❌ [EVENT] 自动链接失败:', e)
+        }
+      }
     },
     
     async session({ session }) {
@@ -278,13 +343,6 @@ export const authOptions: NextAuthOptions = {
   },
 
   // 允许自动链接同一邮箱的不同账号类型
-  pages: {
-    signIn: '/auth/signin',
-    signOut: '/auth/signout',
-    error: '/auth/error',
-    newUser: '/profile',
-  },
-
   debug: process.env.NODE_ENV === 'development',
 }
 

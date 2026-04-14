@@ -43,13 +43,24 @@ export default function SignUpPage() {
     else setName((prev) => prev || linkSuffixFromCallback || '')
   }, [linkSuffixFromCallback, nameFromCallback])
 
-  // If already logged in and callback is get-started, redirect to get-started (Create Project flow)
-  // forceSignup=1 prevents auto-redirect, ensuring Personal flow stays on signup page
+  // 如果已登录，直接跳转到对应页面
   useEffect(() => {
     if (status !== 'authenticated' || !session?.user) return
-    if (!forceSignup && callbackUrl.startsWith('/get-started') && !callbackUrl.includes('/auth/')) {
+
+    // 如果有明确的 callbackUrl 且不是 auth 相关页面，跳转到 callbackUrl
+    if (callbackUrl && !callbackUrl.includes('/auth/') && !forceSignup) {
       window.location.href = callbackUrl
+      return
     }
+
+    // 否则根据用户类型跳转
+    const userType = (session?.user as { userType?: string })?.userType
+    const targetUrl = userType === 'project' ? '/project' : '/profile'
+
+    // 避免重复跳转
+    if (!window.location.pathname.startsWith('/auth/')) return
+
+    window.location.href = targetUrl
   }, [status, session, callbackUrl, forceSignup])
 
   const handleLinkedInSignIn = async () => {
