@@ -15,13 +15,9 @@ class AccountLinkedError extends Error {
 }
 
 export const authOptions: NextAuthOptions = {
-  // 允许同邮箱的账号自动链接（解决 OAuthAccountNotLinked 问题）
-  trustHost: true,
-  
   // 在Vercel上，如果数据库连接失败，不使用adapter
   ...(process.env.DATABASE_URL ? { adapter: PrismaAdapter(prisma) } : {}),
-  
-  // 允许自动链接同一邮箱的账号
+
   secret: process.env.NEXTAUTH_SECRET,
 
   
@@ -141,6 +137,37 @@ export const authOptions: NextAuthOptions = {
           GoogleProvider({
             clientId: process.env.GOOGLE_CLIENT_ID,
             clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+            // 自定义 authorize：自动链接同一邮箱的已有账号
+            async authorize(profile) {
+              const email = (profile.email as string)?.toLowerCase()
+              if (!email) {
+                throw new Error('Google 登录未返回邮箱地址')
+              }
+
+              // 查找已存在的用户（按邮箱）
+              const existingUser = await prisma.user.findFirst({
+                where: { email },
+                select: { id: true, email: true, name: true, image: true }
+              })
+
+              if (existingUser) {
+                // 返回现有用户，NextAuth 会链接到该用户
+                return {
+                  id: existingUser.id,
+                  email: existingUser.email,
+                  name: existingUser.name,
+                  image: existingUser.image,
+                }
+              }
+
+              // 新用户：返回基本信息，NextAuth 会自动创建用户和 account
+              return {
+                id: email, // 临时 ID，NextAuth 会重新生成
+                email: email,
+                name: profile.name || '',
+                image: profile.picture || '',
+              }
+            },
           }),
         ]
       : []),
