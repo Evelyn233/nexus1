@@ -162,25 +162,40 @@ export const authOptions: NextAuthOptions = {
       // 如果是 OAuth 登录且用户有邮箱
       if (account?.provider !== 'credentials' && user?.email) {
         try {
-          // 查找已存在的用户（按 email 和 phone 都查一下）
+          // 查找已存在的用户
           const existingUser = await prisma.user.findFirst({
             where: {
               OR: [
                 { email: user.email },
-                { phone: user.email } // Google 有时返回的电话号格式可能匹配
+                { phone: user.email }
               ]
-            }
+            },
+            include: { accounts: true }
           })
 
           if (existingUser) {
             console.log('🔗 [AUTH] 发现已存在用户:', existingUser.email || existingUser.phone)
-            console.log('   [AUTH] OAuth 临时用户ID:', user.id, '-> 链接到:', existingUser.id)
+            console.log('   [AUTH] 已有账户:', existingUser.accounts.map(a => a.provider).join(', '))
 
-            // 保存旧用户ID用于后续清理
-            const tempUserId = user.id
+            // 检查用户是否已有密码（通过邮箱注册的账号）
+            if (existingUser.password) {
+              console.log('   [AUTH] 该用户有密码账号，不允许 OAuth 登录')
+              return false // 阻止登录，提示用户用密码登录
+            }
 
-            // 如果 account 信息完整，更新 account 指向已有用户
-            if (account?.provider && account?.providerAccountId) {
+            // 检查是否已有相同 provider 的 account
+            const hasSameProvider = existingUser.accounts.some(
+              a => a.provider === account.provider
+            )
+
+            if (!hasSameProvider && existingUser.accounts.length > 0) {
+              // 用户有其他 OAuth provider 的账户（不是 Google），不允许链接
+              console.log('   [AUTH] 该用户已有关联其他 OAuth provider，不允许链接')
+              return false
+            }
+
+            // 允许链接：更新 account 指向已有用户
+            if (account?.providerAccountId) {
               await prisma.account.updateMany({
                 where: {
                   provider: account.provider,
@@ -191,41 +206,22 @@ export const authOptions: NextAuthOptions = {
               console.log('   [AUTH] Account 记录已更新')
             }
 
-            // 重要：覆盖 user.id 为已有用户的 ID
+            // 覆盖 user.id 为已有用户的 ID
             user.id = existingUser.id
 
-            // 确保已有用户的 profileData 包含 userType: project
-            if (existingUser.profileData) {
-              const pd = typeof existingUser.profileData === 'string' 
-                ? JSON.parse(existingUser.profileData) 
-                : existingUser.profileData
-              if (!pd.userType || pd.userType === 'person') {
-                pd.userType = 'project'
-                await prisma.user.update({
-                  where: { id: existingUser.id },
-                  data: { profileData: JSON.stringify(pd) }
-                })
-              }
-            }
+            // 确保 userType 为 project
+            const profileData = { userType: 'project' }
+            await prisma.user.update({
+              where: { id: existingUser.id },
+              data: { profileData: JSON.stringify(profileData) }
+            })
 
-            // 删除临时 OAuth 用户（如果该用户没有其他 account）
-            if (account?.provider && account?.providerAccountId) {
-              const oauthAccountsCount = await prisma.account.count({
-                where: { userId: tempUserId }
-              })
-              if (oauthAccountsCount === 0) {
-                await prisma.user.delete({
-                  where: { id: tempUserId }
-                })
-                console.log('   [AUTH] 删除临时 OAuth 用户')
-              }
-            }
           } else {
-            // 新用户：设置 userType 为 project（冷启动阶段）
-            const profileData = JSON.stringify({ userType: 'project' })
+            // 新用户：设置 userType 为 project
+            const profileData = { userType: 'project' }
             await prisma.user.update({
               where: { id: user.id },
-              data: { profileData }
+              data: { profileData: JSON.stringify(profileData) }
             })
             console.log('   [AUTH] 新用户设置 userType=project')
           }

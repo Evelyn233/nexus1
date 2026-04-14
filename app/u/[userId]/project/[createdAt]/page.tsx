@@ -339,12 +339,7 @@ export default function ProjectPage() {
       return
     }
     let cancelled = false
-    const promise = loadProject()
-    if (promise) {
-      promise.finally(() => { if (!cancelled) setLoading(false) })
-    } else {
-      setLoading(false)
-    }
+    loadProject().finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
   }, [userId, createdAt, loadProject])
 

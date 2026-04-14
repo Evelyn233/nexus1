@@ -1,35 +1,39 @@
-// 强制清空数据库脚本
+// 清空数据库脚本 - 在本地运行
 import { PrismaClient } from '@prisma/client'
 
 const prisma = new PrismaClient()
 
-async function truncateDatabase() {
-  console.log('🗑️  开始清空数据库...')
+async function truncate() {
+  console.log('⚠️ 即将清空数据库中的用户相关表...')
   
   try {
-    // 先删除有外键依赖的表
-    console.log('   删除 Account 记录...')
-    await prisma.account.deleteMany()
+    // 删除所有用户关联的 account
+    await prisma.account.deleteMany({})
+    console.log('✅ 已删除所有 account 记录')
     
-    console.log('   删除 Session 记录...')
-    await prisma.session.deleteMany()
+    // 删除所有 session
+    await prisma.session.deleteMany({})
+    console.log('✅ 已删除所有 session 记录')
     
-    console.log('   删除 VerificationToken 记录...')
-    await prisma.verificationToken.deleteMany()
+    // 删除所有用户
+    await prisma.user.deleteMany({})
+    console.log('✅ 已删除所有 user 记录')
     
-    console.log('   删除 User 记录...')
-    await prisma.user.deleteMany()
+    // 删除所有 verification token
+    try {
+      await prisma.verificationToken.deleteMany({})
+      console.log('✅ 已删除所有 verification token')
+    } catch (e) {
+      // 忽略，如果表不存在
+    }
     
-    console.log('✅ 数据库已清空成功!')
-    console.log('📝 请重新注册你的账号')
+    console.log('\n🎉 数据库已清空！现在可以重新开始。')
+    
   } catch (error) {
-    console.error('❌ 清空数据库失败:', error)
-    throw error
+    console.error('❌ 清空失败:', error)
   } finally {
     await prisma.$disconnect()
   }
 }
 
-truncateDatabase()
-  .then(() => process.exit(0))
-  .catch(() => process.exit(1))
+truncate()
