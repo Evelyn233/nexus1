@@ -20,7 +20,7 @@ export const authOptions: NextAuthOptions = {
 
   secret: process.env.NEXTAUTH_SECRET,
 
-  
+  // NextAuth v4 中 trustHost 已不再需要，使用 NEXTAUTH_URL 环境变量配置
   providers: [
     // 邮箱/手机号密码登录（支持邮箱或手机号）
     CredentialsProvider({
