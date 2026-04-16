@@ -3,11 +3,11 @@
   "outputDirectory": ".next",
   "framework": "nextjs",
   "env": {
-    "DATABASE_URL": "postgresql://neondb_owner:npg_y5RWTMOsXd4F@ep-gentle-wave-a458k1e4-pooler.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require",
-    "NEXTAUTH_URL": "https://inflow-nu.vercel.app",
-    "NEXTAUTH_SECRET": "c8bbf0a4c60d5a4845aedf3c15daffd241d7759a466a9b57fc2494d916635070",
-    "DEEPSEEK_API_KEY": "sk-e3911ff08dae4f4fb59c7b521e2a5415",
-    "SEEDREAM_API_KEY": "17b4a6a5-1a2b-4c3d-827b-cef480fd1580"
+    "DATABASE_URL": "postgresql://neondb_owner:npg_afiyTb8uOe0X@ep-falling-grass-amlecbw6-pooler.c-5.us-east-1.aws.neon.tech/neondb?sslmode=require",
+    "NEXTAUTH_URL": "https://nexus1-sigma.vercel.app",
+    "NEXTAUTH_SECRET": "v3un/4H4Fm+kZGgAqUieqHvDqA80/zqPNg9RGgmW/ec=",
+    "GOOGLE_CLIENT_ID": "737430597487-4hrd9jiqlr9ltcs4jv3e1v9mk7kc2gk9.apps.googleusercontent.com",
+    "GOOGLE_CLIENT_SECRET": "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"
   },
   "functions": {
     "app/api/**/*.ts": {
