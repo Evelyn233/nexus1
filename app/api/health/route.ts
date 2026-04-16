@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET() {
   try {
-    // 检查环境变量
     const envVars = {
       DATABASE_URL: !!process.env.DATABASE_URL,
       NEXTAUTH_URL: !!process.env.NEXTAUTH_URL,
@@ -11,22 +12,22 @@ export async function GET() {
       SEEDREAM_API_KEY: !!process.env.SEEDREAM_API_KEY,
     }
 
-    // 检查数据库连接
-    let databaseStatus = 'unknown'
-    try {
-      const { PrismaClient } = await import('@prisma/client')
-      const prisma = new PrismaClient()
-      
-      // 尝试查询用户表
-      await prisma.user.findFirst()
-      databaseStatus = 'connected'
-      await prisma.$disconnect()
-    } catch (error) {
-      databaseStatus = 'error'
-      console.error('Database check failed:', error)
+    let databaseStatus = 'not_checked'
+    if (process.env.DATABASE_URL) {
+      try {
+        const { PrismaClient } = await import('@prisma/client')
+        const prisma = new PrismaClient()
+        await prisma.user.findFirst()
+        databaseStatus = 'connected'
+        await prisma.$disconnect()
+      } catch (error) {
+        databaseStatus = 'error'
+        console.error('Database check failed:', error)
+      }
+    } else {
+      databaseStatus = 'not_configured'
     }
 
-    // 检查 NextAuth 配置
     const nextAuthStatus = !!(process.env.NEXTAUTH_URL && process.env.NEXTAUTH_SECRET)
 
     const healthCheck = {
