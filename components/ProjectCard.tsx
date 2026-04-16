@@ -2,7 +2,7 @@
 
 import { useRef, useState } from 'react'
 import Link from 'next/link'
-import { Download, Copy, Check, ArrowRight, Sparkles, Heart, Bookmark, MessageCircle } from 'lucide-react'
+import { Download, Copy, Check, ArrowRight, Sparkles, Heart, Bookmark, MessageCircle, Share2 } from 'lucide-react'
 
 /** 卡片数据 */
 export interface CardData {
@@ -252,7 +252,7 @@ export default function ProjectCard({ data, previewMode = false, innerRef, draft
           {special && <InfoRow icon="⭐" label="Standout" value={special} accentColor="#ca8a04" />}
         </div>
 
-        {/* 附件图片区（可多图；每张图上方显示对应 Describe） */}
+        {/* 附件图片区：多个附件并排显示 */}
         {attachmentUrls.map((url, i) => (
           <AttachmentBlock
             key={`${url.slice(0, 48)}-${i}`}
@@ -260,6 +260,7 @@ export default function ProjectCard({ data, previewMode = false, innerRef, draft
             caption={captionLines[i]?.trim() || undefined}
             pageHref={linkHrefLines[i]?.trim() || undefined}
             linkTitle={linkTitleLines[i]?.trim() || undefined}
+            compact
           />
         ))}
 
@@ -304,18 +305,21 @@ export default function ProjectCard({ data, previewMode = false, innerRef, draft
                   {shortUrl}
                 </p>
               </div>
-              <div
-                style={{
-                  padding: '8px 16px',
-                  borderRadius: '10px',
-                  background: 'linear-gradient(135deg, #0d9488 0%, #0891b2 100%)',
-                  color: '#fff',
-                  fontSize: '12px',
-                  fontWeight: 700,
-                  letterSpacing: '0.2px',
-                }}
-              >
-                Join →
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <ShareButtons projectUrl={projectUrl!} hook={hook} />
+                <div
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: '10px',
+                    background: 'linear-gradient(135deg, #0d9488 0%, #0891b2 100%)',
+                    color: '#fff',
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    letterSpacing: '0.2px',
+                  }}
+                >
+                  Join →
+                </div>
               </div>
             </div>
           ) : (
@@ -454,47 +458,44 @@ function InfoRow({
   )
 }
 
-/** 附件：统一预览卡，整块可点击跳转
- *  - 有封面图：左图右文（桌面）| 图上文下（移动端）
- *  - 无封面图：全宽链接卡，标题 + 描述 + URL
- *  有 Describe 时显示在最上方（说明性文字，独立于链接卡）
+/** 附件：description 在上，picture/link 在下，垂直排列
+ *  每个 picture/link 是独立的可点击元素
  */
 function AttachmentBlock({
   url,
   caption,
   pageHref,
   linkTitle,
+  compact = false,
 }: {
   url: string
   caption?: string
   pageHref?: string
   linkTitle?: string
+  compact?: boolean
 }) {
   const cap = caption?.trim()
   const href = pageHref?.trim()
   const title = linkTitle?.trim()
 
-  // 如果没有 href 但有 url（data: 或图片链接），显示纯图片
   if (!href && !url) return null
 
   const isImageUrl = !!url && !url.startsWith('data:')
-  // 生成唯一 ID 用于移动端样式隔离
-  const blockId = href ? `att-${href.slice(0, 40).replace(/[^a-zA-Z0-9]/g, '')}` : `att-img-${url.slice(0, 40).replace(/[^a-zA-Z0-9]/g, '')}`
 
   return (
-    <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '8px', flexShrink: 0 }}>
-      {/* Describe 说明（独立于链接卡，不属于可点击区域） */}
+    <div style={{ display: 'flex', flexDirection: 'column', flexShrink: 0, gap: '6px' }}>
+      {/* Describe 说明 */}
       {cap && (
         <div
           style={{
-            padding: '7px 12px',
+            padding: '6px 10px',
             backgroundColor: '#f8fafc',
             border: '1px solid #e2e8f0',
-            borderRadius: '10px',
-            fontSize: '12px',
+            borderRadius: '8px',
+            fontSize: compact ? '11px' : '12px',
             color: '#64748b',
             fontWeight: 500,
-            lineHeight: 1.45,
+            lineHeight: 1.4,
             wordBreak: 'break-word',
           }}
         >
@@ -502,177 +503,245 @@ function AttachmentBlock({
         </div>
       )}
 
-      {/* 预览卡主体：整块可点击 */}
-      {href ? (
+      {/* 图片/链接：独立可点击 */}
+      {href && isImageUrl ? (
         <a
           href={href}
           target="_blank"
           rel="noopener noreferrer"
-          id={blockId}
           style={{
-            display: 'flex',
-            flexDirection: 'row',
-            borderRadius: '12px',
+            display: 'block',
+            borderRadius: '10px',
             border: '1.5px solid #e2e8f0',
-            backgroundColor: '#ffffff',
             overflow: 'hidden',
             textDecoration: 'none',
-            color: '#0f172a',
             cursor: 'pointer',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
-            transition: 'box-shadow 0.15s ease, border-color 0.15s ease',
+            transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
           }}
           onMouseEnter={(e) => {
             const el = e.currentTarget as HTMLAnchorElement
-            el.style.boxShadow = '0 4px 12px rgba(13,148,136,0.15)'
             el.style.borderColor = '#0d9488'
+            el.style.boxShadow = '0 4px 12px rgba(13,148,136,0.15)'
           }}
           onMouseLeave={(e) => {
             const el = e.currentTarget as HTMLAnchorElement
-            el.style.boxShadow = '0 1px 3px rgba(0,0,0,0.06)'
             el.style.borderColor = '#e2e8f0'
-          }}
-        >
-        {/* 左侧封面图 */}
-        {isImageUrl ? (
-          <div
-            style={{
-              width: '96px',
-              flexShrink: 0,
-              backgroundColor: '#f1f5f9',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              overflow: 'hidden',
-            }}
-          >
-            <img
-              src={url}
-              alt=""
-              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-              onError={(e) => {
-                const img = e.currentTarget as HTMLImageElement
-                img.parentElement!.style.backgroundColor = '#f1f5f9'
-                img.style.display = 'none'
-              }}
-            />
-          </div>
-        ) : (
-          <div
-            style={{
-              width: '48px',
-              flexShrink: 0,
-              backgroundColor: '#f0fdfa',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            {/* 链接图标占位 */}
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0d9488" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
-              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
-            </svg>
-          </div>
-        )}
-
-        {/* 右侧文字区 */}
-        <div
-          style={{
-            flex: 1,
-            padding: '10px 8px 10px 12px',
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'center',
-            gap: '3px',
-            minWidth: 0,
-          }}
-        >
-          {title && (
-            <p
-              style={{
-                fontSize: '13px',
-                fontWeight: 700,
-                color: '#0f172a',
-                lineHeight: 1.35,
-                margin: 0,
-                overflow: 'hidden',
-                display: '-webkit-box',
-                WebkitLineClamp: 2,
-                WebkitBoxOrient: 'vertical',
-                wordBreak: 'break-word',
-              }}
-            >
-              {title}
-            </p>
-          )}
-          <p
-            style={{
-              fontSize: '10px',
-              color: '#94a3b8',
-              margin: 0,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {href.replace(/^https?:\/\//, '').replace(/\/$/, '')}
-          </p>
-        </div>
-
-        {/* 右侧箭头 */}
-        <div style={{ display: 'flex', alignItems: 'center', padding: '0 10px 0 4px', flexShrink: 0 }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0d9488" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M7 17L17 7M17 7H7M17 7v10" />
-          </svg>
-        </div>
-      </a>
-      ) : (
-        /* 无链接时：仅显示图片 */
-        <div
-          style={{
-            borderRadius: '12px',
-            border: '1.5px solid #e2e8f0',
-            overflow: 'hidden',
-            backgroundColor: '#ffffff',
+            el.style.boxShadow = 'none'
           }}
         >
           <img
             src={url}
-            alt={caption || 'Attachment'}
-            style={{
-              width: '100%',
-              height: 'auto',
-              objectFit: 'contain',
-              display: 'block',
-            }}
+            alt={title || ''}
+            style={{ width: '100%', height: 'auto', display: 'block' }}
             onError={(e) => {
               const img = e.currentTarget as HTMLImageElement
               img.style.display = 'none'
               img.parentElement!.style.backgroundColor = '#f1f5f9'
+              img.parentElement!.style.minHeight = '80px'
             }}
           />
-        </div>
-      )}
+          {title && (
+            <div style={{ padding: '6px 10px', backgroundColor: '#fff' }}>
+              <span style={{ fontSize: '12px', fontWeight: 600, color: '#0f172a' }}>{title}</span>
+            </div>
+          )}
+        </a>
+      ) : href ? (
+        <a
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            padding: compact ? '8px 10px' : '10px 14px',
+            borderRadius: '10px',
+            border: '1.5px solid #e2e8f0',
+            backgroundColor: '#ffffff',
+            textDecoration: 'none',
+            cursor: 'pointer',
+            transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+          }}
+          onMouseEnter={(e) => {
+            const el = e.currentTarget as HTMLAnchorElement
+            el.style.borderColor = '#0d9488'
+            el.style.boxShadow = '0 4px 12px rgba(13,148,136,0.15)'
+          }}
+          onMouseLeave={(e) => {
+            const el = e.currentTarget as HTMLAnchorElement
+            el.style.borderColor = '#e2e8f0'
+            el.style.boxShadow = '0 1px 3px rgba(0,0,0,0.06)'
+          }}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0d9488" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+          </svg>
+          <span style={{ flex: 1, fontSize: compact ? '11px' : '13px', fontWeight: 600, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {title || href.replace(/^https?:\/\//, '').replace(/\/$/, '')}
+          </span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0d9488" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M7 17L17 7M17 7H7M17 7v10" />
+          </svg>
+        </a>
+      ) : url ? (
+        <img
+          src={url}
+          alt={caption || 'Attachment'}
+          style={{
+            width: '100%',
+            borderRadius: '10px',
+            border: '1.5px solid #e2e8f0',
+          }}
+          onError={(e) => {
+            const img = e.currentTarget as HTMLImageElement
+            img.style.display = 'none'
+          }}
+        />
+      ) : null}
+    </div>
+  )
+}
 
-      {/* 移动端：左图右文 → 图上文下 */}
-      {isImageUrl && (
-        <style>{`
-          @media (max-width: 420px) {
-            #${blockId} {
-              flex-direction: column !important;
-            }
-            #${blockId} > div:first-child {
-              width: 100% !important;
-              height: 120px !important;
-            }
-            #${blockId} > div:first-child img {
-              width: 100% !important;
-              height: 120px !important;
-              object-fit: cover !important;
-            }
-          }
-        `}</style>
+// ─── 分享按钮组件 ───────────────────────────────────────────────
+
+interface ShareButtonsProps {
+  projectUrl: string
+  hook: string
+}
+
+function ShareButtons({ projectUrl, hook }: ShareButtonsProps) {
+  const [showMenu, setShowMenu] = useState(false)
+
+  const encodeText = encodeURIComponent(`🚀 ${hook}\n\n🔗 ${projectUrl}\n\n#Nexus #Collaborate`)
+  const encodeUrl = encodeURIComponent(projectUrl)
+
+  const shareLinks = [
+    {
+      name: 'Twitter',
+      icon: (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+        </svg>
+      ),
+      href: `https://twitter.com/intent/tweet?text=${encodeText}`,
+      color: '#000',
+    },
+    {
+      name: 'LinkedIn',
+      icon: (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+        </svg>
+      ),
+      href: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeUrl}`,
+      color: '#0A66C2',
+    },
+    {
+      name: 'Facebook',
+      icon: (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+        </svg>
+      ),
+      href: `https://www.facebook.com/sharer/sharer.php?u=${encodeUrl}`,
+      color: '#1877F2',
+    },
+    {
+      name: 'Copy Link',
+      icon: <Copy className="w-4 h-4" />,
+      href: null,
+      color: '#64748b',
+      action: () => {
+        navigator.clipboard.writeText(projectUrl)
+      },
+    },
+  ]
+
+  return (
+    <div style={{ position: 'relative' }}>
+      <button
+        onClick={() => setShowMenu(!showMenu)}
+        className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-600 text-sm transition-colors"
+        title="Share"
+      >
+        <Share2 className="w-4 h-4" />
+        Share
+      </button>
+
+      {showMenu && (
+        <>
+          <div
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              zIndex: 40,
+            }}
+            onClick={() => setShowMenu(false)}
+          />
+          <div
+            style={{
+              position: 'absolute',
+              bottom: '100%',
+              right: 0,
+              marginBottom: '8px',
+              backgroundColor: '#fff',
+              borderRadius: '12px',
+              border: '1px solid #e2e8f0',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+              padding: '8px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '4px',
+              zIndex: 50,
+              minWidth: '160px',
+            }}
+          >
+            {shareLinks.map((item) => (
+              <a
+                key={item.name}
+                href={item.href || '#'}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => {
+                  if (item.action) {
+                    e.preventDefault()
+                    item.action()
+                    setShowMenu(false)
+                  } else {
+                    setShowMenu(false)
+                  }
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '8px 12px',
+                  borderRadius: '8px',
+                  color: item.color,
+                  textDecoration: 'none',
+                  fontSize: '13px',
+                  fontWeight: 500,
+                  transition: 'background-color 0.15s ease',
+                }}
+                onMouseEnter={(e) => {
+                  (e.currentTarget as HTMLElement).style.backgroundColor = '#f8fafc'
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent'
+                }}
+              >
+                <span style={{ display: 'flex', alignItems: 'center' }}>{item.icon}</span>
+                {item.name}
+              </a>
+            ))}
+          </div>
+        </>
       )}
     </div>
   )
