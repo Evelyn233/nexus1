@@ -2,13 +2,6 @@
   "buildCommand": "npm run build",
   "outputDirectory": ".next",
   "framework": "nextjs",
-  "env": {
-    "DATABASE_URL": "postgresql://neondb_owner:npg_afiyTb8uOe0X@ep-falling-grass-amlecbw6-pooler.c-5.us-east-1.aws.neon.tech/neondb?sslmode=require",
-    "NEXTAUTH_URL": "https://nexus1-sigma.vercel.app",
-    "NEXTAUTH_SECRET": "v3un/4H4Fm+kZGgAqUieqHvDqA80/zqPNg9RGgmW/ec=",
-    "GOOGLE_CLIENT_ID": "737430597487-4hrd9jiqlr9ltcs4jv3e1v9mk7kc2gk9.apps.googleusercontent.com",
-    "GOOGLE_CLIENT_SECRET": "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"
-  },
   "functions": {
     "app/api/**/*.ts": {
       "maxDuration": 30
